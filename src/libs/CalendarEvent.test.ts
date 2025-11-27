@@ -160,7 +160,7 @@ describe("CalendarEvent Class with Adjusted Constructor", () => {
         }
       });
       
-      it("should return empty array if no matching weekdays", () => {
+      it("should throw error if no matching weekdays", () => {
         const weeklyEventWithNoMatch: EventDetails = {
           id: 'TEST_WEEKLY_NO_MATCH',
           title: 'TEST_WEEKLY_NO_MATCH',
@@ -172,8 +172,7 @@ describe("CalendarEvent Class with Adjusted Constructor", () => {
           },
         };
         const event = new CalendarEvent(weeklyEventWithNoMatch);
-        const nextDates = event.getNextOccurrences(3, MOCK_NOW);
-        expect(nextDates.length).toBe(0);
+        expect(() => event.getNextOccurrences(3, MOCK_NOW)).toThrow("byWeekDays array cannot be empty");
       });
     });
 

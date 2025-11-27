@@ -12,8 +12,8 @@ export function createMockStreamFetch({
   // 确保 chunks 是数组格式
   const chunksArray = Array.isArray(chunks) ? chunks : [chunks];
 
-  return async (_input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
-    console.log('Mock fetch called with init:', init, JSON.parse(init?.body?.toString?.() || 'null'));
+  return async (_input: RequestInfo | URL, _init?: RequestInit): Promise<Response> => {
+    // console.log('Mock fetch called with init:', init, JSON.parse(init?.body?.toString?.() || 'null'));
     
     // 将 chunks 转换为 SSE 格式的数据流
     // 注意：如果 chunk 已经是完整的 SSE 事件格式（以 data:, event:, id:, retry: 等开头），则直接使用，否则包装成 data: 格式
