@@ -12,7 +12,6 @@ interface RepeatEnd {
 
 // const randId = () => [Date.now().toString(16), Math.round(Math.random()*1e15).toString(16).slice(0, 12)].join('-');
 
-
 export interface RepeatRule {
   frequency: Frequency;
   interval?: number; // default 1
@@ -50,30 +49,6 @@ export interface EventDetails {
 // ==========================================================
 
 /**
- * 将星期几字符串转换为 Date 对象的 getDay() 返回值
- */
-function _weekdayToNum(weekday: Weekday): number {
-  const map: Record<Weekday, number> = {
-    SU: 0,
-    MO: 1,
-    TU: 2,
-    WE: 3,
-    TH: 4,
-    FR: 5,
-    SA: 6
-  };
-  return map[weekday];
-}
-
-/**
- * 计算两个星期几之间的天数差
- */
-function _getDaysDiff(currentDay: number, targetDay: number): number {
-  const diff = targetDay - currentDay;
-  return diff >= 0 ? diff : diff + 7;
-}
-
-/**
  * 模拟间隔增加/减少
  */
 function _addInterval(date: Date, interval: number, freq: Frequency): Date {
@@ -100,18 +75,6 @@ function _addInterval(date: Date, interval: number, freq: Frequency): Date {
   return newDate;
 }
 
-/**
- * 调整日期到指定的星期几
- */
-function _adjustToWeekday(date: Date, weekday: Weekday): Date {
-  const newDate = new Date(date);
-  const currentDay = newDate.getDay();
-  const targetDay = _weekdayToNum(weekday);
-  const daysDiff = _getDaysDiff(currentDay, targetDay);
-  newDate.setDate(newDate.getDate() + daysDiff);
-  return newDate;
-}
-
 /** * 模拟结束条件检查
  * ⚠️ 简单实现，COUNT 类型的准确性依赖于外部计数器。
  */
@@ -124,28 +87,6 @@ function _checkEndCondition(date: Date, end?: RepeatEnd | null): boolean {
     return date.getTime() <= new Date(end.value).getTime();
   }
   return true; // 对于 COUNT，我们依赖外部逻辑来中断循环
-}
-
-/**
- * 检查日期是否符合 byWeekDays 规则
- */
-function _isMatchingWeekdays(date: Date, byWeekDays?: Weekday[]): boolean {
-  if (!byWeekDays || byWeekDays.length === 0) {
-    return true; // 没有指定 byWeekDays，匹配所有日期
-  }
-  const dayNum = date.getDay();
-  // 将 dayNum 转换为 Weekday 字符串
-  const weekdayMap: Record<number, Weekday> = {
-    0: "SU",
-    1: "MO",
-    2: "TU",
-    3: "WE",
-    4: "TH",
-    5: "FR",
-    6: "SA"
-  };
-  const dateWeekday = weekdayMap[dayNum];
-  return byWeekDays.includes(dateWeekday);
 }
 
 /**
@@ -165,58 +106,17 @@ function _calculateRecurrences(
   const absCount = Math.abs(count);
   const interval = rule.interval || 1;
 
-  // 如果是 WEEKLY 频率且指定了 byWeekDays，调整起始日期到第一个匹配的星期几
-  if (rule.frequency === "WEEKLY" && rule.byWeekDays && rule.byWeekDays.length > 0) {
-    // 找到第一个匹配的星期几
-    let foundMatch = false;
-    for (let i = 0; i < 7; i++) {
-      if (_isMatchingWeekdays(current, rule.byWeekDays)) {
-        foundMatch = true;
-        break;
-      }
-      current.setDate(current.getDate() + 1);
-    }
-    if (!foundMatch) {
-      return result; // 没有匹配的星期几，返回空数组
-    }
-  }
-
   if (isFuture) {
     // --- 计算未来事件 (N > 0) ---
     while (current.getTime() < start.getTime()) {
       current = _addInterval(current, interval, rule.frequency);
-      // 如果是 WEEKLY 频率，需要检查是否匹配 byWeekDays
-      if (rule.frequency === "WEEKLY" && !_isMatchingWeekdays(current, rule.byWeekDays)) {
-        // 每周调整一次，直到找到匹配的日期
-        for (let i = 0; i < 6; i++) {
-          current.setDate(current.getDate() + 1);
-          if (_isMatchingWeekdays(current, rule.byWeekDays)) {
-            break;
-          }
-        }
-      }
     }
-    
-    let addedCount = 0;
-    while (addedCount < absCount) {
+    for (let i = 0; i < absCount; i++) {
       if (_checkEndCondition(current, parseRepeatEnd(rule.end))) {
-        if (_isMatchingWeekdays(current, rule.byWeekDays)) {
-          const newStart = new Date(current);
-          const newEnd = new Date(newStart.getTime() + durationMs);
-          result.push({ start: newStart, end: newEnd });
-          addedCount++;
-        }
+        const newStart = new Date(current);
+        const newEnd = new Date(newStart.getTime() + durationMs);
+        result.push({ start: newStart, end: newEnd });
         current = _addInterval(current, interval, rule.frequency);
-        // 如果是 WEEKLY 频率，需要检查是否匹配 byWeekDays
-        if (rule.frequency === "WEEKLY" && !_isMatchingWeekdays(current, rule.byWeekDays)) {
-          // 每周调整一次，直到找到匹配的日期
-          for (let i = 0; i < 6; i++) {
-            current.setDate(current.getDate() + 1);
-            if (_isMatchingWeekdays(current, rule.byWeekDays)) {
-              break;
-            }
-          }
-        }
       } else {
         break;
       }
@@ -239,26 +139,12 @@ function _calculateRecurrences(
     }
 
     current = latestPastEvent;
-    let addedCount = 0;
-    while (addedCount < absCount) {
+    for (let i = 0; i < absCount; i++) {
       if (current.getTime() >= eventStart.getTime()) {
-        if (_isMatchingWeekdays(current, rule.byWeekDays)) {
-          const newStart = new Date(current);
-          const newEnd = new Date(newStart.getTime() + durationMs);
-          result.push({ start: newStart, end: newEnd });
-          addedCount++;
-        }
+        const newStart = new Date(current);
+        const newEnd = new Date(newStart.getTime() + durationMs);
+        result.push({ start: newStart, end: newEnd });
         current = _addInterval(current, -interval, rule.frequency); // 减去间隔
-        // 如果是 WEEKLY 频率，需要检查是否匹配 byWeekDays
-        if (rule.frequency === "WEEKLY" && !_isMatchingWeekdays(current, rule.byWeekDays)) {
-          // 每周调整一次，直到找到匹配的日期
-          for (let i = 0; i < 6; i++) {
-            current.setDate(current.getDate() - 1);
-            if (_isMatchingWeekdays(current, rule.byWeekDays)) {
-              break;
-            }
-          }
-        }
       } else {
         break;
       }
