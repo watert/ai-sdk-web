@@ -2,7 +2,7 @@
  * 预设类型复用
  */
 type Weekday = "SU" | "MO" | "TU" | "WE" | "TH" | "FR" | "SA";
-type Frequency = "YEARLY" | "MONTHLY" | "WEEKLY" | "DAILY";
+type Frequency = "MONTHLY" | "WEEKLY" | "DAILY"; // YEARLY 好像不需要
 type EndType = "NEVER" | "COUNT" | "UNTIL_DATE";
 
 interface RepeatEnd {
@@ -16,9 +16,9 @@ interface RepeatEnd {
 export interface RepeatRule {
   frequency: Frequency;
   interval?: number; // default 1
-  byWeekDays?: Weekday[];
-  byMonthDays?: number[];
-  byMonths?: number[];
+  byWeekDays?: Weekday[]; // 每周的哪些天重复, 例如 ["MO", "WE", "FR"] 表示周一、周三、周五重复
+  byMonthDays?: number[]; // 每月的哪些天重复, 例如 [1, 15] 表示每月 1 号和 15 号重复
+  // byMonths?: number[]; // (似乎不需要) 每年的哪些月重复, 例如 [1, 6] 表示每年 1 月和 6 月重复
   end?: Date | number | string | RepeatEnd;
 }
 
@@ -31,6 +31,10 @@ export interface EventDetails {
   repeatRule?: RepeatRule | null;
   lastTriggeredTime?: string | Date | null;
 }
+/**
+ * 根据前面的 EventDetails 类型，设计一个表单界面，引入 react-hook-form 库。
+ * 其中，
+ */
 
 export function parseRepeatEnd(end: Date | number | string | RepeatEnd | undefined): RepeatEnd | undefined {
   if (end instanceof Date) {
@@ -73,9 +77,9 @@ function _getDaysDiff(currentDay: number, targetDay: number): number {
 function _addInterval(date: Date, interval: number, freq: Frequency): Date {
   const newDate = new Date(date);
   switch (freq) {
-  case "YEARLY":
-    newDate.setFullYear(newDate.getFullYear() + interval);
-    break;
+  // case "YEARLY":
+  //   newDate.setFullYear(newDate.getFullYear() + interval);
+  //   break;
   case "MONTHLY": {
     // 确保不会因为月份溢出而跳过月份
     const newMonth = newDate.getMonth() + interval;
