@@ -8,6 +8,8 @@ export interface IndustryTagInfo {
   name: string; // 行业中文名称
   name_en: string; // 行业英文名称
   desc: string; // 行业描述
+  emoji: string; // 行业对应的emoji
+  priority?: number; // 行业排序优先级
   tags: string[]; // 相关标签列表
   audienceDesc: string; // 受众描述
   audienceTags: string[]; // 受众标签列表
