@@ -2,7 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 
 interface MenuItemProps {
   to: string;
-  icon: string;
+  icon: React.ReactNode;
   label: string;
   isSidebarOpen: boolean;
   matchExact?: boolean;

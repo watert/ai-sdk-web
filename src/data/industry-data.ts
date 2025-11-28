@@ -3,7 +3,7 @@ import _industryData from './industry-tag-info-36.json';
 /**
  * 行业标签信息接口定义
  */
-interface IndustryTagInfo {
+export interface IndustryTagInfo {
   id: string; // 行业唯一标识符
   name: string; // 行业中文名称
   name_en: string; // 行业英文名称

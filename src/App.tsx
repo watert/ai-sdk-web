@@ -7,6 +7,8 @@ import MockChatPage from './pages/MockChatPage';
 import EventListPage from './pages/EventListPage';
 import EventDetailPage from './pages/EventDetailPage';
 import EventEditPage from './pages/EventEditPage';
+import IndustryListPage from './pages/IndustryListPage';
+import IndustryDetailPage from './pages/IndustryDetailPage';
 import axios from 'axios';
 
 if (typeof window !== 'undefined') {
@@ -25,6 +27,10 @@ function App() {
           <Route path="events/:id" element={<EventDetailPage />} />
           <Route path="events/:id/edit" element={<EventEditPage />} />
           <Route path="events/new" element={<EventEditPage />} />
+          <Route path="industries" element={<IndustryListPage />}>
+            <Route index element={<Navigate to="/industries/1" replace />} />
+            <Route path=":id" element={<IndustryDetailPage />} />
+          </Route>
         </Route>
       </Routes>
     </BrowserRouter>

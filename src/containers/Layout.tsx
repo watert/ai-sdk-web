@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import MenuItem from '../components/MenuItem';
+import { MessageSquare, Bot, Calendar, Building2 } from 'lucide-react';
 
 const Layout: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -32,22 +33,28 @@ const Layout: React.FC = () => {
           <ul className="space-y-2">
             <MenuItem 
               to="/chat" 
-              icon="💬" 
+              icon={<MessageSquare size={18} />} 
               label="真实聊天" 
               isSidebarOpen={isSidebarOpen} 
               matchExact={true}
             />
             <MenuItem 
               to="/mock-chat" 
-              icon="🤖" 
+              icon={<Bot size={18} />} 
               label="模拟聊天" 
               isSidebarOpen={isSidebarOpen} 
               matchExact={true}
             />
             <MenuItem 
               to="/events" 
-              icon="📅" 
+              icon={<Calendar size={18} />} 
               label="事件管理" 
+              isSidebarOpen={isSidebarOpen}
+            />
+            <MenuItem 
+              to="/industries" 
+              icon={<Building2 size={18} />} 
+              label="行业管理" 
               isSidebarOpen={isSidebarOpen}
             />
           </ul>
