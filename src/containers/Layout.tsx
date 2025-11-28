@@ -42,6 +42,15 @@ const Layout: React.FC = () => {
                 <span className="menu-text">模拟聊天</span>
               </Link>
             </li>
+            <li>
+              <Link 
+                to="/events" 
+                className={`menu-item ${location.pathname === '/events' || location.pathname.startsWith('/events/') ? 'active' : ''}`}
+              >
+                <span className="menu-icon">📅</span>
+                <span className="menu-text">事件管理</span>
+              </Link>
+            </li>
           </ul>
         </nav>
       </aside>

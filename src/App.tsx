@@ -4,6 +4,9 @@ import './App.css';
 import Layout from './containers/Layout';
 import ChatPage from './pages/ChatPage';
 import MockChatPage from './pages/MockChatPage';
+import EventListPage from './pages/EventListPage';
+import EventDetailPage from './pages/EventDetailPage';
+import EventEditPage from './pages/EventEditPage';
 import axios from 'axios';
 
 if (typeof window !== 'undefined') {
@@ -18,6 +21,10 @@ function App() {
           <Route index element={<Navigate to="/chat" replace />} />
           <Route path="chat" element={<ChatPage />} />
           <Route path="mock-chat" element={<MockChatPage />} />
+          <Route path="events" element={<EventListPage />} />
+          <Route path="events/:id" element={<EventDetailPage />} />
+          <Route path="events/:id/edit" element={<EventEditPage />} />
+          <Route path="events/new" element={<EventEditPage />} />
         </Route>
       </Routes>
     </BrowserRouter>
