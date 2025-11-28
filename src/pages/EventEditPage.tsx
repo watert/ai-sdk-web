@@ -15,20 +15,20 @@ const EventEditPage: React.FC = () => {
 
   // If ID is provided but event not found, redirect to list
   if (id && !initialData) {
-     navigate('/');
+     navigate('/events');
      return null;
   }
 
   const handleSave = (eventData: EventDetails) => {
     saveEvent(eventData);
-    navigate('/');
+    navigate('/events');
   };
 
   const handleCancel = () => {
     if (id) {
        navigate(`/events/${id}`);
     } else {
-       navigate('/');
+       navigate('/events');
     }
   };
 

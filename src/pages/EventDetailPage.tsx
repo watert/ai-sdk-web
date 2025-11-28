@@ -23,7 +23,7 @@ const EventDetailPage: React.FC = () => {
           console.error("Error calculating occurrences", e);
         }
       } else {
-        navigate('/');
+        navigate('/events');
       }
     }
   }, [id, navigate]);
@@ -33,7 +33,7 @@ const EventDetailPage: React.FC = () => {
   const handleDelete = () => {
     if (window.confirm('Are you sure you want to delete this event?')) {
       if (event.id) deleteEvent(event.id);
-      navigate('/');
+      navigate('/events');
     }
   };
 
@@ -44,7 +44,7 @@ const EventDetailPage: React.FC = () => {
         nextOccurrences={nextOccurrences}
         onEdit={() => navigate(`/events/${event.id}/edit`)}
         onDelete={handleDelete}
-        onBack={() => navigate('/')}
+        onBack={() => navigate('/events')}
       />
     </div>
   );
