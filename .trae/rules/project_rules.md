@@ -1,9 +1,19 @@
+总是使用中文回复。
+
+生成代码过程中，如果可以预见会有较多重复的逻辑，应该在同文件中实现相对应的 helper function 来进行处理;
+
 ## 技术栈
 
-- **前端框架**: React 19.2.0
-- **构建工具**: Vite 7.2.4
-- **类型检查**: TypeScript 5.9.3
-- **AI SDK**: @ai-sdk/react 2.0.102
-- **HTTP 客户端**: Axios 1.13.2
-- **代码检查**: ESLint
-- **包管理器**: Yarn (推荐)
+- 基础框架: yarn, typescript, react, tsx, vite, react-router-dom v7
+- 样式框架: clsx, tailwindcss v4, tailwind-merge
+- 状态管理: react-use v1.3.1,
+    * global store: appStore(`src/store/store.ts`) based on zustand v5
+- HTTP Client: appAxios(`src/models/appAxios.ts`) based on axios 1.13.2
+- query string: qs 6.14.0
+- utils: dayjs, lodash
+- 通知库: sonner 2.0.7
+- AI SDK: @ai-sdk/react 2.0.102
+
+## 其他的一些 Guidelines
+* 样式指引: style-guide.md
+* RESTful API 指引： api-restful.md
