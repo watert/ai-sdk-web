@@ -1,3 +1,5 @@
+import _industryData from './industry-tag-info-36.json';
+
 /**
  * 行业标签信息接口定义
  */
@@ -12,8 +14,6 @@ interface IndustryTagInfo {
   audienceMbtis: string[]; // 受众MBTI类型列表
   audienceFemaleRate: number; // 女性受众比例 (0-100)
 }
-
-import _industryData from './industry-tag-info-36.json';
 
 /**
  * 行业标签信息数组，包含36个行业的详细数据
