@@ -9,7 +9,7 @@ const Layout: React.FC = () => {
   // 抽象出 LayoutHeader 内部组件
   const LayoutHeader: React.FC = () => {
     return (
-      <div className="flex justify-between items-center p-4 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 transition-all duration-200">
+      <div className="flex truncate justify-between items-center p-4 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 transition-all duration-200">
         <h2 className={`text-lg font-semibold text-slate-900 dark:text-slate-100 transition-all duration-200 ${isSidebarOpen ? 'block' : 'hidden'}`}>AI 聊天</h2>
         <button 
           className="text-slate-900 dark:text-slate-100 text-base cursor-pointer p-2 rounded-md transition-all duration-200 hover:bg-slate-100 dark:hover:bg-slate-800/50"
@@ -25,7 +25,7 @@ const Layout: React.FC = () => {
     <div className="flex w-full h-screen overflow-hidden bg-slate-50 dark:bg-slate-900 transition-colors duration-200">
       {/* 左侧菜单 */}
       <aside 
-        className={`w-[250px] h-full bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col transition-all duration-300 overflow-hidden ${isSidebarOpen ? 'w-[250px]' : 'w-[60px]'}`}
+        className={`h-full bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col transition-all duration-300 overflow-hidden ${isSidebarOpen ? 'w-[200px]' : 'w-[80px]'}`}
       >
         <LayoutHeader />
         

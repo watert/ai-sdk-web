@@ -1,6 +1,6 @@
 import _ from 'lodash'
 import { useMemo, useRef, useEffect } from 'react';
-import { useChat } from '@ai-sdk/react';
+import { Chat, useChat } from '@ai-sdk/react';
 import { DefaultChatTransport, type UIMessage } from 'ai';
 // import MessageItem from '../components/MessageItem';
 import { ChatInput } from '../components/ChatInput';
@@ -63,7 +63,15 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
     setDataState({ [attrKey]: data });
     console.log('onData', part, { [attrKey]: data });
   });
-  
+  useEffect(() => {
+    if (!transport || typeof window === 'undefined') { return; }
+    const chat = new Chat({
+      onFinish: (...args) => { console.log('onFinish', ...args); },
+      onData: (...args) => { console.log('onData', ...args); },
+      transport,
+    });
+    Object.assign(window, { chat });
+  }, [transport]);
   const chatState = useChat<MyMessageItemType>({ transport, onFinish, onData });
   
   const { messages, error, sendMessage, regenerate, setMessages, stop, status } = chatState;

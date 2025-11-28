@@ -15,17 +15,14 @@ const IndustryListPage: React.FC = () => {
 
   return (
     <div className="flex h-full w-full">
-      <div className="w-72 bg-gray-50 p-5 border-r border-gray-200 overflow-y-auto">
+      <div className="-ml-6 w-58 bg-gray-50 px-4 border-r border-gray-200 overflow-y-auto">
         <h1 className="text-2xl font-bold text-gray-800 mb-5">行业列表</h1>
         <ul className="list-none p-0 m-0">
           {sortedIndustries.map((industry) => (
-            <li 
-              key={industry.id} 
-              className="mb-2"
-            >
+            <li  key={industry.id}  className="mb-1" >
               <Link 
                 to={`/industries/${industry.id}`}
-                className={`block p-3 rounded-md transition-all duration-200 ${ 
+                className={`block p-2 rounded-md transition-all duration-200 ${ 
                   currentId === industry.id 
                     ? 'bg-blue-600 text-white hover:bg-blue-700' 
                     : 'hover:bg-gray-100'
