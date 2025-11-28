@@ -76,14 +76,9 @@ export class RestfulService<T> {
    * @returns Promise<RestfulResponse<T[]>>
    */
   async find(params?: QueryParams): Promise<RestfulResponse<T[]>> {
-    const response = await appAxios.get(this.buildUrl(), {
-      params: params,
-      paramsSerializer: (params) => {
-        // 使用qs库处理查询参数，支持嵌套对象
-        return qs.stringify(params, { encode: true });
-      }
-    });
-    
+    const qsOpts = { encode: true };
+    const paramsSerializer = (params?: QueryParams) => qs.stringify(params, qsOpts);
+    const response = await appAxios.get(this.buildUrl(), { params, paramsSerializer });
     return response.data;
   }
 
@@ -95,7 +90,7 @@ export class RestfulService<T> {
    */
   async findByBody(query: any, options?: { $limit?: number; $skip?: number; $select?: string; $sort?: any }): Promise<RestfulResponse<T[]>> {
     const response = await appAxios.post(this.buildUrl(undefined, 'query'), {
-      filter: query,
+      ...query,
       ...options
     });
     
