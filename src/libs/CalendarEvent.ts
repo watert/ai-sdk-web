@@ -1,11 +1,12 @@
+
 /**
  * 预设类型复用
  */
-type Weekday = "SU" | "MO" | "TU" | "WE" | "TH" | "FR" | "SA";
-type Frequency = "MONTHLY" | "WEEKLY" | "DAILY"; // YEARLY 好像不需要
-type EndType = "NEVER" | "COUNT" | "UNTIL_DATE";
+export type Weekday = "SU" | "MO" | "TU" | "WE" | "TH" | "FR" | "SA";
+export type Frequency = "MONTHLY" | "WEEKLY" | "DAILY"; // YEARLY 好像不需要
+export type EndType = "NEVER" | "COUNT" | "UNTIL_DATE";
 
-interface RepeatEnd {
+export interface RepeatEnd {
   type: EndType;
   value?: number | string;
 }
@@ -16,9 +17,8 @@ interface RepeatEnd {
 export interface RepeatRule {
   frequency: Frequency;
   interval?: number; // default 1
-  byWeekDays?: Weekday[]; // 每周的哪些天重复, 例如 ["MO", "WE", "FR"] 表示周一、周三、周五重复
-  byMonthDays?: number[]; // 每月的哪些天重复, 例如 [1, 15] 表示每月 1 号和 15 号重复
-  // byMonths?: number[]; // (似乎不需要) 每年的哪些月重复, 例如 [1, 6] 表示每年 1 月和 6 月重复
+  byWeekDays?: Weekday[]; // 每周的哪些天重复, 例如 ["MO", "WE", "FR"] 表示周一、周三、周五重复。在 type WEEKLY 时生效。
+  byMonthDays?: number[]; // 每月的哪些天重复, 例如 [1, 15] 表示每月 1 号和 15 号重复。在 type MONTHLY 时生效。
   end?: Date | number | string | RepeatEnd;
 }
 
@@ -28,8 +28,10 @@ export interface EventDetails {
   description?: string;
   startDateTime: string | Date; // 事件开始时间 (ISO 8601 字符串)
   endDateTime?: string | Date; // 事件结束时间 (ISO 8601 字符串). 结束时间之后不再触发, 如果不存在则不限制
+  hasEndTime?: boolean; // 是否有结束时间
   repeatRule?: RepeatRule | null;
   lastTriggeredTime?: string | Date | null;
+  triggeredCount?: number; // 已触发次数
 }
 /**
  * 根据前面的 EventDetails 类型，设计一个表单界面，引入 react-hook-form 库。
@@ -113,7 +115,7 @@ function _adjustToWeekday(date: Date, weekday: Weekday): Date {
 /** * 模拟结束条件检查
  * ⚠️ 简单实现，COUNT 类型的准确性依赖于外部计数器。
  */
-function _checkEndCondition(date: Date, end?: RepeatEnd | null): boolean {
+function _checkEndCondition(date: Date, end?: RepeatEnd | null, triggeredCount: number = 0): boolean {
   if (!end || end.type === "NEVER") {
     return true;
   }
@@ -121,7 +123,11 @@ function _checkEndCondition(date: Date, end?: RepeatEnd | null): boolean {
     // 确保比较的是日期，忽略时间部分可能产生的误差
     return date.getTime() <= new Date(end.value).getTime();
   }
-  return true; // 对于 COUNT，我们依赖外部逻辑来中断循环
+  if (end.type === "COUNT" && typeof end.value === "number") {
+    // 检查已触发次数是否小于指定次数
+    return triggeredCount < end.value;
+  }
+  return true;
 }
 
 /**
@@ -138,6 +144,19 @@ function _isMatchingWeekdays(date: Date, byWeekDays?: Weekday[]): boolean {
 }
 
 /**
+ * 检查日期是否符合 byMonthDays 规则
+ */
+function _isMatchingMonthDays(date: Date, byMonthDays?: number[]): boolean {
+  if (!byMonthDays || byMonthDays.length === 0) {
+    return true; // 没有指定 byMonthDays，匹配所有日期
+  }
+  const dayOfMonth = date.getDate();
+  return byMonthDays.includes(dayOfMonth);
+}
+
+
+
+/**
  * 核心 RRule 计算器 (返回包含 start 和 end 的对象数组)
  */
 function _calculateRecurrences(
@@ -145,7 +164,8 @@ function _calculateRecurrences(
   durationMs: number,
   rule: RepeatRule,
   start: Date,
-  count: number
+  count: number,
+  triggeredCount: number = 0
 ): { start: Date; end: Date }[] {
   // ⚠️ 此处实现沿用上次修正后的逻辑，但现在依赖外部的辅助函数
   const result: { start: Date; end: Date }[] = [];
@@ -157,6 +177,11 @@ function _calculateRecurrences(
   // 检查 byWeekDays 是否为空数组，为空则抛出异常
   if (rule.byWeekDays && rule.byWeekDays.length === 0) {
     throw new Error("byWeekDays array cannot be empty");
+  }
+
+  // 检查 byMonthDays 是否为空数组，为空则抛出异常
+  if (rule.byMonthDays && rule.byMonthDays.length === 0) {
+    throw new Error("byMonthDays array cannot be empty");
   }
 
   // 检查是否有匹配的星期几（用于优化）
@@ -204,7 +229,7 @@ function _calculateRecurrences(
       iterations++;
       
       // 检查是否超过结束条件
-      if (!_checkEndCondition(baseDate, parseRepeatEnd(rule.end))) {
+      if (!_checkEndCondition(baseDate, parseRepeatEnd(rule.end), triggeredCount + addedCount)) {
         break;
       }
       
@@ -227,11 +252,11 @@ function _calculateRecurrences(
         if (weekMatches.length > 0) {
           // 对于每个匹配的日期，添加到结果中
           for (const matchDate of weekMatches) {
-            if (_checkEndCondition(matchDate, parseRepeatEnd(rule.end))) {
-              const newStart = new Date(matchDate);
-              const newEnd = new Date(newStart.getTime() + durationMs);
-              result.push({ start: newStart, end: newEnd });
-              addedCount++;
+            if (_checkEndCondition(matchDate, parseRepeatEnd(rule.end), triggeredCount + addedCount)) {
+            const newStart = new Date(matchDate);
+            const newEnd = new Date(newStart.getTime() + durationMs);
+            result.push({ start: newStart, end: newEnd });
+            addedCount++;
               
               // 如果已经达到指定数量，退出循环
               if (addedCount >= absCount) {
@@ -243,13 +268,54 @@ function _calculateRecurrences(
         
         // 增加一周的间隔
         baseDate.setDate(baseDate.getDate() + interval * 7);
+      } else if (rule.frequency === "MONTHLY" && rule.byMonthDays && rule.byMonthDays.length > 0) {
+        // 对于 MONTHLY 频率且指定了 byMonthDays，需要检查一个月内的所有指定日期
+        const monthMatches: Date[] = [];
+        const currentMonth = baseDate.getMonth();
+        
+        // 遍历所有指定的月份天数
+        for (const day of rule.byMonthDays) {
+          const checkDate = new Date(baseDate);
+          checkDate.setDate(day);
+          
+          // 如果设置的日期超出了当月的天数，会自动调整到下个月，所以需要检查月份是否变化
+          if (checkDate.getMonth() === currentMonth && checkDate.getTime() >= start.getTime()) {
+            monthMatches.push(checkDate);
+          }
+        }
+        
+        // 如果没有匹配的日期，跳过这个月
+        if (monthMatches.length > 0) {
+          // 对匹配的日期进行排序
+          monthMatches.sort((a, b) => a.getTime() - b.getTime());
+          
+          // 对于每个匹配的日期，添加到结果中
+          for (const matchDate of monthMatches) {
+            if (_checkEndCondition(matchDate, parseRepeatEnd(rule.end), triggeredCount + addedCount)) {
+            const newStart = new Date(matchDate);
+            const newEnd = new Date(newStart.getTime() + durationMs);
+            result.push({ start: newStart, end: newEnd });
+            addedCount++;
+              
+              // 如果已经达到指定数量，退出循环
+              if (addedCount >= absCount) {
+                break;
+              }
+            }
+          }
+        }
+        
+        // 增加一个月的间隔
+        baseDate = _addInterval(baseDate, interval, rule.frequency);
       } else {
-        // 其他频率或没有指定 byWeekDays，直接添加日期
-        if (_isMatchingWeekdays(baseDate, rule.byWeekDays)) {
-          const newStart = new Date(baseDate);
-          const newEnd = new Date(newStart.getTime() + durationMs);
-          result.push({ start: newStart, end: newEnd });
-          addedCount++;
+        // 其他频率或没有指定 byWeekDays/byMonthDays，直接添加日期
+        if (_isMatchingWeekdays(baseDate, rule.byWeekDays) && _isMatchingMonthDays(baseDate, rule.byMonthDays)) {
+          if (_checkEndCondition(baseDate, parseRepeatEnd(rule.end), triggeredCount + addedCount)) {
+            const newStart = new Date(baseDate);
+            const newEnd = new Date(newStart.getTime() + durationMs);
+            result.push({ start: newStart, end: newEnd });
+            addedCount++;
+          }
         }
         
         // 增加间隔，使用 _addInterval 函数来处理不同频率
@@ -266,7 +332,7 @@ function _calculateRecurrences(
       latestPastEvent = new Date(nextEvent);
       nextEvent = _addInterval(nextEvent, interval, rule.frequency);
       if (
-        !_checkEndCondition(nextEvent, parseRepeatEnd(rule.end)) &&
+        !_checkEndCondition(nextEvent, parseRepeatEnd(rule.end), triggeredCount) &&
         nextEvent.getTime() > eventStart.getTime()
       ) {
         break;
@@ -277,7 +343,7 @@ function _calculateRecurrences(
     let addedCount = 0;
     while (addedCount < absCount) {
       if (current.getTime() >= eventStart.getTime()) {
-        if (_isMatchingWeekdays(current, rule.byWeekDays)) {
+        if (_isMatchingWeekdays(current, rule.byWeekDays) && _checkEndCondition(current, parseRepeatEnd(rule.end), triggeredCount)) {
           const newStart = new Date(current);
           const newEnd = new Date(newStart.getTime() + durationMs);
           result.push({ start: newStart, end: newEnd });
@@ -325,15 +391,27 @@ export class CalendarEvent {
 
     const lastTriggeredTime = eventData?.lastTriggeredTime;
     if (lastTriggeredTime) {
-      this.lastTriggered =
+      this.lastTriggered = 
         lastTriggeredTime instanceof Date
           ? lastTriggeredTime
           : new Date(lastTriggeredTime);
     }
 
     const start = new Date(this.data.startDateTime).getTime();
-    const end = !this.data.endDateTime ? null: new Date(this.data.endDateTime).getTime();
+    
+    // 逻辑：如果 explicitly 设置了 hasEndTime 为 false，则忽略 endDateTime
+    // 如果 hasEndTime 未定义，则回退到检查 endDateTime 是否存在
+    const hasEnd = typeof this.data.hasEndTime === 'boolean' 
+      ? this.data.hasEndTime 
+      : !!this.data.endDateTime;
+
+    const end = (hasEnd && this.data.endDateTime) ? new Date(this.data.endDateTime).getTime() : null;
     this.durationMs = !end ? 0: end - start;
+  }
+
+  /** 获取已触发次数 */
+  public get triggeredCount(): number {
+    return this.data.triggeredCount || 0;
   }
 
   /** 核心属性的 Getter */
@@ -346,10 +424,20 @@ export class CalendarEvent {
   public get startDateTime(): Date {
     return new Date(this.data.startDateTime);
   }
+  
+  public get hasEndTime(): boolean {
+    if (typeof this.data.hasEndTime === 'boolean') {
+      return this.data.hasEndTime;
+    }
+    return !!this.data.endDateTime;
+  }
+
   public get endDateTime(): Date | null {
+    if (!this.hasEndTime) return null;
     if (!this.data.endDateTime) return null;
     return new Date(this.data.endDateTime);
   }
+  
   public get repeatRule(): RepeatRule | undefined | null {
     return this.data.repeatRule;
   }
@@ -374,7 +462,8 @@ export class CalendarEvent {
       this.durationMs,
       this.data.repeatRule,
       fromDate,
-      n
+      n,
+      this.triggeredCount
     ).map((o) => o.start);
 
     return occurrences;
@@ -389,9 +478,11 @@ export class CalendarEvent {
   public trigger(time: string | Date = new Date()): this {
     if (typeof time === 'string') { time = new Date(time); }
     this.lastTriggered = time;
+    // 增加触发次数
+    this.data.triggeredCount = (this.data.triggeredCount || 0) + 1;
     // 实际应用中，这里需要调用持久化存储
     console.log(
-      `CalendarEvent ${this.id} marked as triggered at ${time.toISOString()}`
+      `CalendarEvent ${this.id} marked as triggered at ${time.toISOString()}, triggeredCount: ${this.data.triggeredCount}`
     );
     return this;
   }
@@ -415,9 +506,17 @@ export class CalendarEvent {
       return false;
     }
 
+    // 检查是否已经达到最大触发次数
+    const repeatEnd = parseRepeatEnd(this.data.repeatRule.end);
+    if (repeatEnd?.type === "COUNT" && typeof repeatEnd.value === "number") {
+      if (this.triggeredCount >= repeatEnd.value) {
+        return false;
+      }
+    }
+
     // 重复事件逻辑：找出最近的 5 个过去的事件
     const { startDateTime, durationMs, data: { repeatRule } } = this;
-    const pastOccurrences = _calculateRecurrences(startDateTime, durationMs, repeatRule, now, -5);
+    const pastOccurrences = _calculateRecurrences(startDateTime, durationMs, repeatRule, now, -5, this.triggeredCount);
 
     for (const occurrence of pastOccurrences) {
       const eventTime = occurrence.start.getTime();
@@ -434,6 +533,8 @@ export class CalendarEvent {
   public toJSON() {
     return {
       ...this.data,
+      hasEndTime: this.hasEndTime, // Explicitly include the logic flag
+      triggeredCount: this.triggeredCount, // Explicitly include the triggered count
       lastTriggered: this.lastTriggered?.toISOString() || null,
     };
   }

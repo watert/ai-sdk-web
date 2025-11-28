@@ -165,14 +165,96 @@ describe("CalendarEvent Class with Adjusted Constructor", () => {
           id: 'TEST_WEEKLY_NO_MATCH',
           title: 'TEST_WEEKLY_NO_MATCH',
           startDateTime: '2025-01-01T08:00Z', // 周三
-          repeatRule: { 
-            frequency: 'WEEKLY', 
-            interval: 1, 
+          repeatRule: {
+            frequency: 'WEEKLY',
+            interval: 1,
             byWeekDays: [] // 空数组，无匹配
           },
         };
         const event = new CalendarEvent(weeklyEventWithNoMatch);
         expect(() => event.getNextOccurrences(3, MOCK_NOW)).toThrow("byWeekDays array cannot be empty");
+      });
+    });
+
+    describe("byMonthDays support", () => {
+      it("should return occurrences only on specified month days (single day)", () => {
+        const monthlyEventWithSingleByDay: EventDetails = {
+          id: 'TEST_MONTHLY_SINGLE_BYDAY',
+          title: 'TEST_MONTHLY_SINGLE_BYDAY',
+          startDateTime: '2025-01-01T08:00Z', // 1月1日
+          repeatRule: {
+            frequency: 'MONTHLY',
+            interval: 1,
+            byMonthDays: [1] // 每月1日
+          },
+        };
+        const event = new CalendarEvent(monthlyEventWithSingleByDay);
+        const nextDates = event.getNextOccurrences(3, MOCK_NOW);
+        expect(nextDates.length).toBe(3);
+        
+        // 验证日期都是每月1日
+        nextDates.forEach(date => {
+          expect(date.getDate()).toBe(1);
+        });
+      });
+      
+      it("should return occurrences only on specified month days (multiple days)", () => {
+        const monthlyEventWithMultiByDays: EventDetails = {
+          id: 'TEST_MONTHLY_MULTI_BYDAY',
+          title: 'TEST_MONTHLY_MULTI_BYDAY',
+          startDateTime: '2025-01-01T08:00Z', // 1月1日
+          repeatRule: {
+            frequency: 'MONTHLY',
+            interval: 1,
+            byMonthDays: [1, 15] // 每月1日和15日
+          },
+        };
+        const event = new CalendarEvent(monthlyEventWithMultiByDays);
+        const nextDates = event.getNextOccurrences(6, MOCK_NOW);
+        expect(nextDates.length).toBe(6);
+        
+        // 验证日期顺序和月份天数正确
+        const expectedDays = [1, 15, 1, 15, 1, 15]; // 1日、15日交替
+        nextDates.forEach((date, index) => {
+          expect(date.getDate()).toBe(expectedDays[index]);
+        });
+      });
+      
+      it("should handle different intervals with byMonthDays", () => {
+        const monthlyEventWithInterval: EventDetails = {
+          id: 'TEST_MONTHLY_INTERVAL',
+          title: 'TEST_MONTHLY_INTERVAL',
+          startDateTime: '2025-01-01T08:00Z', // 1月1日
+          repeatRule: {
+            frequency: 'MONTHLY',
+            interval: 2, // 每两个月
+            byMonthDays: [5, 20] // 每月5日和20日
+          },
+        };
+        const event = new CalendarEvent(monthlyEventWithInterval);
+        const nextDates = event.getNextOccurrences(4, MOCK_NOW);
+        expect(nextDates.length).toBe(4);
+        
+        // 验证日期间隔正确
+        for (let i = 2; i < nextDates.length; i++) {
+          const diffDays = (nextDates[i].getTime() - nextDates[i-2].getTime()) / (1000 * 60 * 60 * 24);
+          expect(diffDays).toBeGreaterThanOrEqual(50); // 至少间隔约两个月
+        }
+      });
+      
+      it("should throw error if byMonthDays is empty array", () => {
+        const monthlyEventWithNoMatch: EventDetails = {
+          id: 'TEST_MONTHLY_NO_MATCH',
+          title: 'TEST_MONTHLY_NO_MATCH',
+          startDateTime: '2025-01-01T08:00Z', // 1月1日
+          repeatRule: {
+            frequency: 'MONTHLY',
+            interval: 1,
+            byMonthDays: [] // 空数组，无匹配
+          },
+        };
+        const event = new CalendarEvent(monthlyEventWithNoMatch);
+        expect(() => event.getNextOccurrences(3, MOCK_NOW)).toThrow("byMonthDays array cannot be empty");
       });
     });
 
@@ -239,6 +321,115 @@ describe("CalendarEvent Class with Adjusted Constructor", () => {
       const event = new CalendarEvent(pastSingleEventDetails);
       // 将 lookbackDays 设置为 5，确保 1/5 在窗口之外 (1/15 - 5天 = 1/10)
       expect(event.shouldTrigger(MOCK_NOW, 5)).toBe(false);
+    });
+  });
+
+  describe("triggeredCount and COUNT end type", () => {
+    it("should initialize triggeredCount to 0 when not provided", () => {
+      const event = new CalendarEvent(recurringEventDetails);
+      expect(event.triggeredCount).toBe(0);
+    });
+
+    it("should initialize triggeredCount to provided value", () => {
+      const event = new CalendarEvent({ ...recurringEventDetails, triggeredCount: 5 });
+      expect(event.triggeredCount).toBe(5);
+    });
+
+    it("should increment triggeredCount when trigger() is called", () => {
+      const event = new CalendarEvent(recurringEventDetails);
+      expect(event.triggeredCount).toBe(0);
+      event.trigger();
+      expect(event.triggeredCount).toBe(1);
+      event.trigger();
+      expect(event.triggeredCount).toBe(2);
+    });
+
+    it("should return true for shouldTrigger when triggeredCount < COUNT end value", () => {
+      const eventDetailsWithCountEnd: EventDetails = {
+        id: "E002",
+        title: "Limited Event",
+        startDateTime: "2025-01-01T10:00:00.000Z",
+        repeatRule: {
+          frequency: "WEEKLY" as const,
+          interval: 1,
+          byWeekDays: ["WE" as const],
+          end: { type: "COUNT" as const, value: 3 }
+        },
+        triggeredCount: 1
+      };
+      const event = new CalendarEvent(eventDetailsWithCountEnd);
+      expect(event.shouldTrigger()).toBe(true);
+    });
+
+    it("should return false for shouldTrigger when triggeredCount >= COUNT end value", () => {
+      const eventDetailsWithCountEnd: EventDetails = {
+        id: "E002",
+        title: "Limited Event",
+        startDateTime: "2025-01-01T10:00:00.000Z",
+        repeatRule: {
+          frequency: "WEEKLY" as const,
+          interval: 1,
+          byWeekDays: ["WE" as const],
+          end: { type: "COUNT" as const, value: 3 }
+        },
+        triggeredCount: 3
+      };
+      const event = new CalendarEvent(eventDetailsWithCountEnd);
+      expect(event.shouldTrigger()).toBe(false);
+    });
+
+    it("should return empty array for getNextOccurrences when triggeredCount >= COUNT end value", () => {
+      const eventDetailsWithCountEnd: EventDetails = {
+        id: "E002",
+        title: "Limited Event",
+        startDateTime: "2025-01-01T10:00:00.000Z",
+        repeatRule: {
+          frequency: "WEEKLY" as const,
+          interval: 1,
+          byWeekDays: ["WE" as const],
+          end: { type: "COUNT" as const, value: 3 }
+        },
+        triggeredCount: 3
+      };
+      const event = new CalendarEvent(eventDetailsWithCountEnd);
+      const nextOccurrences = event.getNextOccurrences(2, MOCK_NOW);
+      expect(nextOccurrences.length).toBe(0);
+    });
+
+    it("should return next occurrences when triggeredCount < COUNT end value", () => {
+      const eventDetailsWithCountEnd: EventDetails = {
+        id: "E002",
+        title: "Limited Event",
+        startDateTime: "2025-01-01T10:00:00.000Z",
+        repeatRule: {
+          frequency: "WEEKLY" as const,
+          interval: 1,
+          byWeekDays: ["WE" as const],
+          end: { type: "COUNT" as const, value: 3 }
+        },
+        triggeredCount: 1
+      };
+      const event = new CalendarEvent(eventDetailsWithCountEnd);
+      const nextOccurrences = event.getNextOccurrences(2, MOCK_NOW);
+      expect(nextOccurrences.length).toBe(2);
+    });
+
+    it("should include triggeredCount in toJSON result", () => {
+      const eventDetailsWithCountEnd: EventDetails = {
+        id: "E002",
+        title: "Limited Event",
+        startDateTime: "2025-01-01T10:00:00.000Z",
+        repeatRule: {
+          frequency: "WEEKLY" as const,
+          interval: 1,
+          byWeekDays: ["WE" as const],
+          end: { type: "COUNT" as const, value: 3 }
+        },
+        triggeredCount: 2
+      };
+      const event = new CalendarEvent(eventDetailsWithCountEnd);
+      const jsonResult = event.toJSON();
+      expect(jsonResult.triggeredCount).toBe(2);
     });
   });
 });
