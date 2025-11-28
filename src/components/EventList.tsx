@@ -64,7 +64,7 @@ const EventList: React.FC<EventListProps> = ({ events, onSelect, onCreate }) => 
           <p className="text-slate-500 mb-6">Create your first event to get started</p>
           <button
             onClick={onCreate}
-            className="text-primary font-medium hover:underline"
+            className="text-blue-600 font-medium hover:underline"
           >
             Create an event now
           </button>
@@ -75,17 +75,17 @@ const EventList: React.FC<EventListProps> = ({ events, onSelect, onCreate }) => 
             <div
               key={event.id}
               onClick={() => onSelect(event.id)}
-              className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 hover:border-primary hover:shadow-md transition-all cursor-pointer group relative overflow-hidden"
+              className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 hover:border-blue-600 hover:shadow-md transition-all cursor-pointer group relative overflow-hidden"
             >
               {/* Left accent bar */}
-              <div className="absolute left-0 top-0 bottom-0 w-1 bg-slate-200 group-hover:bg-primary transition-colors"></div>
+              <div className="absolute left-0 top-0 bottom-0 w-1 bg-slate-200 group-hover:bg-blue-600 transition-colors"></div>
               
               <div className="flex justify-between items-start pl-2">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <h3 className="text-lg font-semibold text-slate-900">{event.title}</h3>
                     {event.repeatRule && (
-                      <span className="bg-indigo-50 text-indigo-700 text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1 font-bold tracking-wider uppercase">
+                      <span className="bg-blue-50 text-blue-700 text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1 font-bold tracking-wider uppercase">
                         <Repeat className="w-3 h-3" />
                         Repeat
                       </span>
@@ -112,7 +112,7 @@ const EventList: React.FC<EventListProps> = ({ events, onSelect, onCreate }) => 
                 </div>
 
                 <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity ml-4 self-center">
-                   <ArrowRight className="w-5 h-5 text-slate-300 group-hover:text-primary transition-colors" />
+                   <ArrowRight className="w-5 h-5 text-slate-300 group-hover:text-blue-600 transition-colors" />
                 </div>
               </div>
             </div>

@@ -49,7 +49,7 @@ const EventListPage: React.FC = () => {
         </div>
         <button
           onClick={() => navigate('/events/new')}
-          className="flex items-center gap-2 bg-primary hover:bg-indigo-600 text-white px-4 py-2 rounded-lg shadow-md transition-colors"
+          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow-md transition-colors"
         >
           <Plus className="w-5 h-5" />
           <span>Add Event</span>

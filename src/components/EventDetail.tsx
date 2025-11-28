@@ -57,7 +57,7 @@ const EventDetail: React.FC<EventDetailProps> = ({
         <div className="flex gap-2">
            <button 
              onClick={onEdit}
-             className="px-4 py-2 bg-indigo-50 text-primary rounded-lg font-medium hover:bg-indigo-100 transition flex items-center gap-2"
+             className="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg font-medium hover:bg-blue-100 transition flex items-center gap-2"
            >
              <Edit2 className="w-4 h-4" /> Edit
            </button>
@@ -122,7 +122,7 @@ const EventDetail: React.FC<EventDetailProps> = ({
                    <div>
                        <span className="block text-slate-500 text-xs mb-1">Recurrence</span>
                        <div className="flex items-center gap-2">
-                          <Repeat className="w-4 h-4 text-primary" />
+                          <Repeat className="w-4 h-4 text-blue-600" />
                           <span className="font-medium text-slate-800">
                             {event.repeatRule ? (
                                `${event.repeatRule.frequency} (Every ${event.repeatRule.interval || 1})`
