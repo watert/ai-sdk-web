@@ -31,9 +31,19 @@ const IndustryListPage: React.FC = () => {
                     : 'hover:bg-gray-100'
                 }`}
               >
-                <div className="font-medium mb-1 flex items-center">
-                  {industry.emoji && <span className="mr-1">{industry.emoji}</span>}
-                  {industry.name}
+                <div className="font-medium mb-1 flex items-center justify-between">
+                  <div className="flex items-center">
+                    {industry.emoji && <span className="mr-1">{industry.emoji}</span>}
+                    {industry.name}
+                  </div>
+                  {industry.enableResearch && (
+                    <span 
+                      className="text-sm" 
+                      title="已启用研究功能"
+                    >
+                      🔬
+                    </span>
+                  )}
                 </div>
                 <div className={`text-xs ${ 
                   currentId === industry.id 

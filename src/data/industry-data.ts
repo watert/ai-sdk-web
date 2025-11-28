@@ -1,6 +1,5 @@
-import { keyBy } from 'lodash';
 import _industryData from './industry-tag-info-36.json';
-import type { EventDetails, RepeatRule } from '@/libs/CalendarEvent';
+import type { EventDetails, RepeatRule } from '../libs/CalendarEvent';
 
 export type IndustryResearchConfig = {
   id: string, title: string, prompt: string,
@@ -27,15 +26,9 @@ export interface IndustryTagInfo {
   audienceTags: string[]; // 受众标签列表
   audienceMbtis: string[]; // 受众MBTI类型列表
   audienceFemaleRate: number; // 女性受众比例 (0-100)
-  researchRules?: IndustryResearchConfig[];
+  researchSchedules?: IndustryResearchConfig[];
   enableResearch?: boolean;
 }
-
-/**
- * 行业标签信息数组，包含36个行业的详细数据
- */
-export const industryData: IndustryTagInfo[] = _industryData;
-export const industryById = keyBy(industryData, 'id');
 
 export const baseIndustryResearchList: IndustryResearchConfig[] = [
     { id: 'MONTHLY_TRENDS', title: '行业趋势', prompt: '过去一个月的 4~7 条主要行业趋势', 
@@ -54,19 +47,26 @@ export const baseIndustryResearchList: IndustryResearchConfig[] = [
 
 const industryConfigs: Record<string, {
     enableResearch?: boolean;
-    researchRules: IndustryResearchConfig[];
+    researchSchedules: IndustryResearchConfig[];
 }> = {
     "finance": {
         enableResearch: true,
-        researchRules: baseIndustryResearchList,
+        researchSchedules: baseIndustryResearchList,
     },
     "ai": {
         enableResearch: true,
-        researchRules: baseIndustryResearchList,
+        researchSchedules: baseIndustryResearchList,
     },
 };
-industryData.forEach(industry => {
-    const { researchRules } = industryConfigs[industry.id] || {};
-    if (!researchRules) { return; }
-    industry.researchRules = researchRules;
+/**
+ * 行业标签信息数组，包含36个行业的详细数据
+ */
+export const industryData: IndustryTagInfo[] = _industryData.map(industry => {
+    const { researchSchedules, enableResearch } = industryConfigs[industry.id] || {};
+    return {
+        ...industry,
+        enableResearch: enableResearch ?? false,
+        researchSchedules: researchSchedules || [],
+    }
 });
+// export const industryById = keyBy(industryData, 'id');
