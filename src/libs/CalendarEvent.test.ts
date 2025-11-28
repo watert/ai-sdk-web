@@ -50,7 +50,7 @@ describe("CalendarEvent Class with Adjusted Constructor", () => {
     expect(event.id).toBe("E001");
     expect(event.title).toBe("Weekly Meeting");
     expect(event.endDateTime?.toISOString()).toBe("2025-02-01T11:00:00.000Z");
-    expect(event.getLastTriggeredTime()!.toISOString()).toBe(mockTriggerTime);
+    expect(event.lastTriggered!.toISOString()).toBe(mockTriggerTime);
   });
 
   describe("daily rule", () => {

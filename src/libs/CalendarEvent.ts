@@ -1,3 +1,4 @@
+import dayjs from 'dayjs';
 
 /**
  * 预设类型复用
@@ -33,12 +34,11 @@ export interface EventDetails {
   lastTriggeredTime?: string | Date | null;
   triggeredCount?: number; // 已触发次数
 }
-/**
- * 根据前面的 EventDetails 类型，设计一个表单界面，引入 react-hook-form 库。
- * 其中，
- */
 
 export function parseRepeatEnd(end: Date | number | string | RepeatEnd | undefined): RepeatEnd | undefined {
+  if (dayjs.isDayjs(end)) {
+    return { type: "UNTIL_DATE", value: end.toISOString(), };
+  }
   if (end instanceof Date) {
     return { type: "UNTIL_DATE", value: end.toISOString(), };
   }
@@ -56,7 +56,7 @@ export function parseRepeatEnd(end: Date | number | string | RepeatEnd | undefin
 // ==========================================================
 
 /**
- * 将星期几字符串转换为 Date 对象的 getDay() 返回值
+ * 将星期几字符串转换为 dayjs 对象的 day() 返回值
  */
 function _weekdayToNum(weekday: Weekday): number {
   const map: Record<Weekday, number> = {
@@ -66,50 +66,29 @@ function _weekdayToNum(weekday: Weekday): number {
 }
 
 /**
- * 计算两个星期几之间的天数差
- */
-function _getDaysDiff(currentDay: number, targetDay: number): number {
-  const diff = targetDay - currentDay;
-  return diff >= 0 ? diff : diff + 7;
-}
-
-/**
  * 模拟间隔增加/减少
  */
 function _addInterval(date: Date, interval: number, freq: Frequency): Date {
-  const newDate = new Date(date);
+  const newDate = dayjs(date);
   switch (freq) {
-  // case "YEARLY":
-  //   newDate.setFullYear(newDate.getFullYear() + interval);
-  //   break;
-  case "MONTHLY": {
-    // 确保不会因为月份溢出而跳过月份
-    const newMonth = newDate.getMonth() + interval;
-    newDate.setMonth(newMonth);
-    // 修正：如果新的月份日期不存在，Date 会自动溢出到下一个月。
-    // 实际 RRule 库有更复杂的处理，这里接受 JS Date 的默认行为。
-    break;
-  }
+  case "MONTHLY":
+    return newDate.add(interval, 'month').toDate();
   case "WEEKLY":
-    newDate.setDate(newDate.getDate() + interval * 7);
-    break;
+    return newDate.add(interval * 7, 'day').toDate();
   case "DAILY":
-    newDate.setDate(newDate.getDate() + interval);
-    break;
+    return newDate.add(interval, 'day').toDate();
+  default:
+    return newDate.toDate();
   }
-  return newDate;
 }
 
 /**
  * 调整日期到指定的星期几
  */
 function _adjustToWeekday(date: Date, weekday: Weekday): Date {
-  const newDate = new Date(date);
-  const currentDay = newDate.getDay();
+  const newDate = dayjs(date);
   const targetDay = _weekdayToNum(weekday);
-  const daysDiff = _getDaysDiff(currentDay, targetDay);
-  newDate.setDate(newDate.getDate() + daysDiff);
-  return newDate;
+  return newDate.day(targetDay).toDate();
 }
 
 /** * 模拟结束条件检查
@@ -121,7 +100,7 @@ function _checkEndCondition(date: Date, end?: RepeatEnd | null, triggeredCount: 
   }
   if (end.type === "UNTIL_DATE" && typeof end.value === "string") {
     // 确保比较的是日期，忽略时间部分可能产生的误差
-    return date.getTime() <= new Date(end.value).getTime();
+    return dayjs(date).isBefore(dayjs(end.value)) || dayjs(date).isSame(dayjs(end.value));
   }
   if (end.type === "COUNT" && typeof end.value === "number") {
     // 检查已触发次数是否小于指定次数
@@ -137,7 +116,7 @@ function _isMatchingWeekdays(date: Date, byWeekDays?: Weekday[]): boolean {
   if (!byWeekDays || byWeekDays.length === 0) {
     return true; // 没有指定 byWeekDays，匹配所有日期
   }
-  const dayNum = date.getDay();
+  const dayNum = dayjs(date).day();
   // 将 byWeekDays 转换为数字数组，然后检查日期的 dayNum 是否在其中
   const targetDays = byWeekDays.map(weekday => _weekdayToNum(weekday));
   return targetDays.includes(dayNum);
@@ -150,11 +129,9 @@ function _isMatchingMonthDays(date: Date, byMonthDays?: number[]): boolean {
   if (!byMonthDays || byMonthDays.length === 0) {
     return true; // 没有指定 byMonthDays，匹配所有日期
   }
-  const dayOfMonth = date.getDate();
+  const dayOfMonth = dayjs(date).date();
   return byMonthDays.includes(dayOfMonth);
 }
-
-
 
 /**
  * 核心 RRule 计算器 (返回包含 start 和 end 的对象数组)
@@ -385,7 +362,6 @@ export class CalendarEvent {
    */
   constructor(
     eventData: EventDetails
-    // options: { lastTriggeredTime?: Date | string | null } = {}
   ) {
     this.data = eventData;
 
@@ -397,7 +373,7 @@ export class CalendarEvent {
           : new Date(lastTriggeredTime);
     }
 
-    const start = new Date(this.data.startDateTime).getTime();
+    const start = dayjs(this.data.startDateTime).valueOf();
     
     // 逻辑：如果 explicitly 设置了 hasEndTime 为 false，则忽略 endDateTime
     // 如果 hasEndTime 未定义，则回退到检查 endDateTime 是否存在
@@ -405,7 +381,7 @@ export class CalendarEvent {
       ? this.data.hasEndTime 
       : !!this.data.endDateTime;
 
-    const end = (hasEnd && this.data.endDateTime) ? new Date(this.data.endDateTime).getTime() : null;
+    const end = (hasEnd && this.data.endDateTime) ? dayjs(this.data.endDateTime).valueOf() : null;
     this.durationMs = !end ? 0: end - start;
   }
 
@@ -422,20 +398,16 @@ export class CalendarEvent {
     return this.data.title;
   }
   public get startDateTime(): Date {
-    return new Date(this.data.startDateTime);
+    return dayjs(this.data.startDateTime).toDate();
   }
   
   public get hasEndTime(): boolean {
-    if (typeof this.data.hasEndTime === 'boolean') {
-      return this.data.hasEndTime;
-    }
-    return !!this.data.endDateTime;
+    return !!this.data?.endDateTime;
   }
 
   public get endDateTime(): Date | null {
-    if (!this.hasEndTime) return null;
-    if (!this.data.endDateTime) return null;
-    return new Date(this.data.endDateTime);
+    if (!this.hasEndTime || !this.data?.endDateTime) return null;
+    return dayjs(this.data.endDateTime).toDate();
   }
   
   public get repeatRule(): RepeatRule | undefined | null {
@@ -448,10 +420,10 @@ export class CalendarEvent {
     if (!this.data.repeatRule) {
       // 单次事件处理：
       const eventTime = this.startDateTime;
-      if (n === 1 && eventTime.getTime() >= fromDate.getTime()) {
+      if (n === 1 && dayjs(eventTime).isAfter(fromDate) || dayjs(eventTime).isSame(fromDate)) {
         return [eventTime];
       }
-      if (n === -1 && eventTime.getTime() < fromDate.getTime()) {
+      if (n === -1 && dayjs(eventTime).isBefore(fromDate)) {
         return [eventTime];
       }
       return [];
@@ -469,18 +441,11 @@ export class CalendarEvent {
     return occurrences;
   }
 
-  // --- 附加功能 2: 记录上一次事件的时间 ---
-
-  public getLastTriggeredTime(): Date | null {
-    return this.lastTriggered;
-  }
 
   public trigger(time: string | Date = new Date()): this {
     if (typeof time === 'string') { time = new Date(time); }
     this.lastTriggered = time;
-    // 增加触发次数
     this.data.triggeredCount = (this.data.triggeredCount || 0) + 1;
-    // 实际应用中，这里需要调用持久化存储
     console.log(
       `CalendarEvent ${this.id} marked as triggered at ${time.toISOString()}, triggeredCount: ${this.data.triggeredCount}`
     );
@@ -488,20 +453,18 @@ export class CalendarEvent {
   }
 
   // --- 附加功能 3: 根据上一次事件的时间，判定当前是否要触发 ---
-
   public shouldTrigger(
     now: Date = new Date(),
     lookbackDays = 1 // 默认超时 1 天以上的不会触发
   ): boolean {
-    const lookbackStart = new Date(now.getTime() - lookbackDays * 24 * 3600e3);
+    const lookbackStart = dayjs(now).subtract(lookbackDays, 'day').toDate();
     
-    if (!this.data.repeatRule) {
-      // 单次事件逻辑
+    if (!this.data.repeatRule) { // 单次事件逻辑
       const eventStart = this.startDateTime;
       
-      if (eventStart.getTime() < now.getTime() && eventStart.getTime() >= lookbackStart.getTime()) {
+      if (dayjs(eventStart).isBefore(now) && (dayjs(eventStart).isAfter(lookbackStart) || dayjs(eventStart).isSame(lookbackStart))) {
         // 事件已发生且在检查窗口内
-        return this.lastTriggered === null || this.lastTriggered.getTime() < eventStart.getTime();
+        return this.lastTriggered === null || dayjs(this.lastTriggered).isBefore(eventStart);
       }
       return false;
     }

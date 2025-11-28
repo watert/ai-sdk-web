@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import ChatContainer from '../containers/ChatContainer';
-import { mockSseStr } from './mockSseStr';
+import { mockSseChunks } from './mockSseChunks';
 
 const MockChatPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -18,7 +18,7 @@ const MockChatPage: React.FC = () => {
         
         // 直接创建 fetch 函数并存储在 ref 中，而不是状态中
         mockFetchRef.current = createMockStreamFetch({
-          chunks: mockSseStr
+          chunks: mockSseChunks
           // chunks: generateMockAIResponse('Hi there! This is a mock response from AI. How can I help you today?')
         });
         
