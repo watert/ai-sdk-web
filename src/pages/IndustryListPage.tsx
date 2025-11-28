@@ -25,7 +25,7 @@ const IndustryListPage: React.FC = () => {
             >
               <Link 
                 to={`/industries/${industry.id}`}
-                className={`block p-3 rounded-md transition-all duration-200 ${
+                className={`block p-3 rounded-md transition-all duration-200 ${ 
                   currentId === industry.id 
                     ? 'bg-blue-600 text-white hover:bg-blue-700' 
                     : 'hover:bg-gray-100'
@@ -35,7 +35,11 @@ const IndustryListPage: React.FC = () => {
                   {industry.emoji && <span className="mr-1">{industry.emoji}</span>}
                   {industry.name}
                 </div>
-                <div className="text-xs text-gray-500 whitespace-nowrap overflow-hidden text-overflow-ellipsis m-0">
+                <div className={`text-xs ${ 
+                  currentId === industry.id 
+                    ? 'text-blue-100' 
+                    : 'text-gray-500'
+                } truncate`}>
                   {industry.desc}
                 </div>
               </Link>
