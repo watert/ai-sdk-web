@@ -4,8 +4,15 @@ import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { google, createGoogleGenerativeAI } from '@ai-sdk/google';
 // import { gptConfigs } from '../gpt/gpt-model-openai-like-config';
 import { ProxyAgent, type RequestInit as UndiciRequestInit, fetch as undiciFetch } from 'undici';
+import { Response } from 'express';
 
-const gptConfigs: any[] = [];
+const gptConfigs: any[] = [
+
+  { // can use models: "glm-4.6:cloud", "qwen3:4b-instruct", "qwen3:4b"
+    platform: 'OLLAMA', platformName: 'Ollama', apiKey: '_',
+    baseURL: 'http://localhost:11434/v1',
+  }
+];
 const configByPlatform = _.keyBy(gptConfigs, 'platform');
 
 // opts 应该是 generateText 的参数，但有一些扩展
@@ -142,7 +149,7 @@ export async function aiGenText(this: any, opts: AiGenTextOpts): Promise<Generat
 }
 export function aiGenTextStream(this: any, opts: AiGenTextOpts): StreamTextResult<any,any> & { 
   params: AiGenTextOpts, info: any,
-  pipeAiStreamResultToResponse: (res: any) => void,
+  pipeAiStreamResultToResponse: (res: Response) => void,
   toPromise: () => Promise<any>
 }{
   
@@ -173,10 +180,10 @@ export function pipeAiStreamResultToResponse(result: StreamTextResult<any,any>, 
   const stream = createUIMessageStream({
     execute: async ({ writer }) => {
       const { params, info } = result as any;
-      writer.write({ type: 'data-metadata' as any, data: info });
+      // writer.write({ type: 'data-metadata' as any, data: info });
       writer.merge(result.toUIMessageStream({
         messageMetadata: ({ part }) => {
-          console.log('msg meta', part);
+          // console.log('msg meta', part);
           if (part.type === 'start') {
             return { createdAt: Date.now(), ...info };
           } else if (part.type === 'start-step') {

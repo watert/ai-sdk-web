@@ -1,0 +1,53 @@
+import { Router, Request, Response, NextFunction } from 'express';
+import { aiGenTextStream } from '../methods/ai-sdk/ai-gen-text';
+
+const router = Router();
+
+// Middleware to validate API_KEY from Bearer token
+const validateApiKey = (req: Request, res: Response, next: NextFunction) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    return res.status(401).json({ error: 'Authorization header is required' });
+  }
+
+  const token = authHeader.split(' ')[1];
+  if (!token) {
+    return res.status(401).json({ error: 'Bearer token is required' });
+  }
+
+  const apiKey = process.env.API_KEY;
+  if (!apiKey || token !== apiKey) {
+    return res.status(403).json({ error: 'Invalid API key' });
+  }
+
+  next();
+};
+
+// Apply API_KEY validation to all routes in this router
+router.use(validateApiKey);
+
+// GET /dev/test endpoint for testing API_KEY authentication
+router.get('/test', (req: Request, res: Response) => {
+  res.json({
+    success: true,
+    message: 'API_KEY authentication successful!',
+    timestamp: new Date().toISOString()
+  });
+});
+
+// POST /dev/ai-gen-stream endpoint for AI text generation with streaming
+router.post('/ai-gen-stream', (req: Request, res: Response) => {
+  try {
+    // Use request body as options for aiGenTextStream
+    const aiStreamResult = aiGenTextStream(req.body);
+    // Pipe the AI stream result to the response
+    aiStreamResult.pipeAiStreamResultToResponse(res);
+  } catch (error) {
+    res.status(500).json({
+      error: 'An error occurred during AI text generation',
+      message: error instanceof Error ? error.message : String(error)
+    });
+  }
+});
+
+export default router;

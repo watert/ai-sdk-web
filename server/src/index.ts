@@ -2,6 +2,7 @@
 import './init-dotenv';
 
 import express, { Request, Response } from 'express';
+import routerDev from './routers/router-dev';
 
 const app = express();
 const PORT = process.env.PORT || 5188;
@@ -30,10 +31,14 @@ app.post('/', (req: Request, res: Response) => {
   });
 });
 
+// Mount dev router with API_KEY validation
+app.use('/dev', routerDev);
+
 // Start the server
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
   console.log('Available endpoints:');
   console.log('  GET  / - Returns a simple JSON response');
   console.log('  POST / - Returns the received data in JSON format');
+  console.log('  POST /dev/ai-gen-stream - AI text generation with streaming (requires API_KEY)');
 });
