@@ -42,6 +42,10 @@ const initialState = {
   AudioPlayBar: {
     isPlay: false,
   },
+  /**
+   * 用户会话状态
+   */
+  session: null,
 };
 
 /**

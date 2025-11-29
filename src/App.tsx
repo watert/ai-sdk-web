@@ -20,7 +20,7 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Layout />}>
-          <Route index element={<Navigate to="/chat" replace />} />
+          <Route index element={<div className="flex items-center justify-center h-full p-4 text-gray-500">请选择左侧菜单开始使用</div>} />
           <Route path="chat" element={<ChatPage />} />
           <Route path="mock-chat" element={<MockChatPage />} />
           <Route path="events" element={<EventListPage />} />
