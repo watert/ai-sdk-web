@@ -22,6 +22,12 @@ type AiGenTextOpts = Parameters<typeof generateText>[0] & {
   search?: boolean;
   thinking?: boolean;
 }
+type AiGenTextStreamOpts = Parameters<typeof streamText>[0] & {
+  platform: string;
+  model: string; options?: any;
+  search?: boolean;
+  thinking?: boolean;
+}
 const proxyUrl = process.env.HTTP_PROXY || process.env.http_proxy || process.env.HTTPS_PROXY || process.env.https_proxy;
 const proxyFetch = !proxyUrl? undefined: (input: RequestInfo | URL, init?: RequestInit) => {
   // console.log('proxy?', {proxyUrl});
@@ -77,11 +83,11 @@ export function getAISDKModel({ platform, model }: { platform?: string; model?: 
 }
 
 const prepareOptionsForPlatform: {
-  [key: string]: (opts: Partial<AiGenTextOpts>) => any;
-  QWEN: (opts: Partial<AiGenTextOpts>) => any;
-  GEMINI: (opts: Partial<AiGenTextOpts>) => any;
+  [key: string]: (opts: Partial<AiGenTextStreamOpts | AiGenTextOpts>) => any;
+  QWEN: (opts: Partial<AiGenTextStreamOpts | AiGenTextOpts>) => any;
+  GEMINI: (opts: Partial<AiGenTextOpts | AiGenTextStreamOpts>) => any;
 } = {
-  QWEN: (opts: Partial<AiGenTextOpts>) => {
+  QWEN: (opts) => {
     const extraOpts: any = {};
     if (opts.search) {
       Object.assign(extraOpts, {
@@ -91,9 +97,9 @@ const prepareOptionsForPlatform: {
     }
     return extraOpts;
   },
-  GEMINI: (opts: Partial<AiGenTextOpts>) => {
+  GEMINI: (opts) => {
     // console.log('called gemini prepare', params);
-    let extraOpts: any = {};
+    const extraOpts: any = {};
     if (opts.search) {
       // extraOpts.tools = Object.assign({ google_search: {} }, opts.tools);
       const tool = google.tools.googleSearch({});
@@ -107,7 +113,7 @@ const prepareOptionsForPlatform: {
     return extraOpts;
   },
 }
-function prepareAiSdkRequest(opts: AiGenTextOpts, ctx: any = {}) {
+function prepareAiSdkRequest(opts: AiGenTextOpts | AiGenTextStreamOpts, ctx: any = {}) {
   // console.log('ctx', ctx, ctx?.abortSignal);
   const platformOpts = prepareOptionsForPlatform[opts.platform]?.(opts) || {};
   if (platformOpts) {
@@ -147,14 +153,14 @@ export async function aiGenText(this: any, opts: AiGenTextOpts): Promise<Generat
   });
   return Object.assign(result, { info, toJSON })
 }
-export function aiGenTextStream(this: any, opts: AiGenTextOpts): StreamTextResult<any,any> & { 
-  params: AiGenTextOpts, info: any,
+export function aiGenTextStream(opts: AiGenTextStreamOpts, ctx?: any): StreamTextResult<any,any> & { 
+  params: AiGenTextStreamOpts, info: any,
   pipeAiStreamResultToResponse: (res: Response) => void,
   toPromise: () => Promise<any>
 }{
   
-  const { params, info } = prepareAiSdkRequest(opts, this);
-  console.log('call streamText opts', opts, 'final params', JSON.stringify(params, null, 2));
+  const { params, info } = prepareAiSdkRequest(opts, ctx);
+  console.log('call streamText opts', opts, 'final params', params);
   // throw 'stop';
   const resp = streamText({ ...params });
   resp.request.then(req => {

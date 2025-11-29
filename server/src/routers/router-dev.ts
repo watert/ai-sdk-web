@@ -36,17 +36,35 @@ router.get('/test', (req: Request, res: Response) => {
 });
 
 // POST /dev/ai-gen-stream endpoint for AI text generation with streaming
-router.post('/ai-gen-stream', (req: Request, res: Response) => {
+router.post('/ai-gen-stream', async (req: Request, res: Response) => {
   try {
-    // Use request body as options for aiGenTextStream
-    const aiStreamResult = aiGenTextStream(req.body);
-    // Pipe the AI stream result to the response
-    aiStreamResult.pipeAiStreamResultToResponse(res);
-  } catch (error) {
-    res.status(500).json({
-      error: 'An error occurred during AI text generation',
-      message: error instanceof Error ? error.message : String(error)
+    const controller = new AbortController();
+
+    res.on('close', () => {
+      console.trace('[close] Request closed, aborting AI generation');
+      controller.abort();
     });
+    req.on('abort', () => {
+      console.log('[abort] Request aborted, aborting AI generation');
+      controller.abort();
+    });
+
+    // Use request body as options for aiGenTextStream and pass the abortSignal
+    const aiStreamResult = aiGenTextStream({
+      onAbort: ({ steps }) => { console.log('aborted', steps?.length) },
+      ...req.body,
+      abortSignal: controller.signal
+    });
+    
+    res.setHeader('Content-Type', 'text/event-stream');
+    aiStreamResult.pipeAiStreamResultToResponse(res);
+    await aiStreamResult.toPromise();
+  } catch (error) {
+    console.warn('An error occurred during AI text generation', error);
+    // res.status(500).json({
+    //   error: 'An error occurred during AI text generation',
+    //   message: error instanceof Error ? error.message : String(error)
+    // });
   }
 });
 
