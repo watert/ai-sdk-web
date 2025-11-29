@@ -1,3 +1,6 @@
+// Load environment variables before any other imports
+import './init-dotenv';
+
 import express, { Request, Response } from 'express';
 
 const app = express();
