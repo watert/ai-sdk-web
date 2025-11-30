@@ -117,12 +117,6 @@ export function initializeStore(initialState: any): void {
 // 为 store 添加 _get 和 _set 方法
 Object.assign(store, { _get: getStore, _set: setStore });
 
-// export function useAppStore
-
-/**
- * appStore 的别名，用于向后兼容
- */
-
 function shallowEqual(a: any, b: any) {
   if (a === b) return true;
   if (!(a instanceof Object) || !(b instanceof Object)) return false;
