@@ -481,9 +481,9 @@ export class CalendarEvent {
     // 增加触发次数
     this.data.triggeredCount = (this.data.triggeredCount || 0) + 1;
     // 实际应用中，这里需要调用持久化存储
-    console.log(
-      `CalendarEvent ${this.id} marked as triggered at ${time.toISOString()}, triggeredCount: ${this.data.triggeredCount}`
-    );
+    // console.log(
+    //   `CalendarEvent ${this.id} marked as triggered at ${time.toISOString()}, triggeredCount: ${this.data.triggeredCount}`
+    // );
     return this;
   }
 

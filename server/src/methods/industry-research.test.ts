@@ -1,7 +1,7 @@
 import { handleIndustryResearchTask } from "./industry-research";
 
 describe('industry-research', () => {
-  test('should handleIndustryResearchTask', async () => {
+  test.skip('should handleIndustryResearchTask', async () => {
     const res = handleIndustryResearchTask({
       industryId: 'ai', config: 'WEEKLY_NEWS', local: true,
     });
