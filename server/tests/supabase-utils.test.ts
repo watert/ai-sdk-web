@@ -1,7 +1,51 @@
 import { verifySupabaseJwt } from '../src/models/supabase-utils';
+import { SignJWT } from 'jose';
 
-// 测试用的 JWT
-const TEST_JWT = "eyJhbGciOiJIUzI1NiIsImtpZCI6IlhiZU5hUGNHeW5DTzlISXQiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL3ZrcXJ3Y3drZWVuZ3psZGxwcm9iLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiJjOTQ1ZDNiNS1lZDU0LTQ5YzktYTVmMS1kMDhjY2QyY2Y0NmMiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzY0NDc5OTEwLCJpYXQiOjE3NjQ0NzYzMTAsImVtYWlsIjoiYm9hdHdpbmRAZ21haWwuY29tIiwicGhvbmUiOiIiLCJhcHBfbWV0YWRhdGEiOnsicHJvdmlkZXIiOiJlbWFpbCIsInByb3ZpZGVycyI6WyJlbWFpbCJdfSwidXNlcl9tZXRhZGF0YSI6eyJlbWFpbCI6ImJvYXR3aW5kQGdtYWlsLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJwaG9uZV92ZXJpZmllZCI6ZmFsc2UsInN1YiI6ImM5NDVkM2I1LWVkNTQtNDljOS1hNWYxLWQwOGNjZDJjZjQ2YyJ9LCJyb2xlIjoiYXV0aGVudGljYXRlZCIsImFhbCI6ImFhbDEiLCJhbXIiOlt7Im1ldGhvZCI6Im90cCIsInRpbWVzdGFtcCI6MTc2NDQyMzg0Nn1dLCJzZXNzaW9uX2lkIjoiNGRhY2M1NTYtMGNjOS00NGEyLWFlODEtMDBlMDc1NGI1YjcxIiwiaXNfYW5vbnltb3VzIjpmYWxzZX0._6od1WdMit0IFdbLB2ITiZo3p1FYcHb_T5nim1K5MEs";
+// 动态生成测试用的 JWT
+async function generateTestJwt() {
+  // 从环境变量获取 Supabase JWT 密钥
+  const supabaseJwtSecret = process.env.SUPABASE_JWT_SECRET;
+  if (!supabaseJwtSecret) {
+    throw new Error('SUPABASE_JWT_SECRET 环境变量未配置');
+  }
+
+  // 设置过期时间为当前时间 + 1 小时
+  const expirationTime = Math.floor(Date.now() / 1000) + 3600;
+  const issuedTime = Math.floor(Date.now() / 1000);
+
+  // 生成 JWT
+  return new SignJWT({
+    iss: 'https://test.supabase.co/auth/v1',
+    sub: 'c945d3b5-ed54-49c9-a5f1-d08ccd2cf46c',
+    aud: 'authenticated',
+    exp: expirationTime,
+    iat: issuedTime,
+    email: 'boatwind@gmail.com',
+    phone: '',
+    app_metadata: {
+      provider: 'email',
+      providers: ['email']
+    },
+    user_metadata: {
+      email: 'boatwind@gmail.com',
+      email_verified: true,
+      phone_verified: false,
+      sub: 'c945d3b5-ed54-49c9-a5f1-d08ccd2cf46c'
+    },
+    role: 'authenticated',
+    aal: 'aal1',
+    amr: [
+      {
+        method: 'otp',
+        timestamp: issuedTime
+      }
+    ],
+    session_id: '4dacc556-0cc9-44a2-ae81-00e0754b5b71',
+    is_anonymous: false
+  })
+    .setProtectedHeader({ alg: 'HS256' })
+    .sign(new TextEncoder().encode(supabaseJwtSecret));
+}
 
 describe('verifySupabaseJwt', () => {
   // 测试环境变量是否正确加载
@@ -12,13 +56,14 @@ describe('verifySupabaseJwt', () => {
 
   // 测试验证有效 JWT
   it('should verify a valid JWT successfully', async () => {
+    const TEST_JWT = await generateTestJwt();
     const result = await verifySupabaseJwt(TEST_JWT);
     
     expect(result).toBeDefined();
     expect(result.payload).toBeDefined();
     expect(result.payload.sub).toBe('c945d3b5-ed54-49c9-a5f1-d08ccd2cf46c');
     expect(result.payload.email).toBe('boatwind@gmail.com');
-    expect(result.payload.iss).toBe('https://vkqrwcwkeengzldlprob.supabase.co/auth/v1');
+    expect(result.payload.iss).toBe('https://test.supabase.co/auth/v1');
   });
 
   // 测试验证无效 JWT

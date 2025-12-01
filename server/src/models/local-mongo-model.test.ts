@@ -27,7 +27,7 @@ describe('local-mongo-model', () => {
     expect(doc.get('bar')).toBe('boo');
     expect(await Model.countDocuments({ b: 2 })).toBe(2);
     const doc2 = await Model.create({ a: 4, b: 5, c: 6 });
-    console.log('doc2', doc2.toJSON())
+    // console.log('doc2', doc2.toJSON())
   });
   test('updateMany', async () => {
     const doc = await Model.findOneAndUpdate({ a: 1 }, { $set: { a: 10, 'obj.a': 1 }}, { new: true });
