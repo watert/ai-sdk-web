@@ -1,8 +1,9 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { aiGenTextStream } from '../methods/ai-sdk/ai-gen-text';
+import { authMiddleware } from '../middlewares/auth-middleware';
 
 const router = Router();
-
+router.use(authMiddleware);
 // Middleware to validate API_KEY from Bearer token
 const validateApiKey = (req: Request, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;

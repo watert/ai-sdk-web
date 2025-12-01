@@ -4,14 +4,30 @@ import './init-dotenv';
 import express, { Request, Response } from 'express';
 import routerDev from './routers/router-dev';
 import { authMiddleware } from './middlewares/auth-middleware';
+import session from 'express-session';
+import MemoryStore from 'memorystore';
 
 const app = express();
 const PORT = process.env.PORT || 5188;
 
 // 中间件：解析 JSON 主体
 app.use(express.json());
-// 中间件：验证 JWT 并提取用户信息
-app.use(authMiddleware);
+
+// 配置 session 中间件
+const MemoryStoreInstance = MemoryStore(session);
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'your-secret-key',
+  resave: true, // 确保 session 被保存
+  saveUninitialized: true, // 确保未初始化的 session 也被保存
+  store: new MemoryStoreInstance({
+    checkPeriod: 86400000 // 24 小时检查一次过期会话
+  }),
+  cookie: {
+    maxAge: 86400000, // 24 小时过期
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production' // 生产环境使用 secure cookie
+  }
+}));
 
 // GET / 端点
 app.get('/', (req: Request, res: Response) => {
@@ -34,8 +50,12 @@ app.post('/', (req: Request, res: Response) => {
   });
 });
 
-// 挂载带有 API_KEY 验证的开发路由器
-app.use('/dev', routerDev);
+// 挂载用于测试 session 的路由器，无需 auth 验证
+import routerTest from './routers/router-test';
+app.use('/test', routerTest);
+
+// 挂载带有 API_KEY 验证和 JWT 认证的开发路由器
+app.use('/dev', authMiddleware, routerDev);
 
 // Express 错误处理中间件
 app.use((err: Error, req: Request, res: Response) => {

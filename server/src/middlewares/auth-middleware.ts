@@ -26,6 +26,13 @@ declare global {
   }
 }
 
+// 扩展 express-session 模块的 Session 类型，添加可选的 user 属性
+declare module 'express-session' {
+  interface Session {
+    user?: User;
+  }
+}
+
 function getReqAuthBearerToken(req: Request) {
   // 提取 JWT（格式：Bearer <token>）
   const tokenParts = req.headers.authorization?.split(' ') || [];
@@ -67,7 +74,7 @@ export const getReqUser = async (req: Request): Promise<User | undefined> => {
 };
 
 /**
- * 从 Authorization header 中获取并验证 JWT，将用户信息添加到 req 对象
+ * 从 Authorization header 中获取并验证 JWT，将用户信息添加到 req 对象和 session 中
  */
 export const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -77,6 +84,11 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
     }
     
     req.user = user;
+    
+    // 将用户信息写入到 session 中
+    if (req.session) {
+      req.session.user = user;
+    }
     
     // 继续处理请求
     next();

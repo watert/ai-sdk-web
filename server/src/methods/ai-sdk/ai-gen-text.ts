@@ -15,6 +15,11 @@ const gptConfigs: any[] = [
     platform: 'GLM', platformName: 'ChatGLM', apiKey: process.env.GPT_GLM as string,
     baseURL: 'https://open.bigmodel.cn/api/paas/v4',
   },
+  { // can use models: "qwen-plus", "qwen-turbo", "qwen-max"
+    platform: 'QWEN', apiKey: process.env.GPT_QWEN as string,
+    // baseURL: 'https://dashscope.aliyuncs.com/compatible-mode/v1', // cn
+    baseURL: 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1', // intl
+  },
   {
     platform: 'GEMINI', platformName: 'Google Gemini', apiKey: process.env.GPT_GEMINI as string,
     baseURL: 'https://generativelanguage.googleapis.com/v1beta',
@@ -98,10 +103,8 @@ const prepareOptionsForPlatform: {
   QWEN: (opts) => {
     const extraOpts: any = {};
     if (opts.search) {
-      Object.assign(extraOpts, {
-        enable_search: true,
-        search_options: { enable_source: true, forced_search: true },
-      });
+      _.set(extraOpts, 'options.enable_search', true);
+      _.set(extraOpts, 'options.search_options', { enable_source: true, forced_search: true });
     }
     return extraOpts;
   },

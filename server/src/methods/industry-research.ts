@@ -23,6 +23,7 @@ export const sysPrompt = `
 你是资深的行业调研、搜索与社媒运营专家。你擅长调研处理不同的行业的需求情况，并能够以专家和行业受众用户的不同视角进行 Web 搜索以根据指令获取不同的数据，并推荐给社交媒体一些用于创作的灵感 Prompt。
 type Inspiration = {
   title: string, // 标题, 20 字左右
+  date?: string, // 可能有的明确日期(比如新闻), 格式为 YYYY-MM-DD
   content: string, // 内容主体, 200 字左右
   tags: string[], // 标签, 3~5 个
   postIdeas: string[], // 3 条相关联的社媒灵感 Prompt, 可用于 LLM 进行文章生成。注意，是用于给 LLM 的指令而非标题；每个 idea 长度为 20 字左右；直接描述题材、题目或问题，不要带有"生成"、"撰写"这类的动作描述；
@@ -31,7 +32,7 @@ type ReturnData = {
   inspirations: Inspiration[],
   summary: string, // 汇总总结, 50 字左右
 }
-你生成出来的数据为符合 Inspiration[] 的 JSON 格式。
+你生成出来的数据为符合 Inspiration[] 的 JSON 格式。注意，仅返回 JSON 数据，不要包含任何其他文本。
 `.trim();
 
 export const getIndustryResearchMsgs = ({ industry, prompt }: {
@@ -64,11 +65,13 @@ async function arrayFromAsync(asyncIterator: AsyncIterable<any>) {
   for await (const item of asyncIterator) { arr.push(item); }
   return arr;
 }
-export function handleIndustryResearchTask({ industryId, config, local, dbModel }: {
+export function handleIndustryResearchTask({ platform, model, industryId, config, local, dbModel }: {
   config: IndustryResearchConfig | string,
   dbModel?: mongoose.Model<any>,
   industryId: string,
   local?: boolean;
+  platform?: string,
+  model?: string,
 }): AiGenTextStreamResult & {
   taskResult: Promise<any>,
 } {
@@ -89,11 +92,11 @@ export function handleIndustryResearchTask({ industryId, config, local, dbModel 
   // aiGenTextStream()
   const messages = getIndustryResearchMsgs({ industry: industry.name || industry.name_en, prompt });
   // const genResult = aiGenTextStream({ platform: 'GEMINI', model: 'gemini-2.5-flash-lite', messages, search: true })
-  const genResult = aiGenTextStream({ platform: 'GEMINI', model: 'gemini-flash-latest', messages, search: true })
+  const genResult = aiGenTextStream({
+    platform: platform || 'GEMINI', model: model || 'gemini-flash-latest',
+    search: true, messages,
+  })
   const task = async (info: { date: Date, id: string }) => {
-    // const msgs = await arrayFromAsync(genResult.toUIMessageStream());
-    // // console.log('await genResult.response', response);
-    // // const resp = await genResult.toPromise()
     let msgs: any[] = [], error;
     const [content, reasoningText, totalUsage] = await Promise.all([
       genResult.content,

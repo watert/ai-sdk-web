@@ -1,11 +1,14 @@
 import { handleIndustryResearchTask } from "./industry-research";
 
 describe('industry-research', () => {
-  test.skip('should handleIndustryResearchTask', async () => {
+  test('should handleIndustryResearchTask', async () => {
     const res = handleIndustryResearchTask({
-      industryId: 'ai', config: 'WEEKLY_NEWS', local: true,
+      // platform: 'GEMINI', model: 'gemini-flash-latest',
+      platform: 'QWEN', model: 'qwen-plus',
+      industryId: 'ai', config: 'DAILY_NEWS', local: true,
+      // industryId: 'ai', config: 'WEEKLY_NEWS', local: true,
     });
-    console.log('res', res);
+    console.log('res', await res.text);
     await res.taskResult;
   }, 30e3)
 });
