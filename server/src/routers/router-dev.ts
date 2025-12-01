@@ -31,7 +31,7 @@ router.get('/test', (req: Request, res: Response) => {
   res.json({
     success: true,
     message: 'API_KEY authentication successful!',
-    user: (req as any).user || 'No user found - JWT not provided or invalid',
+    user: req.user || 'No user found - JWT not provided or invalid',
     timestamp: new Date().toISOString()
   });
 });
