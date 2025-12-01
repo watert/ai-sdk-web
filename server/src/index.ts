@@ -3,6 +3,7 @@ import './init-dotenv';
 
 import express, { Request, Response } from 'express';
 import routerDev from './routers/router-dev';
+import routerAccount from './routers/router-account';
 import { authMiddleware } from './middlewares/auth-middleware';
 import session from 'express-session';
 import MemoryStore from 'memorystore';
@@ -55,7 +56,8 @@ import routerTest from './routers/router-test';
 app.use('/test', routerTest);
 
 // 挂载带有 API_KEY 验证和 JWT 认证的开发路由器
-app.use('/dev', authMiddleware, routerDev);
+app.use('/dev', authMiddleware({ authRequired: true }), routerDev);
+app.use('/account', authMiddleware({ authRequired: false }), routerAccount);
 
 // Express 错误处理中间件
 app.use((err: Error, req: Request, res: Response) => {

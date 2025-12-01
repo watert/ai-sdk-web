@@ -1,31 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { aiGenTextStream } from '../methods/ai-sdk/ai-gen-text';
-import { authMiddleware } from '../middlewares/auth-middleware';
 
 const router = Router();
-router.use(authMiddleware);
-// Middleware to validate API_KEY from Bearer token
-const validateApiKey = (req: Request, res: Response, next: NextFunction) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader) {
-    return res.status(401).json({ error: 'Authorization header is required' });
-  }
-
-  const token = authHeader.split(' ')[1];
-  if (!token) {
-    return res.status(401).json({ error: 'Bearer token is required' });
-  }
-
-  const apiKey = process.env.API_KEY;
-  if (!apiKey || token !== apiKey) {
-    return res.status(403).json({ error: 'Invalid API key' });
-  }
-
-  next();
-};
-
-// Apply API_KEY validation to all routes in this router
-router.use(validateApiKey);
 
 // GET /dev/test endpoint for testing API_KEY authentication
 router.get('/test', (req: Request, res: Response) => {

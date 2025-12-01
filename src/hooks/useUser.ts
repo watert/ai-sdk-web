@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { appStore, useAppStore } from "../store/store";
 import { getSession, onAuthStateChange, sendMagicLink, signOut, verifyOtp } from "../models/supabase-login";
+import { appAxios } from "../models/appAxios";
 
 /**
  * 用户登录状态管理 Hook
@@ -50,7 +51,18 @@ export const useUser = () => {
       const params = new URLSearchParams(window.location.search);
       if (session && (params.get("token_hash") || params.get("type"))) {
         console.log("会话已存在，清除 URL 参数");
-        window.history.replaceState({}, document.title, "/");
+        // window.history.replaceState({}, document.title, "/");
+      }
+      // 如果会话已存在，调用 /account/user 获取用户信息
+      if (session) {
+        console.log("会话已存在，调用 /account/user 获取用户信息");
+        appAxios.get('/account/user')
+          .then(response => {
+            console.log("获取用户信息成功:", response.data);
+          })
+          .catch(error => {
+            console.error("获取用户信息失败:", error);
+          });
       }
     });
 
@@ -61,7 +73,16 @@ export const useUser = () => {
       // 当会话成功创建后，清除 URL 参数
       if (event === "SIGNED_IN" && session) {
         console.log("用户已登录，清除 URL 参数");
-        window.history.replaceState({}, document.title, "/");
+        // window.history.replaceState({}, document.title, "/");
+        // 使用 appAxios 调用 GET /account/user
+        console.log("调用 /account/user 获取用户信息");
+        appAxios.get('/account/user')
+          .then(response => {
+            console.log("获取用户信息成功:", response.data);
+          })
+          .catch(error => {
+            console.error("获取用户信息失败:", error);
+          });
       }
     });
 

@@ -62,7 +62,7 @@ export const getReqUser = async (req: Request): Promise<User | undefined> => {
   
   // 常规 JWT 验证流程
   const jwt = getReqAuthBearerToken(req);
-  if (!jwt) { return undefined; }
+  if (!jwt) { return req.session?.user || undefined; }
   
   try {
     const { payload } = await verifySupabaseJwt(jwt);
@@ -75,36 +75,49 @@ export const getReqUser = async (req: Request): Promise<User | undefined> => {
 
 /**
  * 从 Authorization header 中获取并验证 JWT，将用户信息添加到 req 对象和 session 中
+ * @param authRequired 是否在未授权时返回 401 错误，默认为 true
+ * @returns Express 中间件函数
  */
-export const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const user = await getReqUser(req);
-    if (!user) {
-      return res.status(401).json({ error: '未授权' });
-    }
-    
-    req.user = user;
-    
-    // 将用户信息写入到 session 中
-    if (req.session) {
-      req.session.user = user;
-    }
-    
-    // 继续处理请求
-    next();
-  } catch (error) {
-    console.error('JWT 验证失败:', error);
-    
-    // 根据错误类型返回不同的状态码和消息
-    if (error instanceof Error) {
-      if (error.message.includes('JWTExpired')) {
-        return res.status(401).json({ error: '令牌已过期' });
+export const authMiddleware = ({ authRequired }: { authRequired?: boolean } = {}) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = await getReqUser(req);
+      
+      // 如果用户存在，将用户信息添加到 req 对象和 session 中
+      if (user) {
+        req.user = user;
+        
+        // 将用户信息写入到 session 中
+        if (req.session) {
+          req.session.user = user;
+        }
+      } else if (authRequired) {
+        // 如果用户不存在且 authRequired 为 true，返回 401 错误
+        return res.status(401).json({ error: '未授权' });
       }
-      if (error.message.includes('Invalid Compact JWS')) {
-        return res.status(401).json({ error: '无效的令牌格式' });
+      
+      // 继续处理请求
+      next();
+    } catch (error) {
+      console.error('JWT 验证失败:', error);
+      
+      // 根据错误类型返回不同的状态码和消息
+      if (error instanceof Error) {
+        if (error.message.includes('JWTExpired')) {
+          return res.status(401).json({ error: '令牌已过期' });
+        }
+        if (error.message.includes('Invalid Compact JWS')) {
+          return res.status(401).json({ error: '无效的令牌格式' });
+        }
       }
+      
+      // 只有在 authRequired 为 true 时才返回 401 错误
+      if (authRequired) {
+        return res.status(401).json({ error: '身份验证失败' });
+      }
+      
+      // 如果 authRequired 为 false，继续处理请求
+      next();
     }
-    
-    return res.status(401).json({ error: '身份验证失败' });
-  }
+  };
 };
