@@ -1,13 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import type {
     ExtendedUIMessage, MessagePart,
     ReasoningPart, ToolCallPart, ToolResultPart,
 } from './message-types.ts';
-import { Bot, Brain, ChevronDown, ChevronRight, Wrench, Check, FileText, Copy, RefreshCw, Pencil } from 'lucide-react';
-import { toast } from 'sonner';
-import { copyToClipboard } from '../libs/copyToClipboard';
+import { Bot, Brain, ChevronDown, ChevronRight, Wrench, Check, FileText, RefreshCw } from 'lucide-react';
 import { UserMessageItem } from './UserMessageItem';
 import { MarkdownRenderer } from './MarkdownRenderer';
+import { BaseTextMessageItem } from './BaseTextMessageItem';
 
 // --- Sub-components for specific part types ---
 
@@ -124,7 +123,39 @@ const ImageBlock: React.FC<{ part: any }> = ({ part }) => {
             />
         </div>
     )
-}
+};
+
+// --- Custom bubble content for assistant messages --- 
+const AssistantBubbleContent: React.FC<{ message: ExtendedUIMessage }> = ({ message }) => {
+  // Determine content to render
+  let renderParts: MessagePart[] = message.parts || [];
+  if (renderParts.length === 0 && message.content) {
+    renderParts = [{ type: 'text', text: message.content }];
+  }
+
+  return (
+    <div className="flex flex-col gap-1">
+      {renderParts.map((part, index) => {
+        switch (part.type) {
+          case 'text':
+            return <MarkdownRenderer key={index} text={part.text} />;
+          case 'reasoning':
+            return <ReasoningBlock key={index} part={part} />;
+          case 'tool-call':
+            return <ToolCallBlock key={index} part={part} />;
+          case 'tool-result':
+            return <ToolResultBlock key={index} part={part} />;
+          case 'image':
+            return <ImageBlock key={index} part={part} />;
+          case 'file':
+            return <FileAttachment key={index} part={part} />;
+          default:
+            return null;
+        }
+      })}
+    </div>
+  );
+};
 
 // --- Main Message Item Component ---
 
@@ -147,60 +178,10 @@ export const MessageItem: React.FC<MessageItemProps> = ({
     return <UserMessageItem message={message} onEditSubmit={onEditSubmit} />;
   }
   
-  // Edit State
-  const [isEditing, setIsEditing] = useState(false);
-  const [editContent, setEditContent] = useState(message.content);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  // Initialize edit content when entering edit mode
-  useEffect(() => {
-    if (isEditing) {
-        // setEditContent(message.content);
-        // Auto-focus and adjust height
-        setTimeout(() => {
-            if (textareaRef.current) {
-                textareaRef.current.focus();
-                textareaRef.current.style.height = 'auto';
-                textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
-            }
-        }, 0);
-    }
-  }, [isEditing, message.content]);
-
-  // Handle Textarea Auto-grow during edit
-  const handleEditInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      setEditContent(e.target.value);
-      e.target.style.height = 'auto';
-      e.target.style.height = `${e.target.scrollHeight}px`;
-  };
-
-  const handleSaveEdit = () => {
-      if (onEditSubmit) {
-          onEditSubmit(message.id, editContent);
-      }
-      setIsEditing(false);
-  };
-
-  const handleCancelEdit = () => {
-      setIsEditing(false);
-      setEditContent(message.content);
-  };
-  
-  const handleCopy = async () => {
-    const success = await copyToClipboard(message.content);
-    if (success) {
-      toast.success('Copied to clipboard');
-    } else {
-      toast.error('Failed to copy');
-    }
-  };
-
-  
   // Extract Metadata
   const metadata = message.metadata || {};
   const modelName = metadata.model;
   const tokens = metadata.usage?.totalTokens;
-  const timestamp = metadata.createdAt ? new Date(metadata.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
   
   // Calculate TPS (Tokens Per Second)
   const startedAt = metadata.startedAt ? new Date(metadata.startedAt).getTime() : null;
@@ -211,153 +192,52 @@ export const MessageItem: React.FC<MessageItemProps> = ({
     tps = Math.round(tokens / durationInSeconds);
   }
 
-  // Determine content to render. 
-  let renderParts: MessagePart[] = message.parts || [];
-  if (renderParts.length === 0 && message.content) {
-    renderParts = [{ type: 'text', text: message.content }];
-  }
+  // Bot Avatar
+  const botAvatar = (
+    <div className={`
+      flex-shrink-0 w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center shadow-sm
+      bg-emerald-600 text-white
+    `}>
+      <Bot size={20} />
+    </div>
+  );
 
-  // Dynamic Styles
-  let containerClasses = "relative px-5 py-4 rounded-2xl shadow-sm text-left overflow-hidden w-full transition-all duration-200";
-  
-  if (isEditing) {
-      // Edit Mode Style: White Card, Blue Border
-      containerClasses += " bg-white dark:bg-slate-950 border-2 border-blue-600 text-slate-900 dark:text-slate-100";
-  } else {
-      // Assistant Mode Style
-      containerClasses += " bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-tl-sm";
-  }
+  // Additional footer actions for assistant messages
+  const footerActions = (
+    <>      
+      {isAssistant && onRegenerate && (
+          <button 
+              onClick={() => onRegenerate(message.id)}
+              className="text-slate-400 hover:text-green-500 transition-colors" 
+              title="Regenerate Response"
+          >
+              <RefreshCw size={14} />
+          </button>
+      )}
+    </>
+  );
+
+  // Additional metadata for assistant messages
+  const additionalMetadata = tokens && (
+    <span className="text-[10px] text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+      {tokens} tokens{(durationInSeconds && tps) ? ` (${durationInSeconds.toFixed(2)}s, tps ${tps})` : ''}
+    </span>
+  );
 
   return (
-    <div 
-        className={`flex w-full gap-4 p-4 animate-fade-in group flex-row`}
-    >
-      {/* Avatar */}
-      <div className={`
-        flex-shrink-0 w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center shadow-sm
-        bg-emerald-600 text-white
-      `}>
-        <Bot size={20} />
-      </div>
-
-      {/* Message Bubble Container */}
-      <div className={`flex flex-col max-w-[85%] lg:max-w-[75%] items-start w-full`}>
-        
-        {/* Author Name */}
-        <span className="text-xs text-slate-400 mb-1 ml-1 px-1">
-          {modelName || 'Assistant'}
-        </span>
-
-        {/* Bubble */}
-        <div className={containerClasses}>
-          
-          {isEditing ? (
-              // Edit Mode UI
-              <div className="flex flex-col gap-2 min-w-[200px]">
-                  <textarea
-                    ref={textareaRef}
-                    value={editContent}
-                    onChange={handleEditInput}
-                    className="w-full bg-transparent border-none outline-none resize-none overflow-hidden leading-relaxed text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
-                    placeholder="Edit your message..."
-                  />
-                  <div className="flex items-center justify-end gap-3 pt-2 mt-2">
-                      <button 
-                        onClick={handleCancelEdit}
-                        className="px-2 py-1 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
-                        title="Cancel"
-                      >
-                          Cancel
-                      </button>
-                      <button 
-                        onClick={handleSaveEdit}
-                        className="px-5 py-1.5 rounded-full text-sm font-medium bg-slate-200 text-slate-600 hover:bg-blue-600 hover:text-white dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-blue-600 transition-all shadow-sm"
-                        title="Update"
-                      >
-                          Update
-                      </button>
-                  </div>
-              </div>
-          ) : (
-              // View Mode UI
-              <div className="flex flex-col gap-1">
-                {renderParts.map((part, index) => {
-                  switch (part.type) {
-                    case 'text':
-                      return <MarkdownRenderer key={index} text={part.text} />;
-                    case 'reasoning':
-                      return <ReasoningBlock key={index} part={part} />;
-                    case 'tool-call':
-                      return <ToolCallBlock key={index} part={part} />;
-                    case 'tool-result':
-                      return <ToolResultBlock key={index} part={part} />;
-                    case 'image':
-                      return <ImageBlock key={index} part={part} />;
-                    case 'file':
-                      return <FileAttachment key={index} part={part} />;
-                    default:
-                      return null;
-                  }
-                })}
-              </div>
-          )}
-
-        </div>
-
-        {/* Footer Metadata & Actions */}
-        {!isEditing && (
-             <div className="msg-footer flex items-center gap-3 mt-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                {/* Metrics */}
-                {tokens && (
-                    <span className="text-[10px] text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
-                        {tokens} tokens{(durationInSeconds && tps) ? ` (${durationInSeconds.toFixed(2)}s, tps ${tps})` : ''}
-                    </span>
-                )}
-                {/* {tps !== null && (
-                    <span className="text-[10px] text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
-                        {tps} tps
-                    </span>
-                )} */}
-                {timestamp && (
-                    <span className="text-[10px] text-slate-400">
-                        {timestamp}
-                    </span>
-                )}
-                
-                {/* Separator */}
-                <div className="w-px h-3 bg-slate-200 dark:bg-slate-700 mx-1"></div>
-
-                {/* Actions */}
-                <button 
-                    onClick={handleCopy}
-                    className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors" 
-                    title="Copy Content"
-                >
-                   <Copy size={14} />
-                </button>
-
-                {(message.role === 'system') && onEditSubmit && (
-                    <button 
-                        onClick={() => setIsEditing(true)}
-                        className="text-slate-400 hover:text-blue-500 transition-colors" 
-                        title="Edit Message"
-                    >
-                        <Pencil size={14} />
-                    </button>
-                )}
-
-                {isAssistant && onRegenerate && (
-                    <button 
-                        onClick={() => onRegenerate(message.id)}
-                        className="text-slate-400 hover:text-green-500 transition-colors" 
-                        title="Regenerate Response"
-                    >
-                        <RefreshCw size={14} />
-                    </button>
-                )}
-            </div>
-        )}
-      </div>
-    </div>
+    <BaseTextMessageItem
+      message={message}
+      onEditSubmit={onEditSubmit}
+      showEditButton={message.role === 'system'}
+      authorName={modelName || 'Assistant'}
+      avatar={botAvatar}
+      bubbleClasses="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-tl-sm"
+      containerClasses="flex-row"
+      footerActions={
+        <>
+          {additionalMetadata}
+          {footerActions}
+        </>
+      }/>
   );
 };

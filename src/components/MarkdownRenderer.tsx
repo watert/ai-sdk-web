@@ -16,7 +16,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
 }) => {
   return (
     <div className={twMerge(clsx(className, 'markdown-content'))}>
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+      <ReactMarkdown remarkPlugins={[[remarkGfm]]}>
         {text}
       </ReactMarkdown>
     </div>
