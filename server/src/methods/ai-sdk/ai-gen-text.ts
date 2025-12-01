@@ -11,9 +11,14 @@ const gptConfigs: any[] = [
   { // can use models: "glm-4.6:cloud", "qwen3:4b-instruct", "qwen3:4b"
     platform: 'OLLAMA', platformName: 'Ollama', apiKey: '_',
     baseURL: 'http://localhost:11434/v1',
-  }
+  },
+  { // can use models: "glm-4.5-flash", "glm-4.5-flash-lite"
+    platform: 'GLM', platformName: 'ChatGLM', apiKey: process.env.GPT_GLM as string,
+    baseURL: 'https://open.bigmodel.cn/api/paas/v4',
+  },
 ];
 const configByPlatform = _.keyBy(gptConfigs, 'platform');
+// console.log('configByPlatform', configByPlatform);
 
 // opts 应该是 generateText 的参数，但有一些扩展
 type AiGenTextOpts = Parameters<typeof generateText>[0] & {
@@ -123,7 +128,7 @@ function prepareAiSdkRequest(opts: AiGenTextOpts | AiGenTextStreamOpts, ctx: any
   if (messages?.length) {
     try {
       messages = convertToModelMessages(messages as any);
-    } catch(err) {1}
+    } catch(err) { _.noop(); }
   }
   const modelData = getAISDKModel({ platform, model });
   if (platform && providerOptions && !providerOptions[platform]) {

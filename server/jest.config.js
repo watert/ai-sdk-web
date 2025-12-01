@@ -7,7 +7,9 @@ module.exports = {
   testEnvironment: "node",
   setupFiles: ['<rootDir>/jest.setup.js'],
   transform: {
-    // '^.+\\.ts?$': ['ts-jest', { isolatedModules: true, useESM: true }],
+    // '^.+\.ts?$': ['ts-jest', { isolatedModules: true, useESM: true }],
     ...tsJestTransformCfg,
   },
+  // 忽略 dist 文件夹
+  testPathIgnorePatterns: ['<rootDir>/dist/'],
 };
