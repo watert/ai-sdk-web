@@ -2,7 +2,6 @@ import _ from 'lodash';
 import { pipeUIMessageStreamToResponse, createUIMessageStream, generateText, streamText, StreamTextResult, GenerateTextResult, convertToModelMessages } from 'ai';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { google, createGoogleGenerativeAI } from '@ai-sdk/google';
-// import { gptConfigs } from '../gpt/gpt-model-openai-like-config';
 import { ProxyAgent, type RequestInit as UndiciRequestInit, fetch as undiciFetch } from 'undici';
 import { Response } from 'express';
 
@@ -16,6 +15,10 @@ const gptConfigs: any[] = [
     platform: 'GLM', platformName: 'ChatGLM', apiKey: process.env.GPT_GLM as string,
     baseURL: 'https://open.bigmodel.cn/api/paas/v4',
   },
+  {
+    platform: 'GEMINI', platformName: 'Google Gemini', apiKey: process.env.GPT_GEMINI as string,
+    baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+  }
 ];
 const configByPlatform = _.keyBy(gptConfigs, 'platform');
 // console.log('configByPlatform', configByPlatform);
@@ -158,11 +161,12 @@ export async function aiGenText(this: any, opts: AiGenTextOpts): Promise<Generat
   });
   return Object.assign(result, { info, toJSON })
 }
-export function aiGenTextStream(opts: AiGenTextStreamOpts, ctx?: any): StreamTextResult<any,any> & { 
+export type AiGenTextStreamResult = StreamTextResult<any,any> & { 
   params: AiGenTextStreamOpts, info: any,
   pipeAiStreamResultToResponse: (res: Response) => void,
   toPromise: () => Promise<any>
-}{
+}
+export function aiGenTextStream(opts: AiGenTextStreamOpts, ctx?: any): AiGenTextStreamResult{
   
   const { params, info } = prepareAiSdkRequest(opts, ctx);
   console.log('call streamText opts', opts, 'final params', params);
