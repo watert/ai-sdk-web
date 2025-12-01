@@ -29,7 +29,7 @@ type AiGenTextStreamOpts = Parameters<typeof streamText>[0] & {
   thinking?: boolean;
 }
 const proxyUrl = process.env.HTTP_PROXY || process.env.http_proxy || process.env.HTTPS_PROXY || process.env.https_proxy;
-const proxyFetch = !proxyUrl? undefined: (input: RequestInfo | URL, init?: RequestInit) => {
+const proxyFetch = !proxyUrl? undefined: (input: RequestInit | URL, init?: RequestInit) => {
   // console.log('proxy?', {proxyUrl});
   const dispatcher = new ProxyAgent({
     uri: proxyUrl!,

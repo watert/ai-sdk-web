@@ -3,12 +3,15 @@ import './init-dotenv';
 
 import express, { Request, Response } from 'express';
 import routerDev from './routers/router-dev';
+import { authMiddleware } from './middlewares/auth-middleware';
 
 const app = express();
 const PORT = process.env.PORT || 5188;
 
 // 中间件：解析 JSON 主体
 app.use(express.json());
+// 中间件：验证 JWT 并提取用户信息
+app.use(authMiddleware);
 
 // GET / 端点
 app.get('/', (req: Request, res: Response) => {
