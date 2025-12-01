@@ -47,7 +47,7 @@ const ReasoningBlock: React.FC<{ part: ReasoningPart }> = ({ part }) => {
       
       {isOpen && (
         <div className="p-3 text-amber-800 dark:text-amber-200 text-xs whitespace-pre-wrap leading-relaxed border-t border-amber-200/30">
-          {part.text?.trim?.()}
+          {<MarkdownRenderer text={part.text?.trim?.()} />}
           {isStreaming && <span className="inline-block w-1.5 h-4 ml-1 align-middle bg-amber-500/50 animate-pulse"/>}
         </div>
       )}
@@ -238,6 +238,9 @@ export const MessageItem: React.FC<MessageItemProps> = ({
           {additionalMetadata}
           {footerActions}
         </>
-      }/>
+      }
+    >
+      <AssistantBubbleContent message={message} />
+    </BaseTextMessageItem>
   );
 };

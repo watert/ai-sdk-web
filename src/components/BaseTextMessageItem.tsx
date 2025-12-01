@@ -14,6 +14,7 @@ interface BaseTextMessageItemProps {
   bubbleClasses?: string;
   containerClasses?: string;
   footerActions?: React.ReactNode;
+  children?: React.ReactNode;
 }
 
 export const BaseTextMessageItem: React.FC<BaseTextMessageItemProps> = ({
@@ -24,7 +25,8 @@ export const BaseTextMessageItem: React.FC<BaseTextMessageItemProps> = ({
   avatar,
   bubbleClasses = '',
   containerClasses = '',
-  footerActions
+  footerActions,
+  children
 }) => {
   // Helper function to get message content from either parts or content field
   const getMessageContent = (message: ExtendedUIMessage): string => {
@@ -170,14 +172,16 @@ export const BaseTextMessageItem: React.FC<BaseTextMessageItemProps> = ({
           ) : (
               // View Mode UI
               <div className="flex flex-col gap-1">
-                {renderParts.map((part, index) => {
-                  switch (part.type) {
-                    case 'text':
-                      return <MarkdownRenderer key={index} text={part.text} />;
-                    default:
-                      return null;
-                  }
-                })}
+                {children ? children : (
+                  renderParts.map((part, index) => {
+                    switch (part.type) {
+                      case 'text':
+                        return <MarkdownRenderer key={index} text={part.text} />;
+                      default:
+                        return null;
+                    }
+                  })
+                )}
               </div>
           )}
 
