@@ -1,31 +1,12 @@
 import _ from 'lodash';
-import { pipeUIMessageStreamToResponse, createUIMessageStream, generateText, streamText, StreamTextResult, GenerateTextResult, convertToModelMessages } from 'ai';
+import { pipeUIMessageStreamToResponse, createUIMessageStream, generateText, streamText, type StreamTextResult, type GenerateTextResult, convertToModelMessages } from 'ai';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { google, createGoogleGenerativeAI } from '@ai-sdk/google';
 import { jsonrepair } from 'jsonrepair';
 import { ProxyAgent, type RequestInit as UndiciRequestInit, fetch as undiciFetch } from 'undici';
 import { Response } from 'express';
+import { gptConfigs } from './gptConfigs';
 
-const gptConfigs: any[] = [
-
-  { // can use models: "glm-4.6:cloud", "qwen3:4b-instruct", "qwen3:4b"
-    platform: 'OLLAMA', platformName: 'Ollama', apiKey: '_',
-    baseURL: 'http://localhost:11434/v1',
-  },
-  { // can use models: "glm-4.5-flash", "glm-4.5-flash-lite"
-    platform: 'GLM', platformName: 'ChatGLM', apiKey: process.env.GPT_GLM as string,
-    baseURL: 'https://open.bigmodel.cn/api/paas/v4',
-  },
-  { // can use models: "qwen-plus", "qwen-turbo", "qwen-max"
-    platform: 'QWEN', apiKey: process.env.GPT_QWEN as string,
-    // baseURL: 'https://dashscope.aliyuncs.com/compatible-mode/v1', // cn
-    baseURL: 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1', // intl
-  },
-  {
-    platform: 'GEMINI', platformName: 'Google Gemini', apiKey: process.env.GPT_GEMINI as string,
-    baseURL: 'https://generativelanguage.googleapis.com/v1beta',
-  }
-];
 const configByPlatform = _.keyBy(gptConfigs, 'platform');
 // console.log('configByPlatform', configByPlatform);
 
@@ -134,17 +115,23 @@ const prepareOptionsForPlatform: {
       const tool = google.tools.googleSearch({});
       extraOpts.tools = Object.assign({ google_search: tool }, opts.tools);
     }
-    if (opts.thinking) {
-      _.set(extraOpts, 'options.thinkingConfig', { includeThoughts: true });
+    const isGemini3 = opts.model?.includes?.('gemini-3');
+    if (isGemini3 && opts.thinking) {
+      _.noop();
+    } else if (isGemini3 && !opts.thinking) { // can't disable, so set to low
+      _.set(extraOpts, 'options.thinkingConfig', { thinkingLevel: "low" });
+    } else if (opts.thinking) {
+      _.set(extraOpts, 'options.thinkingConfig', { thinkingBudget: -1, includeThoughts: true });
     } else {
       _.set(extraOpts, 'options.thinkingConfig.thinkingBudget', 0);
     }
     return extraOpts;
   },
 }
-function prepareAiSdkRequest(opts: AiGenTextOpts | AiGenTextStreamOpts, ctx: any = {}) {
+export function prepareAiSdkRequest(opts: AiGenTextOpts | AiGenTextStreamOpts, ctx: any = {}) {
   // console.log('ctx', ctx, ctx?.abortSignal);
   const platformOpts = prepareOptionsForPlatform[opts.platform]?.(opts) || {};
+  // throw 'stop';
   if (platformOpts) {
     opts = _.merge({}, platformOpts, opts);
   }
@@ -165,6 +152,7 @@ function prepareAiSdkRequest(opts: AiGenTextOpts | AiGenTextStreamOpts, ctx: any
     providerOptions = { google: providerOptions.GEMINI };
   }
   const params: any = { model: modelData.model, providerOptions, abortSignal: ctx?.abortSignal, messages, ...rest };
+  console.log('platformOpts', platformOpts, '\nparams', params, 'provOpts', providerOptions);
   return { ...modelData, params };
 }
 export async function aiGenText(this: any, opts: AiGenTextOpts): Promise<GenerateTextResult<any, any> & {
@@ -195,11 +183,14 @@ export type AiGenTextStreamResult = StreamTextResult<any,any> & {
 export function aiGenTextStream(opts: AiGenTextStreamOpts, ctx?: any): AiGenTextStreamResult{
   
   const { params, info } = prepareAiSdkRequest(opts, ctx);
-  console.log('call streamText opts', opts, 'final params', params);
+  // console.log('call streamText opts', opts, 'final params', params);
   // throw 'stop';
-  const resp = streamText({ ...params });
+  // const abortCtrl = ctx?.abortSignal ? undefined: new AbortController();
+  // const abortSignal = ctx?.abortSignal || abortCtrl?.signal;
+  const resp = streamText({ ..._.omit(params, 'search', 'thinking') as any });
   resp.request.then(req => {
     console.log('streamText req', req);
+    // abortCtrl?.abort();
   })
   const toPromise = async () => {
     return {
@@ -224,7 +215,6 @@ export function pipeAiStreamResultToResponse(result: StreamTextResult<any,any>, 
   const stream = createUIMessageStream({
     execute: async ({ writer }) => {
       const { params, info } = result as any;
-      // writer.write({ type: 'data-metadata' as any, data: info });
       writer.merge(result.toUIMessageStream({
         messageMetadata: ({ part }) => {
           // console.log('msg meta', part);

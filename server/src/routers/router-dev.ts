@@ -13,6 +13,19 @@ router.get('/test', (req: Request, res: Response) => {
   });
 });
 
+function handleAiStreamCall(fn) {
+  return async (req: Request, res: Response) => {
+    const controller = new AbortController();
+    res.on('close', () => { controller.abort(); });
+    req.on('abort', () => { controller.abort(); });
+    
+    const aiStreamResult = fn({ ...req.body, abortSignal: controller.signal });
+    res.setHeader('Content-Type', 'text/event-stream');
+    aiStreamResult.pipeAiStreamResultToResponse(res);
+    await aiStreamResult.toPromise();
+  }
+}
+
 // POST /dev/ai-gen-stream endpoint for AI text generation with streaming
 router.post('/ai-gen-stream', async (req: Request, res: Response) => {
   try {
