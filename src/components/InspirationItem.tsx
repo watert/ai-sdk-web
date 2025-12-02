@@ -30,15 +30,18 @@ const InspirationItem: React.FC<InspirationItemProps> = ({ data, onGenerate, cla
   return (
     <div className={`bg-white hover:shadow-md transition-shadow duration-300 rounded-lg border border-slate-200 flex flex-col h-full ${className || ''} dark:bg-slate-800 dark:border-slate-700 dark:hover:shadow-xl text-slate-900 dark:text-white`}>
       {/* Card Header */}
-      <div className="p-3 pb-1 border-slate-100 flex justify-between items-start gap-4 dark:border-slate-700">
+      {/* <div className="p-3 pb-1 border-slate-100 flex justify-between items-start gap-4 dark:border-slate-700">
         <h3 className="text-lg font-semibold leading-tight">
           {data.title}
         </h3>
-      </div>
+      </div> */}
 
       {/* Card Body */}
-      <div className="p-3 pt-0 grow">
-        <p className="text-sm leading-relaxed mb-1 opacity-70">
+      <div className="p-3 grow">
+        <p className="text-sm leading-relaxed leading-5 mb-1 opacity-70">
+          
+          <b className='text-green-600 dark:text-green-400 leading-5'>{data.title}</b>
+          <span className='opacity-50'>{' | '}</span>
           {data.content}
         </p>
         
@@ -49,7 +52,7 @@ const InspirationItem: React.FC<InspirationItemProps> = ({ data, onGenerate, cla
             <span 
               className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-700 opacity-80"
             >
-              <Calendar className="w-3 h-3 mr-1" />
+              <Calendar className="text-green-600 dark:text-green-400 w-3 h-3 mr-1" />
               <span>{data.date}</span>
             </span>
           )}
@@ -58,7 +61,7 @@ const InspirationItem: React.FC<InspirationItemProps> = ({ data, onGenerate, cla
               key={idx} 
               className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-700 opacity-80"
             >
-              <Hash className="w-3 h-3 mr-1 opacity-50" />
+              <Hash className="w-3 h-3 mr-1 text-green-600 dark:text-green-400" />
               {tag}
             </span>
           ))}
@@ -85,7 +88,7 @@ const InspirationItem: React.FC<InspirationItemProps> = ({ data, onGenerate, cla
                 key={idx} 
                 className="post-idea-item group hover:bg-[#FFFFFF11] flex items-start gap-1 p-2 rounded border border-transparent transition-all relative dark:bg-slate-750"
               >
-                 <div className="mt-0.5 min-w-[12px] text-[10px] font-mono opacity-60">
+                 <div className="mt-0.5 min-w-[12px] text-[10px] font-mono opacity-60 text-green-600 dark:text-green-400">
                   {idx + 1}.
                 </div>
                 <p className="text-sm leading-snug grow pr-16 opacity-80">
@@ -100,7 +103,7 @@ const InspirationItem: React.FC<InspirationItemProps> = ({ data, onGenerate, cla
                         onGenerate({ postIdea: idea, inspiration: data });
                       }
                     }}
-                    className="p-1 text-blue-600 rounded-md border cursor-pointer opacity-80 hover:opacity-100 transition-opacity"
+                    className="p-1 text-green-600 dark:text-green-400 rounded-md border cursor-pointer opacity-80 hover:opacity-100 transition-opacity"
                     title="Generate Post"
                   >
                     <Wand2 className="w-3.5 h-3.5" />
