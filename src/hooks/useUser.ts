@@ -24,14 +24,14 @@ export const useUser = () => {
     const token_hash = params.get("token_hash");
 
     if (token_hash) {
-      console.log("发现 token_hash，正在验证...");
+      // console.log("发现 token_hash，正在验证...");
       // 验证 OTP 令牌
       verifyOtp(token_hash).then(({ error }) => {
         if (error) {
           console.error("验证 OTP 失败:", error.message);
           setAuthError(error.message);
         } else {
-          console.log("验证 OTP 成功，等待会话更新...");
+          // console.log("验证 OTP 成功，等待会话更新...");
           setAuthSuccess(true);
         }
       });
@@ -45,20 +45,20 @@ export const useUser = () => {
 
     // 获取现有会话
     getSession().then(({ data: { session } }) => {
-      console.log("获取现有会话:", session);
+      // console.log("获取现有会话:", session);
       setSession(session);
       // 如果会话已存在且 URL 中有认证参数，清除 URL 参数
       const params = new URLSearchParams(window.location.search);
       if (session && (params.get("token_hash") || params.get("type"))) {
-        console.log("会话已存在，清除 URL 参数");
+        // console.log("会话已存在，清除 URL 参数");
         // window.history.replaceState({}, document.title, "/");
       }
       // 如果会话已存在，调用 /account/user 获取用户信息
       if (session) {
-        console.log("会话已存在，调用 /account/user 获取用户信息");
+        // console.log("会话已存在，调用 /account/user 获取用户信息");
         appAxios.get('/account/user')
           .then(response => {
-            console.log("获取用户信息成功:", response.data);
+            // console.log("获取用户信息成功:", response.data);
           })
           .catch(error => {
             console.error("获取用户信息失败:", error);
@@ -68,17 +68,17 @@ export const useUser = () => {
 
     // 监听认证状态变化
     const { data: { subscription } } = onAuthStateChange((event, session) => {
-      console.log("认证状态变化:", event, session);
+      // console.log("认证状态变化:", event, session);
       setSession(session);
       // 当会话成功创建后，清除 URL 参数
       if (event === "SIGNED_IN" && session) {
-        console.log("用户已登录，清除 URL 参数");
+        // console.log("用户已登录，清除 URL 参数");
         // window.history.replaceState({}, document.title, "/");
         // 使用 appAxios 调用 GET /account/user
-        console.log("调用 /account/user 获取用户信息");
+        // console.log("调用 /account/user 获取用户信息");
         appAxios.get('/account/user')
           .then(response => {
-            console.log("获取用户信息成功:", response.data);
+            // console.log("获取用户信息成功:", response.data);
           })
           .catch(error => {
             console.error("获取用户信息失败:", error);

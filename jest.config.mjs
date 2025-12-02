@@ -1,7 +1,7 @@
 /** @type {import('ts-jest').JestConfigWithTsJest} */
 export default {
   preset: 'ts-jest',
-  testEnvironment: 'jsdom',
+  testEnvironment: 'jest-fixed-jsdom',
   testMatch: ['**/__tests__/**/*.[jt]s?(x)', '**/?(*.)+(spec|test).[tj]s?(x)'],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
   transform: {
@@ -12,7 +12,7 @@ export default {
   // 忽略 dist 文件夹
   testPathIgnorePatterns: ['<rootDir>/dist/'],
   // 确保 jsdom 环境正确设置
-  setupFiles: [],
+  setupFiles: ['<rootDir>/jest.setup.js'],
   setupFilesAfterEnv: [],
   // 确保 jsdom 环境正确提供 Web API
   testEnvironmentOptions: {

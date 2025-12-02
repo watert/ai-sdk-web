@@ -50,7 +50,7 @@ function getReqAuthBearerToken(req: Request) {
 export const getReqUser = async (req: Request): Promise<User | undefined> => {
   // 首先检查是否存在 API_KEY 环境变量，用于内部 API 调用
   const apiKey = process.env.API_KEY;
-  if (apiKey && req.headers.authorization === apiKey) {
+  if (apiKey && getReqAuthBearerToken(req) === apiKey) {
     // 返回硬编码的最简 User 对象，兼容内部 API 调用
     return { 
       id: 'internal-api-user', 
