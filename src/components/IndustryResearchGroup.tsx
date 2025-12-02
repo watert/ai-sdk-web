@@ -18,12 +18,12 @@ const ResearchGroup: React.FC<ResearchGroupProps> = ({ data, onGenerate }) => {
   return (
     <section className="mb-12 last:mb-0">
       <div className="flex items-start gap-4 mb-6">
-        <div className="mt-1 p-2 bg-blue-100 text-blue-700 rounded-lg">
+        <div className="mt-1 p-2 bg-blue-100 text-blue-700 rounded-lg dark:bg-blue-900/30 dark:text-blue-400">
             <Layers className="w-6 h-6" />
         </div>
         <div>
-          <h2 className="text-2xl font-bold text-slate-800 mb-2">{data.title}</h2>
-          <p className="text-slate-600 max-w-3xl leading-relaxed">
+          <h2 className="text-2xl font-bold text-slate-800 mb-2 dark:text-white">{data.title}</h2>
+          <p className="text-slate-600 max-w-3xl leading-relaxed dark:text-slate-300">
             {data.summary}
           </p>
         </div>

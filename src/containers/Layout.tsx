@@ -161,7 +161,7 @@ const Layout: React.FC = () => {
         </aside>
         
         {/* 主内容区 */}
-        <main className="flex-1 p-6 bg-slate-50 dark:bg-slate-900 overflow-y-auto transition-colors duration-200">
+        <main className="flex-1 p-6 text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-900 overflow-y-auto transition-colors duration-200">
           <Outlet />
         </main>
       </div>

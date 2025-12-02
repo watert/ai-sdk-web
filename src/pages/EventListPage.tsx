@@ -44,7 +44,7 @@ const EventListPage: React.FC = () => {
     <div className="max-w-3xl mx-auto p-4 md:p-8">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">My Events</h1>
+          <h1 className="text-3xl font-bold ">My Events</h1>
           <p className="text-slate-500 mt-1">Manage your schedule and recurring tasks</p>
         </div>
         <button

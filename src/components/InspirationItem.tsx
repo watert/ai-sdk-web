@@ -28,17 +28,17 @@ const InspirationItem: React.FC<InspirationItemProps> = ({ data, onGenerate, cla
   };
 
   return (
-    <div className={`bg-white hover:shadow-md transition-shadow duration-300 rounded-lg border border-slate-200 flex flex-col h-full ${className || ''}`}>
+    <div className={`bg-white hover:shadow-md transition-shadow duration-300 rounded-lg border border-slate-200 flex flex-col h-full ${className || ''} dark:bg-slate-800 dark:border-slate-700 dark:hover:shadow-xl text-slate-900 dark:text-white`}>
       {/* Card Header */}
-      <div className="p-3 pb-1 border-slate-100 flex justify-between items-start gap-4">
-        <h3 className="text-lg font-semibold text-slate-900 leading-tight">
+      <div className="p-3 pb-1 border-slate-100 flex justify-between items-start gap-4 dark:border-slate-700">
+        <h3 className="text-lg font-semibold leading-tight">
           {data.title}
         </h3>
       </div>
 
       {/* Card Body */}
       <div className="p-3 pt-0 grow">
-        <p className="text-slate-600 text-sm leading-relaxed mb-1">
+        <p className="text-sm leading-relaxed mb-1 opacity-70">
           {data.content}
         </p>
         
@@ -47,7 +47,7 @@ const InspirationItem: React.FC<InspirationItemProps> = ({ data, onGenerate, cla
           {data.date && (
             
             <span 
-              className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700"
+              className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-700 opacity-80"
             >
               <Calendar className="w-3 h-3 mr-1" />
               <span>{data.date}</span>
@@ -56,7 +56,7 @@ const InspirationItem: React.FC<InspirationItemProps> = ({ data, onGenerate, cla
           {data.tags.map((tag, idx) => (
             <span 
               key={idx} 
-              className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700"
+              className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-700 opacity-80"
             >
               <Hash className="w-3 h-3 mr-1 opacity-50" />
               {tag}
@@ -66,33 +66,33 @@ const InspirationItem: React.FC<InspirationItemProps> = ({ data, onGenerate, cla
       </div>
 
       {/* Prompts Section */}
-      <div className="bg-slate-50 border-t border-slate-100 rounded-b-lg">
+      <div className="rounded-b-lg bg-[#00000022]">
         <div 
-          className="px-3 py-2.5 flex items-center justify-between cursor-pointer hover:bg-slate-100 transition-colors"
+          className="px-3 py-2.5 flex items-center justify-between cursor-pointer hover:opacity-80 transition-opacity"
           onClick={() => setIsExpanded(!isExpanded)}
         >
-          <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">
+          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide opacity-80">
             <Sparkles className="w-3.5 h-3.5" />
             <span>Post Ideas</span>
           </div>
-          {isExpanded ? <ChevronUp className="w-3.5 h-3.5 text-slate-400" /> : <ChevronDown className="w-3.5 h-3.5 text-slate-400" />}
+          {isExpanded ? <ChevronUp className="w-3.5 h-3.5 opacity-80" /> : <ChevronDown className="w-3.5 h-3.5 opacity-80" />}
         </div>
         
         {isExpanded && (
-          <div className="px-2 pb-2 ">
+          <div className="px-2 pb-2 dark:bg-slate-800/10">
             {data.postIdeas.map((idea, idx) => (
               <div 
                 key={idx} 
-                className="group flex items-start gap-1 p-1 rounded hover:bg-white border border-transparent hover:border-slate-200 transition-all relative"
+                className="post-idea-item group hover:bg-[#FFFFFF11] flex items-start gap-1 p-2 rounded border border-transparent transition-all relative dark:bg-slate-750"
               >
-                 <div className="mt-0.5 min-w-[12px] text-[10px] font-mono text-slate-400 group-hover:text-blue-400 transition-colors">
+                 <div className="mt-0.5 min-w-[12px] text-[10px] font-mono opacity-60">
                   {idx + 1}.
                 </div>
-                <p className="text-sm text-slate-600 group-hover:text-slate-900 leading-snug grow pr-16 transition-colors">
+                <p className="text-sm leading-snug grow pr-16 opacity-80">
                   {idea}
                 </p>
                 
-                <div className="absolute right-2 top-1.5 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 backdrop-blur-[1px] pl-2">
+                <div className="absolute right-2 top-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -100,7 +100,7 @@ const InspirationItem: React.FC<InspirationItemProps> = ({ data, onGenerate, cla
                         onGenerate({ postIdea: idea, inspiration: data });
                       }
                     }}
-                    className="p-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md border border-slate-200 bg-white"
+                    className="p-1 text-blue-600 rounded-md border cursor-pointer opacity-80 hover:opacity-100 transition-opacity"
                     title="Generate Post"
                   >
                     <Wand2 className="w-3.5 h-3.5" />
@@ -110,11 +110,7 @@ const InspirationItem: React.FC<InspirationItemProps> = ({ data, onGenerate, cla
                       e.stopPropagation();
                       handleCopy(idea, idx);
                     }}
-                    className={`p-1 rounded-md border bg-white transition-colors ${
-                      copiedIndex === idx 
-                        ? 'text-green-600 border-green-200 bg-green-50' 
-                        : 'text-slate-400 hover:text-slate-600 border-slate-200 hover:bg-slate-50'
-                    }`}
+                    className={`p-1 rounded-md border bg-white transition-colors  ${copiedIndex === idx ? 'text-green-600 border-green-200 bg-green-50' : 'opacity-60 border-slate-200'} dark:bg-slate-700 dark:border-slate-600 ${copiedIndex === idx ? 'dark:border-green-900/50 dark:bg-green-900/20 dark:text-green-400' : ''} cursor-pointer opacity-80 hover:opacity-100 transition-opacity`}
                     title="Copy Prompt"
                   >
                     {copiedIndex === idx ? (
