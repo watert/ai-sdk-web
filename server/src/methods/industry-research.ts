@@ -45,8 +45,6 @@ export const getIndustryResearchMsgs = ({ industry, prompt }: {
   ];
 };
 
-
-
 export type IndustryResearchConfig = {
   id: string, title: string, prompt: string,
   repeatRule: RepeatRule,

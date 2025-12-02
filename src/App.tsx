@@ -9,6 +9,7 @@ import EventDetailPage from './pages/EventDetailPage';
 import EventEditPage from './pages/EventEditPage';
 import IndustryListPage from './pages/IndustryListPage';
 import IndustryDetailPage from './pages/IndustryDetailPage';
+import IndustryResearchPage from './pages/IndustryResearchPage';
 import axios from 'axios';
 
 if (typeof window !== 'undefined') {
@@ -31,6 +32,7 @@ function App() {
             <Route index element={<Navigate to="/industries/1" replace />} />
             <Route path=":id" element={<IndustryDetailPage />} />
           </Route>
+          <Route path="industry-research" element={<IndustryResearchPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

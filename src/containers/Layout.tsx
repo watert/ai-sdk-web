@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import MenuItem from '../components/MenuItem';
-import { MessageSquare, Bot, Calendar, Building2, LogIn, User } from 'lucide-react';
+import { MessageSquare, Bot, Calendar, Building2, LogIn, User, Layers } from 'lucide-react';
 import { useUser } from '../hooks/useUser';
 
 const Layout: React.FC = () => {
@@ -141,6 +141,13 @@ const Layout: React.FC = () => {
                 icon={<Building2 size={18} />} 
                 label="行业管理" 
                 isSidebarOpen={isSidebarOpen}
+              />
+              <MenuItem 
+                to="/industry-research" 
+                icon={<Layers size={18} />} 
+                label="行业研究" 
+                isSidebarOpen={isSidebarOpen}
+                matchExact={true}
               />
             </ul>
           </nav>

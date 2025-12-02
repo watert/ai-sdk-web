@@ -60,7 +60,7 @@ app.use('/dev', authMiddleware({ authRequired: true }), routerDev);
 app.use('/account', authMiddleware({ authRequired: false }), routerAccount);
 
 // Express 错误处理中间件
-app.use((err: Error, req: Request, res: Response) => {
+app.use((err: Error, req: Request, res: Response, next) => {
   console.error('Express 错误:', err);
   res.status(500).json({
     error: 'Internal Server Error',

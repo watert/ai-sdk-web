@@ -36,7 +36,8 @@ const ChatPage: React.FC = () => {
         </select>
       </div>
       
-      <ChatContainer key={chatModelKey} 
+      <ChatContainer
+        // key={chatModelKey} 
         platform={selectedModel.platform}  
         model={selectedModel.model} 
       />
