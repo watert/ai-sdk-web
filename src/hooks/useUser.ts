@@ -57,7 +57,7 @@ export const useUser = () => {
       if (session) {
         // console.log("会话已存在，调用 /account/user 获取用户信息");
         appAxios.get('/account/user')
-          .then(response => {
+          .then(_response => {
             // console.log("获取用户信息成功:", response.data);
           })
           .catch(error => {
@@ -77,7 +77,7 @@ export const useUser = () => {
         // 使用 appAxios 调用 GET /account/user
         // console.log("调用 /account/user 获取用户信息");
         appAxios.get('/account/user')
-          .then(response => {
+          .then(_response => {
             // console.log("获取用户信息成功:", response.data);
           })
           .catch(error => {

@@ -10,6 +10,7 @@ import EventEditPage from './pages/EventEditPage';
 import IndustryListPage from './pages/IndustryListPage';
 import IndustryDetailPage from './pages/IndustryDetailPage';
 import IndustryResearchPage from './pages/IndustryResearchPage';
+import RequestAiStreamDemoPage from './pages/RequestAiStreamDemoPage';
 import axios from 'axios';
 
 if (typeof window !== 'undefined') {
@@ -33,6 +34,7 @@ function App() {
             <Route path=":id" element={<IndustryDetailPage />} />
           </Route>
           <Route path="industry-research" element={<IndustryResearchPage />} />
+          <Route path="demo-ai-stream" element={<RequestAiStreamDemoPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

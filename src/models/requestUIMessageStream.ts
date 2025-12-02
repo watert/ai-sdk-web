@@ -65,7 +65,7 @@ export async function resolve<T>(resolvable: Resolvable<T>): Promise<T> {
   return Promise.resolve(resolvable);
 }
 export async function requestUIMessageStream(options: RequestAiStreamInit) {
-  let { url, method, headers, body, fetch = window.fetch } = options;
+  let { url, method = 'POST', headers, body, fetch = window.fetch } = options;
   body = await resolve(body);
   if (typeof body !== 'string') {
     body = JSON.stringify(body);
@@ -96,16 +96,8 @@ export async function requestUIMessageStream(options: RequestAiStreamInit) {
   const emitter = new EventEmitter<RequestAiStreamState>();
 
   let lastJsonStr: any, json: any;
-  const getState = () => {
-    if (options.isJson) {
-      const lastTextMsg = _.findLast(messages.flatMap(msg => msg.parts), msg => msg.type === 'text');
-      if (lastTextMsg && lastTextMsg?.text !== lastJsonStr) {
-        json = parseJsonFromText(lastTextMsg?.text || 'undefined');
-        lastJsonStr = lastTextMsg?.text || 'undefined';
-      }
-    }
-    return { messages, json };
-  };
+  let latestState: RequestAiStreamState = { messages, json };
+  const getState = () => { return latestState; };
   const subscribe = (fn: (state: RequestAiStreamState) => void) => {
     const unsub = emitter.subscribe(fn);
     const state = getState();
@@ -121,9 +113,18 @@ export async function requestUIMessageStream(options: RequestAiStreamInit) {
       } else {
         Object.assign(messagesById[id], msg);
       }
-      emitter.emit(getState());
+
+      if (options.isJson) {
+        const lastTextMsg = _.findLast(messages.flatMap(msg => msg.parts), msg => msg.type === 'text');
+        if (lastTextMsg && lastTextMsg?.text !== lastJsonStr) {
+          json = parseJsonFromText(lastTextMsg?.text || 'undefined');
+          lastJsonStr = lastTextMsg?.text || 'undefined';
+        }
+      }
+      latestState = { json, messages };
+      emitter.emit(latestState);
     }
-    return getState();
+    return latestState;
   })();
   
   return { stream: msgStream, subscribe, promise, getState };
