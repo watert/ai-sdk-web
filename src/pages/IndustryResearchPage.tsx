@@ -33,7 +33,7 @@ const IndustryResearchPage: React.FC = () => {
       {researchesData?.data && researchesData.data.map(data => {
         console.log('mapping', data, researchesData)
         return <IndustryResearchGroup 
-          key={data._id}
+          key={data._id} researchData={data}
           data={convertToGroupData([data])[0]} 
         />;
       })}

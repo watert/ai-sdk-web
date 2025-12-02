@@ -39,7 +39,7 @@ const InspirationItem: React.FC<InspirationItemProps> = ({ data, onGenerate, cla
 
       {/* Card Body */}
       <div className="p-3 grow">
-        <p className="text-sm leading-relaxed leading-5 mb-1 opacity-70">
+        <p className="text-sm leading-relaxed mb-1 opacity-70">
           {/* <MarkdownRenderer text={`**${data.title}** | ${data.content || ''}`} /> */}
           <b className='text-green-600 dark:text-green-400 text-md leading-5'>{data.title}</b>
           {/* <span className='opacity-50'>{' | '}</span> */}
@@ -88,7 +88,7 @@ const InspirationItem: React.FC<InspirationItemProps> = ({ data, onGenerate, cla
             {(data.postIdeas || []).map((idea, idx) => (
               <div 
                 key={idx} 
-                className="post-idea-item group hover:bg-[#FFFFFF11] flex items-start gap-1 p-2 rounded border border-transparent transition-all relative dark:bg-slate-750"
+                className="post-idea-item group hover:bg-[#FFFFFF11] flex items-start gap-1 px-2 py-1 rounded border border-transparent transition-all relative dark:bg-slate-750"
               >
                  <div className="mt-0.5 min-w-[12px] text-[10px] font-mono opacity-60 text-green-600 dark:text-green-400">
                   {idx + 1}.
@@ -97,7 +97,7 @@ const InspirationItem: React.FC<InspirationItemProps> = ({ data, onGenerate, cla
                   {idea}
                 </p>
                 
-                <div className="absolute right-2 top-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ">
+                <div className="absolute right-2 top-0.5 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();

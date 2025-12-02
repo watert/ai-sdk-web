@@ -493,12 +493,12 @@ export class CalendarEvent {
 
     return false;
   }
-  public toJSON() {
+  public toJSON(): EventDetails {
     return {
       ...this.data,
       hasEndTime: this.hasEndTime, // Explicitly include the logic flag
       triggeredCount: this.triggeredCount, // Explicitly include the triggered count
-      lastTriggered: this.lastTriggered?.toISOString() || null,
+      lastTriggeredTime: this.lastTriggered?.toISOString() || null,
     };
   }
 

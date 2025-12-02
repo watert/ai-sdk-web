@@ -2,13 +2,15 @@ import React from 'react';
 import { Repeat, Clock, ArrowRight } from 'lucide-react';
 import dayjs from 'dayjs';
 import { CalendarEvent, type EventDetails, type RepeatRule } from '../libs/CalendarEvent';
+import { twMerge } from 'tailwind-merge';
 
 interface EventListItemProps {
   event: EventDetails;
   onSelect: (id: string) => void;
+  className?: string;
 }
 
-const EventListItem: React.FC<EventListItemProps> = ({ event, onSelect }) => {
+const EventListItem: React.FC<EventListItemProps> = ({ className, event, onSelect }) => {
   const formatRecurrence = (rule?: RepeatRule | null) => {
     if (!rule) return 'One-time event';
     const { frequency, interval, byWeekDays, byMonthDays } = rule;
@@ -53,7 +55,7 @@ const EventListItem: React.FC<EventListItemProps> = ({ event, onSelect }) => {
   return (
     <div
       onClick={() => onSelect(event.id)}
-      className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 hover:border-blue-600 hover:shadow-md transition-all cursor-pointer group relative overflow-hidden"
+      className={twMerge("event-list-item bg-white p-5 rounded-xl shadow-sm border border-slate-200 hover:border-blue-600 hover:shadow-md transition-all cursor-pointer group relative overflow-hidden", className)}
     >
       {/* Left accent bar */}
       <div className="absolute left-0 top-0 bottom-0 w-1 bg-slate-200 group-hover:bg-blue-600 transition-colors"></div>
@@ -62,17 +64,17 @@ const EventListItem: React.FC<EventListItemProps> = ({ event, onSelect }) => {
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-1">
             <h3 className="text-lg font-semibold text-slate-900">{event.title}</h3>
-            {event.repeatRule && (
+            {/* {event.repeatRule && (
               <span className="bg-blue-50 text-blue-700 text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1 font-bold tracking-wider uppercase">
                 <Repeat className="w-3 h-3" />
                 Repeat
               </span>
-            )}
+            )} */}
           </div>
           
-          <p className="text-slate-500 text-sm mb-3 line-clamp-2">
+          {event.description && <p className="text-slate-500 text-sm mb-3 line-clamp-2">
             {event.description || 'No description provided.'}
-          </p>
+          </p>}
 
           <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-slate-600">
             <div className="flex items-center gap-1.5">
