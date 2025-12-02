@@ -2,6 +2,7 @@ import _ from 'lodash';
 import { pipeUIMessageStreamToResponse, createUIMessageStream, generateText, streamText, StreamTextResult, GenerateTextResult, convertToModelMessages } from 'ai';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { google, createGoogleGenerativeAI } from '@ai-sdk/google';
+import { jsonrepair } from 'jsonrepair';
 import { ProxyAgent, type RequestInit as UndiciRequestInit, fetch as undiciFetch } from 'undici';
 import { Response } from 'express';
 
@@ -35,12 +36,29 @@ type AiGenTextOpts = Parameters<typeof generateText>[0] & {
   search?: boolean;
   thinking?: boolean;
 }
-type AiGenTextStreamOpts = Parameters<typeof streamText>[0] & {
+type AiGenTextStreamOpts = Omit<Parameters<typeof streamText>[0], 'model'> & {
   platform: string;
-  model: string; options?: any;
+  model?: string; options?: any;
   search?: boolean;
   thinking?: boolean;
 }
+
+export function parseJsonFromText(text: string) {
+  text = text.trim()
+  
+  // 先尝试清理 Markdown json 代码块前面的部分
+  if (text.includes('```json') && !text.startsWith('```json')) {
+    text = text.slice(text.indexOf('```json') + 7, text.lastIndexOf('```'));
+  }
+
+  try {
+    return JSON.parse(jsonrepair(text));
+  } catch (e) {
+    console.log('parse error', e);
+    return undefined;
+  }
+}
+
 const proxyUrl = process.env.HTTP_PROXY || process.env.http_proxy || process.env.HTTPS_PROXY || process.env.https_proxy;
 const proxyFetch = !proxyUrl? undefined: (input: RequestInit | URL, init?: RequestInit) => {
   // console.log('proxy?', {proxyUrl});
@@ -151,6 +169,7 @@ function prepareAiSdkRequest(opts: AiGenTextOpts | AiGenTextStreamOpts, ctx: any
 }
 export async function aiGenText(this: any, opts: AiGenTextOpts): Promise<GenerateTextResult<any, any> & {
   toJSON: () => any;
+  toJsonFormat: () => any;
 }> {
   const { params, info } = prepareAiSdkRequest(opts, this);
   const result = await generateText(params);
@@ -162,12 +181,16 @@ export async function aiGenText(this: any, opts: AiGenTextOpts): Promise<Generat
     model: result.response?.modelId,
     metadata: result.providerMetadata,
   });
-  return Object.assign(result, { info, toJSON })
+  function toJsonFormat() {
+    return parseJsonFromText(result.text);
+  }
+  return Object.assign(result, { info, toJSON, toJsonFormat })
 }
 export type AiGenTextStreamResult = StreamTextResult<any,any> & { 
   params: AiGenTextStreamOpts, info: any,
   pipeAiStreamResultToResponse: (res: Response) => void,
-  toPromise: () => Promise<any>
+  toPromise: () => Promise<any>,
+  toJsonFormat: () => Promise<any>;
 }
 export function aiGenTextStream(opts: AiGenTextStreamOpts, ctx?: any): AiGenTextStreamResult{
   
@@ -188,8 +211,11 @@ export function aiGenTextStream(opts: AiGenTextStreamOpts, ctx?: any): AiGenText
       providerMetadata: await resp.providerMetadata,
     };
   }
+  const toJsonFormat = async () => {
+    return parseJsonFromText(await resp.text);
+  }
   return Object.assign(resp, {
-    params: opts, info, toPromise,
+    params: opts, info, toPromise, toJsonFormat,
     pipeAiStreamResultToResponse: (res: any) => pipeAiStreamResultToResponse(resp, res)
   });
 }
