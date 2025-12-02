@@ -7,29 +7,8 @@ import { ChatInput } from '../components/ChatInput';
 import { useLatest, useSetState } from 'react-use';
 import type { MessageMetadata } from '../types/chat';
 import { MessageItem } from '../components/MessageItem';
-import { getAppReqHeaders } from '@/models/appAxios';
-import { createAiHttpTransport } from '@/models/AiHttpTransport';
-
-const TEST_SYS_MSG: MyMessageItemType = { 
-  role: 'system', id: 'sys',
-  parts: [
-    {
-      type: 'text', 
-      text: `你是资深的行业调研、搜索与社媒运营专家。你擅长调研处理不同的行业的需求情况，并能够以专家和行业受众用户的不同视角进行 Web 搜索以根据指令获取不同的数据，并推荐给社交媒体一些用于创作的灵感 Prompt。
-type Inspiration = {
-title: string, // 标题, 20 字左右
-content: string, // 内容主体, 200 字左右
-tags: string[], // 标签, 3~5 个
-postIdeas: string[], // 3 条相关联的社媒灵感 Prompt, 可用于 LLM 进行文章生成。注意，是用于给 LLM 的指令而非标题；每个 idea 长度为 20 字左右；直接描述题材、题目或问题，不要带有"生成"、"撰写"这类的动作描述；
-}
-type ReturnData = {
-inspirations: Inspiration[],
-summary: string, // 汇总总结, 50 字左右
-}
-你生成出来的数据为符合 Inspiration[] 的 JSON 格式。`,
-    }
-  ]
-};
+import { getAppReqHeaders } from '../models/appAxios';
+import { createAiHttpTransport } from '../models/AiHttpTransport';
 type MyMessageItemType = UIMessage<MessageMetadata>;
 // 自定义hook：确保函数始终能拿到最新的引用和render上下文
 const useLatestFunction = <T extends (...args: any[]) => any>(fn: T): T => {
