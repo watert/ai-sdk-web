@@ -28,6 +28,7 @@ export interface RequestAiStreamInit {
   isJson?: boolean;
   fetch?: typeof fetch;
   body?: Resolvable<Record<string, any> | string>;
+  throttle?: number;
 }
 
 export class EventEmitter<T> {
@@ -79,7 +80,7 @@ export async function resolve<T>(resolvable: Resolvable<T>): Promise<T> {
   return Promise.resolve(resolvable);
 }
 export async function requestUIMessageStream(options: RequestAiStreamInit) {
-  let { url, method = 'POST', headers, body, fetch = window.fetch } = options;
+  let { url, method = 'POST', headers, body, fetch = window.fetch, throttle = 33 } = options;
   body = await resolve(body);
   if (typeof body !== 'string') {
     body = JSON.stringify(body);
@@ -115,6 +116,12 @@ export async function requestUIMessageStream(options: RequestAiStreamInit) {
   let lastJsonStr: any, json: any;
   // 初始化状态为 'submitted'，表示请求已提交
   let latestState: RequestAiStreamState = { messages, json, status: 'submitted' };
+  
+  // 使用 lodash throttle 创建节流的 emit 函数
+  const throttledEmit = _.throttle((state: RequestAiStreamState) => {
+    emitter.emit(state);
+  }, throttle);
+  
   const getState = () => { return latestState; };
   const subscribe = (fn: (state: RequestAiStreamState) => void) => {
     console.count('called subscribe');
@@ -129,6 +136,8 @@ export async function requestUIMessageStream(options: RequestAiStreamInit) {
     controller.abort();
     // 更新状态为 'ready' 表示可以发起新请求
     latestState = { ...latestState, status: 'ready' };
+    // 取消节流，立即 emit 最终状态
+    throttledEmit.cancel();
     emitter.emit(latestState);
     // _.last(messages)?.parts?.push({ type: 'abort' });
   };
@@ -139,7 +148,7 @@ export async function requestUIMessageStream(options: RequestAiStreamInit) {
     try {
       // 开始接收流数据，更新状态为 'streaming'
       latestState = { ...latestState, status: 'streaming' };
-      emitter.emit(latestState);
+      throttledEmit(latestState);
       
       for await (const msg of msgStream) {
         const { id } = msg;
@@ -153,7 +162,7 @@ export async function requestUIMessageStream(options: RequestAiStreamInit) {
         
         const lastTextMsg = _.findLast(messages.flatMap(msg => msg.parts), msg => msg.type === 'text');
         if (!isJson && lastTextMsg?.text && shouldTryInferJsonType && inferJsonRegexp.test(lastTextMsg?.text)) {
-          console.log('matched auto retry');
+          // console.log('matched auto retry', lastTextMsg, parseJsonFromText(lastTextMsg?.text || 'undefined'));
           isJson = true;
         }
         if (isJson) {
@@ -171,17 +180,21 @@ export async function requestUIMessageStream(options: RequestAiStreamInit) {
           }
         }
         latestState = { json, messages, status: 'streaming' };
-        emitter.emit(latestState);
+        throttledEmit(latestState);
       }
       
       // 流结束，更新状态为 'ready'
       latestState = { ...latestState, status: 'ready' };
+      // 取消节流，立即 emit 最终状态
+      throttledEmit.cancel();
       emitter.emit(latestState);
     } catch (error) {
       if ((error as Error).name !== 'AbortError') {
         console.error('Stream error:', error);
         // 发生错误，更新状态为 'error'
         latestState = { ...latestState, status: 'error' };
+        // 取消节流，立即 emit 错误状态
+        throttledEmit.cancel();
         emitter.emit(latestState);
       }
     }
