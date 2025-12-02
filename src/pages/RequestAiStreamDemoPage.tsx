@@ -7,7 +7,8 @@ const RequestAiStreamDemoPage: React.FC = () => {
   // 使用自定义 hook 订阅 AI 流
   const [state, fn, abort] = useAsyncSubscriberFn(async () => {
     const resp = await requestUIMessageStream({
-      isJson: true, url: 'http://localhost:5178/api/dev/ai-gen-stream',
+      // isJson: true,
+      url: 'http://localhost:5178/api/dev/ai-gen-stream',
       body: {
         platform: 'OLLAMA',
         model: 'qwen3:4b-instruct',
@@ -16,7 +17,7 @@ const RequestAiStreamDemoPage: React.FC = () => {
     });
     return resp;
   }, []);
-  console.log('state', state);
+  // console.log('state', state);
 
   return (
     <div className="p-6 space-y-6">

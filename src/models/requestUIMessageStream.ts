@@ -133,6 +133,8 @@ export async function requestUIMessageStream(options: RequestAiStreamInit) {
     // _.last(messages)?.parts?.push({ type: 'abort' });
   };
   
+  let isJson = options.isJson || false, shouldTryInferJsonType = true;
+  const inferJsonRegexp = /(\s*```json[\s\S]*?```\s*|{\s*("[\w\d_\-\s]+"\s*:\s*|[\s\r\n]*"[\w\d_-]{2,}"\s*:\s*))/ig;
   const promise = (async () => {
     try {
       // 开始接收流数据，更新状态为 'streaming'
@@ -148,11 +150,24 @@ export async function requestUIMessageStream(options: RequestAiStreamInit) {
           Object.assign(messagesById[id], msg);
         }
 
-        if (options.isJson) {
-          const lastTextMsg = _.findLast(messages.flatMap(msg => msg.parts), msg => msg.type === 'text');
+        
+        const lastTextMsg = _.findLast(messages.flatMap(msg => msg.parts), msg => msg.type === 'text');
+        if (!isJson && lastTextMsg?.text && shouldTryInferJsonType && inferJsonRegexp.test(lastTextMsg?.text)) {
+          console.log('matched auto retry');
+          isJson = true;
+        }
+        if (isJson) {
           if (lastTextMsg && lastTextMsg?.text !== lastJsonStr) {
-            json = parseJsonFromText(lastTextMsg?.text || 'undefined');
-            lastJsonStr = lastTextMsg?.text || 'undefined';
+            try {
+
+              json = parseJsonFromText(lastTextMsg?.text || 'undefined');
+              lastJsonStr = lastTextMsg?.text || 'undefined';
+            } catch(err) {
+              if (!options.isJson && shouldTryInferJsonType) {
+                isJson = false;
+                shouldTryInferJsonType = false;
+              }
+            }
           }
         }
         latestState = { json, messages, status: 'streaming' };
