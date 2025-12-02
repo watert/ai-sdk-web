@@ -61,7 +61,7 @@ app.use('/dev', authMiddleware({ authRequired: true }), routerDev);
 app.use('/account', authMiddleware({ authRequired: false }), routerAccount);
 
 // 挂载行业研究路由器
-app.use('/industry', authMiddleware({ authRequired: true }), industryRouter);
+app.use('/industry', authMiddleware({ authRequired: false }), industryRouter);
 
 // Express 错误处理中间件
 app.use((err: Error, req: Request, res: Response, next) => {

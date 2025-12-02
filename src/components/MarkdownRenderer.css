@@ -100,7 +100,7 @@
     font-weight: var(--md-heading-weight);
     margin-top: 1em;
     margin-bottom: 0.375em;
-    line-height: 1.2;
+    line-height: 1.5em;
     color: var(--md-color-tertiary);
 }
 .markdown-content h1:first-child,

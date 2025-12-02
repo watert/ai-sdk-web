@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Calendar, Hash, Sparkles, Copy, Check, ChevronDown, ChevronUp, Wand2 } from 'lucide-react';
+import { MarkdownRenderer } from './MarkdownRenderer';
 
 // import Button from './Button';
 
@@ -39,10 +40,11 @@ const InspirationItem: React.FC<InspirationItemProps> = ({ data, onGenerate, cla
       {/* Card Body */}
       <div className="p-3 grow">
         <p className="text-sm leading-relaxed leading-5 mb-1 opacity-70">
-          
-          <b className='text-green-600 dark:text-green-400 leading-5'>{data.title}</b>
-          <span className='opacity-50'>{' | '}</span>
-          {data.content}
+          {/* <MarkdownRenderer text={`**${data.title}** | ${data.content || ''}`} /> */}
+          <b className='text-green-600 dark:text-green-400 text-md leading-5'>{data.title}</b>
+          {/* <span className='opacity-50'>{' | '}</span> */}
+          <MarkdownRenderer text={data.content || ''} className='leading-[1.5em]' />
+          {/* {data.content} */}
         </p>
         
         {/* Tags */}
@@ -83,7 +85,7 @@ const InspirationItem: React.FC<InspirationItemProps> = ({ data, onGenerate, cla
         
         {isExpanded && (
           <div className="px-2 pb-2 dark:bg-slate-800/10">
-            {data.postIdeas.map((idea, idx) => (
+            {(data.postIdeas || []).map((idea, idx) => (
               <div 
                 key={idx} 
                 className="post-idea-item group hover:bg-[#FFFFFF11] flex items-start gap-1 p-2 rounded border border-transparent transition-all relative dark:bg-slate-750"

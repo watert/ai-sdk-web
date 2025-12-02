@@ -56,10 +56,10 @@ export type IndustryResearchConfig = {
 };
 const DEFAULT_START_DATE = '2025-01-01T08:00+08:00'
 export const baseIndustryResearchList: IndustryResearchConfig[] = [
-  { id: 'MONTHLY_TRENDS', title: '行业趋势', prompt: '过去一个月的 4~7 条主要行业趋势', type: 'trend', repeatRule: { frequency: 'MONTHLY' } },
-  { id: 'DAILY_NEWS', title: '新闻动态', prompt: '昨天的重点新闻动态', repeatRule: { frequency: 'DAILY' } },
-  { id: 'WEEKLY_NEWS', title: '新闻动态', prompt: '过去一周的重点新闻动态', repeatRule: { frequency: 'WEEKLY' } },
-  { id: 'HOT_TOPICS', title: '热门话题', prompt: '过去一周的热门话题', repeatRule: { frequency: 'WEEKLY' } },
+  { id: 'MONTHLY_TRENDS', title: '行业趋势', prompt: '过去一个月的 4~8 条主要行业趋势', type: 'trend', repeatRule: { frequency: 'MONTHLY' } },
+  { id: 'DAILY_NEWS', title: '新闻动态', prompt: '昨天的 4 条重点新闻动态', repeatRule: { frequency: 'DAILY' } },
+  { id: 'WEEKLY_NEWS', title: '新闻动态', prompt: '过去一周的 6 条重点新闻动态', repeatRule: { frequency: 'WEEKLY' } },
+  { id: 'HOT_TOPICS', title: '热门话题', prompt: '过去一周的 6 条热门话题', repeatRule: { frequency: 'WEEKLY' } },
 ];
 
 async function arrayFromAsync(asyncIterator: AsyncIterable<any>) {

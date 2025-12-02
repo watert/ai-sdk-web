@@ -1,20 +1,65 @@
 import { Router, Request, Response } from 'express';
-import { localIndustryModel, IndustryResearchModel } from '../methods/industry-research';
+import { localIndustryModel, IndustryResearchModel, IndustryResearchConfig } from '../methods/industry-research';
 import { queryMongoDocsWithTotal, putMongoDoc } from '../models/mongo-utils';
 import _ from 'lodash';
+import { RepeatRule } from '../libs/CalendarEvent';
+
+// 定义行业研究组数据结构，用于IndustryResearchGroup组件
+export type IndustryResearchGroupData = {
+  title: string;
+  summary: string;
+  inspirations: Array<{
+    title: string;
+    date: string;
+    content: string;
+    tags: string[];
+    postIdeas: string[];
+  }>;
+};
+
+// 定义行业研究文档类型
+export type IndustryResearchDoc = {
+  _id: string; calendarId: string; taskTime: string; updatedAt: string;
+  rule: RepeatRule; error: string | null;
+  data: {
+    json: IndustryResearchGroupData; config: IndustryResearchConfig;
+    date: string; id: string; platform: string; model: string;
+    industryId: string; msg: string;
+    content?: string; reasoningText?: string; totalUsage?: any;
+  };
+};
+
+// 定义查询参数类型
+export type IndustryResearchQueryParams = {
+  [key: string]: any;
+  page?: number;
+  limit?: number;
+  sort?: string;
+  order?: 'asc' | 'desc';
+};
+
+// 定义查询结果类型
+export type IndustryResearchQueryResult = {
+  total: number;
+  count: number;
+  data: IndustryResearchDoc[];
+};
 
 const router = Router();
 
 // 通用查询函数 - 只关注业务逻辑，不依赖 Express 对象
-const handleQuery = async (queryParams: any) => {
+const handleQuery = async (queryParams: IndustryResearchQueryParams): Promise<IndustryResearchQueryResult> => {
   const params = { ...queryParams };
   let { total, count, data } = await queryMongoDocsWithTotal(localIndustryModel as any, params);
-  data = _.omit(data, 'data.content', 'data.json', 'data.reasoningText')
-  return { total, count, data };
+  // 移除不需要返回的敏感字段
+  const processedData = data.map(doc => {
+    return _.omit(doc, ['data.content', 'data.reasoningText']) as IndustryResearchDoc;
+  }).filter(r => !!r.data.json);
+  return { total, count, data: processedData };
 };
 
 // 获取行业研究列表，支持分页、排序和筛选（使用查询字符串）
-router.get('/researches', async (req: Request, res: Response) => {
+router.get('/researches/', async (req: Request, res: Response) => {
   try {
     const result = await handleQuery(req.query as any);
     res.json({
@@ -73,7 +118,7 @@ router.get('/researches/:id', async (req: Request, res: Response) => {
 });
 
 // 创建或更新行业研究
-router.put('/researches/:id?', async (req: Request, res: Response) => {
+router.put('/researches/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const body = req.body;
