@@ -12,10 +12,10 @@ interface MarkdownRendererProps {
 
 export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ 
   text, 
-  className = " text-sm md:text-base"
+  className,
 }) => {
   return (
-    <div className={twMerge(clsx(className, 'markdown-content'))}>
+    <div className={twMerge(clsx('text-sm md:text-base markdown-content', className))}>
       <ReactMarkdown remarkPlugins={[[remarkGfm]]}>
         {text}
       </ReactMarkdown>

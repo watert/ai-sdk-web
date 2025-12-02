@@ -14,9 +14,10 @@ export type ResearchItem = {
 interface InspirationItemProps {
   data: ResearchItem;
   onGenerate?: (params: { postIdea: string; inspiration: ResearchItem }) => void;
+  className?: string;
 }
 
-const InspirationItem: React.FC<InspirationItemProps> = ({ data, onGenerate }) => {
+const InspirationItem: React.FC<InspirationItemProps> = ({ data, onGenerate, className }) => {
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [isExpanded, setIsExpanded] = useState(true);
 
@@ -27,35 +28,35 @@ const InspirationItem: React.FC<InspirationItemProps> = ({ data, onGenerate }) =
   };
 
   return (
-    <div className="bg-white hover:shadow-md transition-shadow duration-300 rounded-lg shadow-sm border border-slate-200 flex flex-col h-full">
+    <div className={`bg-white hover:shadow-md transition-shadow duration-300 rounded-lg border border-slate-200 flex flex-col h-full ${className || ''}`}>
       {/* Card Header */}
-      <div className="p-3 border-slate-100 flex justify-between items-start gap-4">
+      <div className="p-3 pb-1 border-slate-100 flex justify-between items-start gap-4">
         <h3 className="text-lg font-semibold text-slate-900 leading-tight">
           {data.title}
         </h3>
       </div>
 
       {/* Card Body */}
-      <div className="p-3 pt-0 flex-grow">
-        <p className="text-slate-600 text-sm leading-relaxed mb-4">
+      <div className="p-3 pt-0 grow">
+        <p className="text-slate-600 text-sm leading-relaxed mb-1">
           {data.content}
         </p>
         
         {/* Tags */}
-        <div className="flex flex-wrap gap-2 mb-2">
+        <div className="flex flex-wrap gap-1">
           {data.date && (
             
             <span 
-              className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700"
+              className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700"
             >
-              <Calendar className="w-4 h-4 mr-1.5" />
+              <Calendar className="w-3 h-3 mr-1" />
               <span>{data.date}</span>
             </span>
           )}
           {data.tags.map((tag, idx) => (
             <span 
               key={idx} 
-              className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700"
+              className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700"
             >
               <Hash className="w-3 h-3 mr-1 opacity-50" />
               {tag}
@@ -78,16 +79,16 @@ const InspirationItem: React.FC<InspirationItemProps> = ({ data, onGenerate }) =
         </div>
         
         {isExpanded && (
-          <div className="px-2 pb-2 space-y-0.5">
+          <div className="px-2 pb-2 ">
             {data.postIdeas.map((idea, idx) => (
               <div 
                 key={idx} 
-                className="group flex items-start gap-2 p-2 rounded hover:bg-white hover:shadow-sm border border-transparent hover:border-slate-200 transition-all relative"
+                className="group flex items-start gap-1 p-1 rounded hover:bg-white border border-transparent hover:border-slate-200 transition-all relative"
               >
-                 <div className="mt-0.5 min-w-[16px] text-[10px] font-mono text-slate-400 group-hover:text-blue-400 transition-colors">
+                 <div className="mt-0.5 min-w-[12px] text-[10px] font-mono text-slate-400 group-hover:text-blue-400 transition-colors">
                   {idx + 1}.
                 </div>
-                <p className="text-sm text-slate-600 group-hover:text-slate-900 leading-snug flex-grow pr-16 transition-colors">
+                <p className="text-sm text-slate-600 group-hover:text-slate-900 leading-snug grow pr-16 transition-colors">
                   {idea}
                 </p>
                 
@@ -99,7 +100,7 @@ const InspirationItem: React.FC<InspirationItemProps> = ({ data, onGenerate }) =
                         onGenerate({ postIdea: idea, inspiration: data });
                       }
                     }}
-                    className="p-1.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md border border-slate-200 shadow-sm bg-white"
+                    className="p-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md border border-slate-200 bg-white"
                     title="Generate Post"
                   >
                     <Wand2 className="w-3.5 h-3.5" />
@@ -109,7 +110,7 @@ const InspirationItem: React.FC<InspirationItemProps> = ({ data, onGenerate }) =
                       e.stopPropagation();
                       handleCopy(idea, idx);
                     }}
-                    className={`p-1.5 rounded-md border shadow-sm bg-white transition-colors ${
+                    className={`p-1 rounded-md border bg-white transition-colors ${
                       copiedIndex === idx 
                         ? 'text-green-600 border-green-200 bg-green-50' 
                         : 'text-slate-400 hover:text-slate-600 border-slate-200 hover:bg-slate-50'

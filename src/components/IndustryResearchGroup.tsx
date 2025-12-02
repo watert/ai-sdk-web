@@ -29,12 +29,13 @@ const ResearchGroup: React.FC<ResearchGroupProps> = ({ data, onGenerate }) => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+      <div className="flex flex-wrap gap-6">
         {data.inspirations.map((item, index) => (
           <InspirationItem 
             key={index} 
             data={item} 
             onGenerate={onGenerate}
+            className="w-full md:w-[calc(50%-0.75rem)] lg:w-[calc(50%-0.75rem)] xl:w-[calc(33.333%-1rem)]"
           />
         ))}
       </div>

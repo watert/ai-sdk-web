@@ -23,8 +23,8 @@
     /* Backgrounds - Light Mode */
     --md-bg-light: #f8fafc; /* slate-50 */
     --md-bg-code: rgba(0, 0, 0, 0.06);
-    --md-bg-pre: #1e293b; /* slate-800 */
-    --md-bg-pre-text: #f1f5f9; /* slate-100 */
+    --md-bg-pre: #f3f4f6; /* gray-100 */
+    --md-bg-pre-text: #1f2937; /* gray-900 */
     
     /* Blue Bubble Overrides */
     --md-blue-text: white;
@@ -47,6 +47,7 @@
         /* Borders - Dark Mode */
         --md-border-default: #334155; /* slate-700 */
         --md-border-light: #475569; /* slate-600 */
+        --md-border-lighter: rgba(255,255,255,0.1); /* lighter border for dark mode */
         
         /* Backgrounds - Dark Mode */
         --md-bg-light: #1e293b; /* slate-800 */
@@ -68,6 +69,7 @@
     /* Borders - Dark Mode */
     --md-border-default: #334155; /* slate-700 */
     --md-border-light: #475569; /* slate-600 */
+    --md-border-lighter: rgba(255,255,255,0.1); /* lighter border for dark mode */
     
     /* Backgrounds - Dark Mode */
     --md-bg-light: #1e293b; /* slate-800 */

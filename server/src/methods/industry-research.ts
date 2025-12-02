@@ -31,6 +31,7 @@ type Inspiration = {
 type ReturnData = {
   inspirations: Inspiration[],
   summary: string, // 汇总总结, 50 字左右
+  title: string, // 精炼的吸引眼球的标题, 20 字左右
 }
 你生成出来的数据为符合 Inspiration[] 的 JSON 格式。注意，仅返回 JSON 数据，不要包含任何其他文本。
 `.trim();
@@ -63,13 +64,14 @@ async function arrayFromAsync(asyncIterator: AsyncIterable<any>) {
   for await (const item of asyncIterator) { arr.push(item); }
   return arr;
 }
-export function handleIndustryResearchTask({ platform, model, industryId, config, local, dbModel }: {
+export function handleIndustryResearchTask({ platform, model, thinking, industryId, config, local, dbModel }: {
   config: IndustryResearchConfig | string,
   dbModel?: mongoose.Model<any>,
   industryId: string,
   local?: boolean;
   platform?: string,
   model?: string,
+  thinking?: boolean,
 }): AiGenTextStreamResult & {
   taskResult: Promise<any>,
 } {
@@ -96,17 +98,22 @@ export function handleIndustryResearchTask({ platform, model, industryId, config
   })
   const task = async (info: { date: Date, id: string }) => {
     let msgs: any[] = [], error;
-    const [content, reasoningText, totalUsage] = await Promise.all([
+    const [content, json, reasoningText, totalUsage] = await Promise.all([
       genResult.content,
+      genResult.toJsonFormat(),
       genResult.reasoningText,
       genResult.totalUsage,
     ]).catch(async err => {
       error = getErrorInfo(err);
-      msgs = await arrayFromAsync(genResult.toUIMessageStream());
+      // msgs = await arrayFromAsync(genResult.toUIMessageStream());
       return [];
     });
     // const reasoningText = await genResult.content.catch
-    return { ...info, ...genResult.info, content, reasoningText, totalUsage, error, msgs, industryId, msg: `Executed: ${(new Date()).toISOString()}` };
+    return { ...info, ...genResult.info,
+      json, content, reasoningText,
+      totalUsage, error, msgs, industryId,
+      msg: `Executed: ${(new Date()).toISOString()}`,
+    };
   };
   const taskResult = handleCalendarTask({ calendar, task, model: dbModel as any, force: true });
   return {
