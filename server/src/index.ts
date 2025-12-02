@@ -59,6 +59,10 @@ app.use('/test', routerTest);
 app.use('/dev', authMiddleware({ authRequired: true }), routerDev);
 app.use('/account', authMiddleware({ authRequired: false }), routerAccount);
 
+// 挂载行业研究路由器
+import routerIndustryResearch from './routers/router-industry-research';
+app.use('/api/industry-research', authMiddleware({ authRequired: true }), routerIndustryResearch);
+
 // Express 错误处理中间件
 app.use((err: Error, req: Request, res: Response, next) => {
   console.error('Express 错误:', err);
@@ -75,6 +79,12 @@ app.listen(PORT, () => {
   console.log('  GET  / - 返回简单的 JSON 响应');
   console.log('  POST / - 返回接收到的数据');
   console.log('  POST /dev/ai-gen-stream - AI 文本生成（需要 API_KEY）');
+  console.log('  GET  /api/industry-research - 获取行业研究列表（需要 API_KEY）');
+  console.log('  GET  /api/industry-research/:id - 获取单个行业研究详情（需要 API_KEY）');
+  console.log('  POST /api/industry-research - 创建行业研究（需要 API_KEY）');
+  console.log('  PUT  /api/industry-research/:id - 创建或更新行业研究（需要 API_KEY）');
+  console.log('  PATCH /api/industry-research/:id - 更新行业研究（需要 API_KEY）');
+  console.log('  DELETE /api/industry-research/:id - 删除行业研究（需要 API_KEY）');
 });
 
 // 进程级别的未捕获异常处理

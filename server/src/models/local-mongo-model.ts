@@ -173,6 +173,19 @@ export class LocalMongoModel<T = any> {
     await this.saveLocalCollection(items);
     return { acknowledged: true, deletedCount: deleteItemsIds.length }
   }
+
+  async deleteOne(filter: any, opts?: any) {
+    let items = await this.loadLocalCollection();
+    // 只查找第一个匹配的文档
+    const doc = await this.findOne(filter, null, opts).exec() as LocalMongoDocument;
+    if (!doc) {
+      return { acknowledged: true, deletedCount: 0 };
+    }
+    // 过滤掉这个文档
+    items = items.filter(item => item?._id !== doc._id);
+    await this.saveLocalCollection(items);
+    return { acknowledged: true, deletedCount: 1 };
+  }
   async bulkWrite(operations: any[]) {
     const { data, result } = await memoryBulkWrite(await this.loadLocalCollection(), operations);
     await this.saveLocalCollection(data);
