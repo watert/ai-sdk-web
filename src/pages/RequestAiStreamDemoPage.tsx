@@ -5,7 +5,7 @@ import _ from 'lodash';
 
 const RequestAiStreamDemoPage: React.FC = () => {
   // 使用自定义 hook 订阅 AI 流
-  const [state, fn] = useAsyncSubscriberFn(async () => {
+  const [state, fn, abort] = useAsyncSubscriberFn(async () => {
     const resp = await requestUIMessageStream({
       isJson: true, url: 'http://localhost:5178/api/dev/ai-gen-stream',
       body: {
@@ -27,12 +27,18 @@ const RequestAiStreamDemoPage: React.FC = () => {
         </p>
       </div>
 
-      <div className="flex justify-center">
+      <div className="flex justify-center gap-4">
         <button
           onClick={() => fn()}
           className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200"
         >
           发起 AI 请求
+        </button>
+        <button
+          onClick={() => abort()}
+          className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors duration-200"
+        >
+          取消请求
         </button>
       </div>
 
@@ -40,6 +46,15 @@ const RequestAiStreamDemoPage: React.FC = () => {
         <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">响应结果</h2>
         
         <div className="space-y-4">
+          <div>
+            <h3 className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">状态:</h3>
+            <div className="flex items-center">
+              <span className={`px-3 py-1 rounded-full text-sm font-medium ${state?.status === 'submitted' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' : state?.status === 'streaming' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : state?.status === 'ready' ? 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'}`}>
+                {state?.status || '未知'}
+              </span>
+            </div>
+          </div>
+
           <div>
             <h3 className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">Messages:</h3>
             <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-4 overflow-auto max-h-60">

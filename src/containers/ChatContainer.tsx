@@ -91,6 +91,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
   });
   
   const { messages, error, sendMessage, regenerate, setMessages, stop, status } = chatState;
+  console.log('chatState', chatState);
   
   // 处理消息编辑提交
   const handleEditSubmit = (messageId: string, newContent: string) => {

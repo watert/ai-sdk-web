@@ -8,16 +8,18 @@ import { jsonrepair } from 'jsonrepair';
 
 type Resolvable<T> = T | Promise<T> | (() => T) | (() => Promise<T>);
 
-
+type ChatStatus = 'submitted' | 'streaming' | 'ready' | 'error';
 export interface RequestAiStreamState {
   messages: UIMessage[];
   json?: any;
+  status: ChatStatus;
 }
 export interface RequestAiStreamResult {
   stream: ReadableStream<UIMessageChunk>;
   subscribe: (fn: (state: RequestAiStreamState) => void) => (() => void);
   promise: Promise<RequestAiStreamState>;
   getState: () => RequestAiStreamState;
+  abort: () => void;
 }
 export interface RequestAiStreamInit {
   url: Resolvable<string>;
@@ -52,8 +54,20 @@ export function parseJsonFromText(text: string) {
   try {
     return JSON.parse(jsonrepair(text));
   } catch (e) {
-    console.log('parse error', e);
-    return undefined;
+    const lastJsonTokens = ['```', '}', ']']
+    const { tokenStr, index } = lastJsonTokens.reduce((prev, cur) => {
+      const index = text.lastIndexOf(cur);
+      return index !== -1 && (prev.index === -1 || index > prev.index) ? { tokenStr: cur, index } : prev;
+    }, { tokenStr: '', index: -1 });
+    if (index !== -1) {
+      text = text.slice(0, index + tokenStr.length);
+    }
+    try {
+      return JSON.parse(jsonrepair(text));
+    } catch (e) {
+      console.log('parse error', e);
+      return undefined;
+    }
   }
 }
 export async function resolve<T>(resolvable: Resolvable<T>): Promise<T> {
@@ -71,10 +85,13 @@ export async function requestUIMessageStream(options: RequestAiStreamInit) {
     body = JSON.stringify(body);
   }
   headers = { ...getAppReqHeaders(), ...await resolve(headers) };
-  console.log('headers', headers);
-  const resp = await fetch(await resolve(url), {
-    method: await resolve(method), headers, body,
-  });
+  // console.log('headers', headers);
+  
+  // 创建 AbortController 用于支持取消请求
+  const controller = new AbortController();
+  const { signal } = controller;
+  
+  const resp = await fetch(await resolve(url), {    method: await resolve(method), headers, body, signal  });
   if (!resp.body?.pipeThrough) {
     throw new Error('Stream is null');
   }
@@ -96,36 +113,65 @@ export async function requestUIMessageStream(options: RequestAiStreamInit) {
   const emitter = new EventEmitter<RequestAiStreamState>();
 
   let lastJsonStr: any, json: any;
-  let latestState: RequestAiStreamState = { messages, json };
+  // 初始化状态为 'submitted'，表示请求已提交
+  let latestState: RequestAiStreamState = { messages, json, status: 'submitted' };
   const getState = () => { return latestState; };
   const subscribe = (fn: (state: RequestAiStreamState) => void) => {
+    console.count('called subscribe');
     const unsub = emitter.subscribe(fn);
     const state = getState();
     if (state.messages?.length) { fn(state); }
     return unsub;
   };
+  
+  // 实现 abort 函数
+  const abort = () => {
+    controller.abort();
+    // 更新状态为 'ready' 表示可以发起新请求
+    latestState = { ...latestState, status: 'ready' };
+    emitter.emit(latestState);
+    // _.last(messages)?.parts?.push({ type: 'abort' });
+  };
+  
   const promise = (async () => {
-    for await (const msg of msgStream) {
-      const { id } = msg;
-      if (!messagesById[id]) {
-        messages.push(msg);
-        messagesById[id] = msg;
-      } else {
-        Object.assign(messagesById[id], msg);
-      }
-
-      if (options.isJson) {
-        const lastTextMsg = _.findLast(messages.flatMap(msg => msg.parts), msg => msg.type === 'text');
-        if (lastTextMsg && lastTextMsg?.text !== lastJsonStr) {
-          json = parseJsonFromText(lastTextMsg?.text || 'undefined');
-          lastJsonStr = lastTextMsg?.text || 'undefined';
-        }
-      }
-      latestState = { json, messages };
+    try {
+      // 开始接收流数据，更新状态为 'streaming'
+      latestState = { ...latestState, status: 'streaming' };
       emitter.emit(latestState);
+      
+      for await (const msg of msgStream) {
+        const { id } = msg;
+        if (!messagesById[id]) {
+          messages.push(msg);
+          messagesById[id] = msg;
+        } else {
+          Object.assign(messagesById[id], msg);
+        }
+
+        if (options.isJson) {
+          const lastTextMsg = _.findLast(messages.flatMap(msg => msg.parts), msg => msg.type === 'text');
+          if (lastTextMsg && lastTextMsg?.text !== lastJsonStr) {
+            json = parseJsonFromText(lastTextMsg?.text || 'undefined');
+            lastJsonStr = lastTextMsg?.text || 'undefined';
+          }
+        }
+        latestState = { json, messages, status: 'streaming' };
+        emitter.emit(latestState);
+      }
+      
+      // 流结束，更新状态为 'ready'
+      latestState = { ...latestState, status: 'ready' };
+      emitter.emit(latestState);
+    } catch (error) {
+      if ((error as Error).name !== 'AbortError') {
+        console.error('Stream error:', error);
+        // 发生错误，更新状态为 'error'
+        latestState = { ...latestState, status: 'error' };
+        emitter.emit(latestState);
+      }
     }
     return latestState;
   })();
   
-  return { stream: msgStream, subscribe, promise, getState };
+  return { stream: msgStream, subscribe, promise, getState, abort };
 }
