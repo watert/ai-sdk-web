@@ -1,10 +1,9 @@
 import React, { useMemo } from 'react';
-import InspirationItem, { type ResearchItem } from './InspirationItem';
 import { Clock, Layers, Repeat } from 'lucide-react';
-import { getCalendarFromResearchGroup, type IndustryResearchDoc } from '@/models/industry-research';
-import EventListItem from './EventListItem';
-import type { CalendarEvent, RepeatRule } from '@/libs/CalendarEvent';
 import dayjs from 'dayjs';
+import { getCalendarFromResearchGroup, type IndustryResearchDoc } from '@/models/industry-research';
+import type { CalendarEvent, RepeatRule } from '@/libs/CalendarEvent';
+import InspirationItem, { type ResearchItem } from './InspirationItem';
 
 
 export type ResearchGroupType = {
@@ -61,7 +60,7 @@ const formatRecurrence = (rule?: RepeatRule | null) => {
   
 const ResearchGroup: React.FC<ResearchGroupProps> = ({ data, researchData, onGenerate }) => {
   const calendarEvent = useMemo(() => getCalendarFromResearchGroup(researchData), [researchData]);
-  console.log('calendar', calendarEvent);
+  // console.log('calendar', calendarEvent);
   return (
     <section className="mb-12 last:mb-0">
       <div className="flex items-start gap-4 mb-6">
