@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { aiGenTextStream } from '../methods/ai-sdk/ai-gen-text';
 import { handleAiStreamCall } from '../libs/stream-helper';
+import { handleIndustryResearchTask } from '../methods/industry-research';
 
 const router = Router();
 
@@ -20,6 +21,11 @@ router.post('/ai-gen-stream', handleAiStreamCall((options) => {
     onAbort: ({ steps }) => { console.log('aborted', steps?.length) },
     ...options
   });
+}));
+
+// POST /dev/industry-research-task endpoint for industry research task
+router.post('/industry-research', handleAiStreamCall((options) => {
+  return handleIndustryResearchTask(options);
 }));
 
 export default router;
