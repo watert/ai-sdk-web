@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 
-export function handleAiStreamCall(fn: (options: any) => any) {
+export function createAiStreamMiddleware(fn: (options: any) => any) {
   return async (req: Request, res: Response) => {
     const controller = new AbortController();
     res.on('close', () => { controller.abort(); });

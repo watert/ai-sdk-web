@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { aiGenTextStream } from '../methods/ai-sdk/ai-gen-text';
-import { handleAiStreamCall } from '../libs/stream-helper';
+import { createAiStreamMiddleware } from '../libs/stream-helper';
 import { handleIndustryResearchTask } from '../methods/industry-research';
 
 const router = Router();
@@ -16,7 +16,7 @@ router.get('/test', (req: Request, res: Response) => {
 });
 
 // POST /dev/ai-gen-stream endpoint for AI text generation with streaming
-router.post('/ai-gen-stream', handleAiStreamCall((options) => {
+router.post('/ai-gen-stream', createAiStreamMiddleware((options) => {
   return aiGenTextStream({
     onAbort: ({ steps }) => { console.log('aborted', steps?.length) },
     ...options
@@ -24,7 +24,7 @@ router.post('/ai-gen-stream', handleAiStreamCall((options) => {
 }));
 
 // POST /dev/industry-research-task endpoint for industry research task
-router.post('/industry-research', handleAiStreamCall((options) => {
+router.post('/industry-research', createAiStreamMiddleware((options) => {
   return handleIndustryResearchTask(options);
 }));
 
