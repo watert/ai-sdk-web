@@ -17,7 +17,7 @@ import { LocalMongoModel } from "../models/local-mongo-model";
 // will skip if task is not triggerable
 export async function handleCalendarTask<T=any>({ calendar, task, model, force }: {
   calendar: CalendarEvent,
-  task: (info: { date: Date, id: string }) => Promise<any>,
+  task: (info: { taskTime: Date, calendarId: string }) => Promise<any>,
   model: LocalMongoModel, // mongoose like model
   // model: any, // mongoose like model
   force?: boolean,
@@ -40,7 +40,7 @@ export async function handleCalendarTask<T=any>({ calendar, task, model, force }
     return lastDoc;
   }
   const taskTime = calendar.getNextOccurrences(-1)?.[0];
-  const info = { date: taskTime, id: calendarId };
+  const info = { taskTime, calendarId };
   let body: any = { calendarId, taskTime }, error: any = null;
   const data = await task(info).catch(err => {
     error = getErrorInfo(err);

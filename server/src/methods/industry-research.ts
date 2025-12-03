@@ -100,7 +100,7 @@ export function handleIndustryResearchTask({ platform, model, thinking, industry
     platform: platform || 'GEMINI', model: model || 'gemini-flash-latest',
     search: true, thinking, messages,
   })
-  const task = async (info: { date: Date, id: string }) => {
+  const task = async (info: { taskTime: Date, calendarId: string }) => {
     let msgs: any[] = [], error;
     const [content, json, reasoningText, totalUsage] = await Promise.all([
       genResult.content,

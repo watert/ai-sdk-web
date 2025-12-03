@@ -22,6 +22,7 @@ type AiGenTextStreamOpts = Omit<Parameters<typeof streamText>[0], 'model'> & {
   model?: string; options?: any;
   search?: boolean;
   thinking?: boolean;
+  metadata?: Record<string, any>;
 }
 
 export function parseJsonFromText(text: string) {
@@ -207,11 +208,15 @@ export function aiGenTextStream(opts: AiGenTextStreamOpts, ctx?: any): AiGenText
   }
   return Object.assign(resp, {
     params: opts, info, toPromise, toJsonFormat,
-    pipeAiStreamResultToResponse: (res: any) => pipeAiStreamResultToResponse(resp, res)
+    pipeAiStreamResultToResponse: (res: any) => {
+      const params = { ...resp, metadata: opts.metadata };
+      return pipeAiStreamResultToResponse(params, res)
+    }
   });
 }
 
-export function pipeAiStreamResultToResponse(result: StreamTextResult<any,any>, res: Response) {
+export function pipeAiStreamResultToResponse(result: StreamTextResult<any,any> & { metadata?: Record<string, any> }, res: Response) {
+  const { metadata } = result;
   const stream = createUIMessageStream({
     execute: async ({ writer }) => {
       const { params, info } = result as any;
@@ -219,7 +224,7 @@ export function pipeAiStreamResultToResponse(result: StreamTextResult<any,any>, 
         messageMetadata: ({ part }) => {
           // console.log('msg meta', part);
           if (part.type === 'start') {
-            return { createdAt: Date.now(), ...info };
+            return { createdAt: Date.now(), ...info, ...metadata };
           } else if (part.type === 'start-step') {
             return { startedAt: Date.now() };
           } else if (part.type === 'finish-step') {
