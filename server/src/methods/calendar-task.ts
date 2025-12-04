@@ -19,7 +19,6 @@ export async function handleCalendarTask<T=any>({ calendar, task, model, force }
   calendar: CalendarEvent,
   task: (info: { taskTime: Date, calendarId: string }) => Promise<any>,
   model: LocalMongoModel, // mongoose like model
-  // model: any, // mongoose like model
   force?: boolean,
 }): Promise<{
   _id: any;
@@ -29,6 +28,7 @@ export async function handleCalendarTask<T=any>({ calendar, task, model, force }
   error?: any,
   rule?: Partial<RepeatRule>,
   updatedAt: Date,
+  taskInfo?: { status: 'skip' | 'success' | 'error'; duration?: number; message?: string; }
 }> {
   const calendarId = calendar.id;
   const lastDoc = await model.findOne({ calendarId }).sort({ taskTime: -1 }).lean();
@@ -37,17 +37,35 @@ export async function handleCalendarTask<T=any>({ calendar, task, model, force }
   }
   if (!force && !calendar.shouldTrigger()) {
     console.log('should not trigger', calendarId);
-    return lastDoc;
+    return { ...lastDoc, taskInfo: { status: 'skip', message: 'Task not triggered due to calendar rules' } };
   }
   const taskTime = calendar.getNextOccurrences(-1)?.[0];
   const info = { taskTime, calendarId };
   let body: any = { calendarId, taskTime }, error: any = null;
   const prevDocPromise = model.findOne({ calendarId, taskTime }).lean();
+  
+  // 记录任务开始时间
+  const startTime = Date.now();
+  let status: 'success' | 'error' = 'success';
+  let taskMessage = '';
+  
   const data = await task(info).catch(err => {
     error = getErrorInfo(err);
+    status = 'error';
+    taskMessage = error.message || 'Task execution failed';
     return {};
   });
+  
+  // 计算执行时长
+  const duration = Date.now() - startTime;
+  
   Object.assign(data, await prevDocPromise, data);
   Object.assign(body, { data, rule: calendar.data?.repeatRule, updatedAt: new Date(), error });
-  return await model.findOneAndUpdate({ calendarId, taskTime }, body, { upsert: true }).lean();
+  
+  // 执行状态信息
+  const taskInfo = { status, duration, message: taskMessage };
+  
+  // 不将 taskInfo 写入 model，仅作为返回值
+  const result = await model.findOneAndUpdate({ calendarId, taskTime }, body, { upsert: true }).lean();
+  return { ...result, taskInfo };
 }

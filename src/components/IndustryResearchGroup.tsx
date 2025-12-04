@@ -15,7 +15,7 @@ export type ResearchGroupType = {
 interface ResearchGroupProps {
   data: ResearchGroupType;
   researchData: IndustryResearchDoc;
-  onGenerate?: (params: { postIdea: string; inspiration: ResearchItem }) => void;
+  onGenerateContent?: (params: { postIdea: string; inspiration: ResearchItem }) => void;
 }
 
 const formatRecurrence = (rule?: RepeatRule | null) => {
@@ -58,7 +58,7 @@ const formatRecurrence = (rule?: RepeatRule | null) => {
     }
   };
   
-const ResearchGroup: React.FC<ResearchGroupProps> = ({ data, researchData, onGenerate }) => {
+const ResearchGroup: React.FC<ResearchGroupProps> = ({ data, researchData, onGenerateContent }) => {
   const calendarEvent = useMemo(() => getCalendarFromResearchGroup(researchData), [researchData]);
   // console.log('calendar', calendarEvent);
   return (
@@ -106,7 +106,7 @@ const ResearchGroup: React.FC<ResearchGroupProps> = ({ data, researchData, onGen
           <InspirationItem 
             key={index} 
             data={item} 
-            onGenerate={onGenerate}
+            onGenerate={onGenerateContent}
             className="w-full md:w-[calc(50%-0.75rem)] lg:w-[calc(50%-0.75rem)] xl:w-[calc(33.333%-1rem)]"
           />
         ))}

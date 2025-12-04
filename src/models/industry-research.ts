@@ -3,9 +3,8 @@ import { CalendarEvent } from '../libs/CalendarEvent';
 import type { EventDetails, RepeatRule as CalendarRepeatRule, Weekday, RepeatRule } from '../libs/CalendarEvent';
 
 export type IndustryResearchConfig = {
-  id: string;
-  title: string;
-  prompt: string;
+  id: string, title: string, prompt: string, type?: string,
+  repeatRule: RepeatRule, startDateTime?: Date | string,
 };
 
 

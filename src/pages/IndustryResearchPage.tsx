@@ -2,6 +2,7 @@ import React from 'react';
 import { useAsync } from 'react-use';
 import IndustryResearchGroup from '../components/IndustryResearchGroup';
 import { getIndustryResearches, type IndustryResearchDoc, type IndustryResearchGroupData } from '../models/industry-research';
+import { appAxios } from '@/models/appAxios';
 
 
 const IndustryResearchPage: React.FC = () => {
@@ -9,6 +10,10 @@ const IndustryResearchPage: React.FC = () => {
   const { value: researchesData, loading, error } = useAsync(async () => {
     return await getIndustryResearches({ 'data.industryId': 'ai' });
   }, []);
+  const { value: { defaultConfigs } = {} } = useAsync(async () => {
+    return appAxios.get('/api/dev/industry-research/info').then(r => r.data?.data);
+  });
+  console.log('defaultConfigs', defaultConfigs);
 
   // 将API返回的数据转换为组件所需的格式
   const convertToGroupData = (docs: IndustryResearchDoc[]) => {

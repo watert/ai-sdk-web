@@ -68,7 +68,7 @@ async function arrayFromAsync(asyncIterator: AsyncIterable<any>) {
   return arr;
 }
 export const localIndustryModel = new LocalMongoModel('test_industry_research');
-export function handleIndustryResearchTask({ platform, model, thinking, industryId, config, local, dbModel }: {
+export function handleIndustryResearchTask({ platform, model, thinking = true, industryId, config, local, dbModel }: {
   config: IndustryResearchConfig | string,
   dbModel?: mongoose.Model<any>,
   industryId: string,
