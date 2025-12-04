@@ -39,13 +39,13 @@ const InspirationItem: React.FC<InspirationItemProps> = ({ data, onGenerate, cla
 
       {/* Card Body */}
       <div className="p-3 grow">
-        <p className="text-sm leading-relaxed mb-1 opacity-70">
+        <div className="text-sm leading-relaxed mb-1 opacity-70">
           {/* <MarkdownRenderer text={`**${data.title}** | ${data.content || ''}`} /> */}
           <b className='text-green-600 dark:text-green-400 text-md leading-5'>{data.title}</b>
           {/* <span className='opacity-50'>{' | '}</span> */}
           <MarkdownRenderer text={data.content || ''} className='leading-[1.5em]' />
           {/* {data.content} */}
-        </p>
+        </div>
         
         {/* Tags */}
         <div className="flex flex-wrap gap-1">

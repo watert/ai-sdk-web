@@ -93,13 +93,17 @@ export function handleIndustryResearchTask({ platform, model, thinking = true, i
   });
   const industry = getIndustryInfo(industryId)
   if (!industry) throw new Error(`industry ${industryId} not found`);
-  // aiGenTextStream()
-  const messages = getIndustryResearchMsgs({ industry: (industry as any).name || industry.name_zh || industry.name_en, prompt });
-  // const genResult = aiGenTextStream({ platform: 'GEMINI', model: 'gemini-2.5-flash-lite', messages, search: true })
+  const messages = getIndustryResearchMsgs({
+    industry: (industry as any).name || industry.name_zh || industry.name_en,
+    prompt,
+  });
   const genResult = aiGenTextStream({
     platform: platform || 'GEMINI', model: model || 'gemini-flash-latest',
-    search: true, thinking, messages,
-  })
+    search: true, thinking, messages, metadata: { industryId, calendarId: id }
+  });
+  if (!calendar.shouldTrigger()) {
+    return { status: 'skip', message: 'not trigger' } as any;
+  }
   const task = async (info: { taskTime: Date, calendarId: string }) => {
     let msgs: any[] = [], error;
     const [content, json, reasoningText, totalUsage] = await Promise.all([

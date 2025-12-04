@@ -209,17 +209,17 @@ export function aiGenTextStream(opts: AiGenTextStreamOpts, ctx?: any): AiGenText
   return Object.assign(resp, {
     params: opts, info, toPromise, toJsonFormat,
     pipeAiStreamResultToResponse: (res: any) => {
-      const params = { ...resp, metadata: opts.metadata };
-      return pipeAiStreamResultToResponse(params, res)
+      return pipeAiStreamResultToResponse(resp, res, opts.metadata)
     }
   });
 }
 
-export function pipeAiStreamResultToResponse(result: StreamTextResult<any,any> & { metadata?: Record<string, any> }, res: Response) {
-  const { metadata } = result;
+export function pipeAiStreamResultToResponse(result: StreamTextResult<any,any> & { metadata?: Record<string, any> }, res: Response, metadata: any) {
+  // const { metadata } = result;
   const stream = createUIMessageStream({
     execute: async ({ writer }) => {
       const { params, info } = result as any;
+      // console.log('result', result);
       writer.merge(result.toUIMessageStream({
         messageMetadata: ({ part }) => {
           // console.log('msg meta', part);

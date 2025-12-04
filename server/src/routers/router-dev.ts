@@ -15,10 +15,11 @@ router.get('/test', (req: Request, res: Response) => {
 });
 
 // POST /dev/ai-gen-stream endpoint for AI text generation with streaming
-router.post('/ai-gen-stream', createAiStreamMiddleware((options) => {
+router.post('/ai-gen-stream', createAiStreamMiddleware((bodyWithSignal) => {
+  console.log('options', bodyWithSignal);
   return aiGenTextStream({
     onAbort: ({ steps }) => { console.log('aborted', steps?.length) },
-    ...options
+    ...bodyWithSignal
   });
 }));
 
@@ -29,8 +30,8 @@ router.get('/industry-research/info', (req: Request, res: Response) => {
   res.json({ data });
 });
 // POST /dev/industry-research-task endpoint for industry research task
-router.post('/industry-research', createAiStreamMiddleware((options) => {
-  return handleIndustryResearchTask(options);
+router.post('/industry-research', createAiStreamMiddleware((bodyWithSignal) => {
+  return handleIndustryResearchTask(bodyWithSignal);
 }));
 
 export default router;

@@ -87,7 +87,7 @@ export interface RequestAiStreamState {
  */
 export interface RequestAiStreamResult {
   /** 原始ReadableStream流 */
-  stream: ReadableStream<UIMessageChunk>;
+  stream: ReadableStream<UIMessage>;
   /** 订阅状态变化的方法，返回取消订阅的函数 */
   subscribe: (fn: (state: RequestAiStreamState) => void) => (() => void);
   /** 流处理完成后的Promise，resolve为最终状态 */
@@ -115,6 +115,8 @@ export interface RequestAiStreamInit {
   body?: Resolvable<Record<string, any> | string>;
   /** 状态更新节流时间（毫秒），默认33ms */
   throttle?: number;
+  /** 状态更新回调函数，每次状态变化时调用 */
+  onChange?: (state: RequestAiStreamState) => void;
 }
 
 export class EventEmitter<T> {
@@ -165,6 +167,16 @@ export async function resolve<T>(resolvable: Resolvable<T>): Promise<T> {
   }
   return Promise.resolve(resolvable);
 }
+
+function readableStreamFromObjects<T>(objects: T[]): ReadableStream<T> {
+  return new ReadableStream({
+    start(controller) {
+      objects.forEach(obj => controller.enqueue(obj));
+      controller.close();
+    }
+  });
+}
+
 /**
  * 创建一个请求AI流的函数，用于处理流式响应
  * 
@@ -176,17 +188,12 @@ export async function resolve<T>(resolvable: Resolvable<T>): Promise<T> {
  * const result = await requestUIMessageStream({
  *   url: 'http://localhost:5178/api/dev/ai-gen-stream',
  *   body: {
- *     platform: 'OLLAMA',
- *     model: 'qwen3:4b-instruct',
- *     prompt: 'Hello, world!'
+ *     platform: 'OLLAMA', model: 'qwen3:4b-instruct', prompt: 'Hello, world!'
  *   }
  * });
  * 
  * // 订阅状态变化
- * const unsubscribe = result.subscribe(state => {
- *   console.log('Stream state:', state);
- * });
- * 
+ * const unsubscribe = result.subscribe(state => { console.log('Stream state:', state); });
  * // 取消请求
  * result.abort();
  * 
@@ -198,8 +205,8 @@ export async function resolve<T>(resolvable: Resolvable<T>): Promise<T> {
  *   throttle: 100 // 每100ms更新一次状态
  * });
  */
-export async function requestUIMessageStream(options: RequestAiStreamInit) {
-  let { url, method = 'POST', headers, body, fetch = window.fetch, throttle = 33 } = options;
+export async function requestUIMessageStream(options: RequestAiStreamInit): Promise<RequestAiStreamResult> {
+  let { url, method = 'POST', headers, body, fetch = window.fetch, throttle = 33, onChange } = options;
   body = await resolve(body);
   if (typeof body !== 'string') {
     body = JSON.stringify(body);
@@ -211,9 +218,26 @@ export async function requestUIMessageStream(options: RequestAiStreamInit) {
   const controller = new AbortController();
   const { signal } = controller;
   
-  const resp = await fetch(await resolve(url), {    method: await resolve(method), headers, body, signal  });
+  const resp = await fetch(await resolve(url), {
+    method: await resolve(method), headers, body, signal,
+  });
   if (!resp.body?.pipeThrough) {
     throw new Error('Stream is null');
+  }
+  const contentType = resp.headers.get('Content-Type');
+  console.log('contentType', contentType);
+  if (contentType?.includes('application/json')) { // 处理 JSON 响应而非 SSE
+    let data = await resp.json();
+    if (data.data) data = data.data;
+    const state: RequestAiStreamState = { status: 'ready', messages: [{ role: 'assistant', metadata: data, id: Date.now().toString(16), parts: [{ type: 'text', text: 'DONE' }] }] };
+    onChange?.(state);
+    return {
+      stream: readableStreamFromObjects(state.messages),
+      subscribe: _.noop as any,
+      getState: () => state,
+      abort: () => controller.abort(),
+      promise: Promise.resolve(state),
+    }
   }
   const stream = resp.body
     .pipeThrough(new TextDecoderStream())
@@ -249,6 +273,12 @@ export async function requestUIMessageStream(options: RequestAiStreamInit) {
     if (state.messages?.length) { fn(state); }
     return unsub;
   };
+
+  // 如果提供了 onChange 回调，自动订阅状态变化
+  let unsubOnChange: (() => void) | undefined;
+  if (onChange) {
+    unsubOnChange = subscribe(onChange);
+  }
   
   // 实现 abort 函数
   const abort = () => {
@@ -258,6 +288,10 @@ export async function requestUIMessageStream(options: RequestAiStreamInit) {
     // 取消节流，立即 emit 最终状态
     throttledEmit.cancel();
     emitter.emit(latestState);
+    // 取消 onChange 订阅
+    if (unsubOnChange) {
+      unsubOnChange();
+    }
     // _.last(messages)?.parts?.push({ type: 'abort' });
   };
   
@@ -307,14 +341,22 @@ export async function requestUIMessageStream(options: RequestAiStreamInit) {
       // 取消节流，立即 emit 最终状态
       throttledEmit.cancel();
       emitter.emit(latestState);
+      // 取消 onChange 订阅
+      if (unsubOnChange) {
+        unsubOnChange();
+      }
     } catch (error) {
       if ((error as Error).name !== 'AbortError') {
         console.error('Stream error:', error);
         // 发生错误，更新状态为 'error'
-        latestState = { ...latestState, status: 'error' };
+        latestState = { ...latestState, status: 'error', error };
         // 取消节流，立即 emit 错误状态
         throttledEmit.cancel();
         emitter.emit(latestState);
+        // 取消 onChange 订阅
+        if (unsubOnChange) {
+          unsubOnChange();
+        }
       }
     }
     return latestState;

@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom';
 import MenuItem from '../components/MenuItem';
 import { MessageSquare, Bot, Calendar, Building2, LogIn, User, Layers, Code } from 'lucide-react';
 import { useUser } from '../hooks/useUser';
+import { Toaster } from 'sonner';
 
 const Layout: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -165,6 +166,7 @@ const Layout: React.FC = () => {
           <Outlet />
         </main>
       </div>
+      <Toaster />
     </div>
   );
 };
