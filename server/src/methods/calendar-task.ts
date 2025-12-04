@@ -42,12 +42,12 @@ export async function handleCalendarTask<T=any>({ calendar, task, model, force }
   const taskTime = calendar.getNextOccurrences(-1)?.[0];
   const info = { taskTime, calendarId };
   let body: any = { calendarId, taskTime }, error: any = null;
+  const prevDocPromise = model.findOne({ calendarId, taskTime }).lean();
   const data = await task(info).catch(err => {
     error = getErrorInfo(err);
-    return null;
+    return {};
   });
-  const updatedAt = new Date();
-  Object.assign(body, { data, updatedAt, rule: calendar.data?.repeatRule, error });
-  // throw { msg: 'manual throw', error, body }
+  Object.assign(data, await prevDocPromise, data);
+  Object.assign(body, { data, rule: calendar.data?.repeatRule, updatedAt: new Date(), error });
   return await model.findOneAndUpdate({ calendarId, taskTime }, body, { upsert: true }).lean();
 }
