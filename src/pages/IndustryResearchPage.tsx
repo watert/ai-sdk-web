@@ -1,19 +1,40 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useAsync } from 'react-use';
 import IndustryResearchGroup from '../components/IndustryResearchGroup';
-import { getIndustryResearches, type IndustryResearchDoc, type IndustryResearchGroupData } from '../models/industry-research';
+import { getIndustryResearches, type IndustryResearchConfig, type IndustryResearchDoc, type IndustryResearchGroupData } from '../models/industry-research';
 import { appAxios } from '@/models/appAxios';
+import _ from 'lodash';
+import { _set } from '@/libs/_set';
 
 
 const IndustryResearchPage: React.FC = () => {
   // 使用useAsync获取行业研究列表数据
-  const { value: researchesData, loading, error } = useAsync(async () => {
-    return await getIndustryResearches({ 'data.industryId': 'ai' });
-  }, []);
+  const industryId = 'ai';
+  let { value: researchesData, loading, error } = useAsync(async () => {
+    return await getIndustryResearches({ 'data.industryId': industryId });
+  }, [industryId]);
   const { value: { defaultConfigs } = {} } = useAsync(async () => {
-    return appAxios.get('/api/dev/industry-research/info').then(r => r.data?.data);
+    const resp = await appAxios.get('/dev/industry-research/info')
+    return resp.data?.data as {
+      defaultConfigs: IndustryResearchConfig[]
+    };
   });
-  console.log('defaultConfigs', defaultConfigs);
+  researchesData = useMemo(() => {
+    if (!researchesData?.data || !defaultConfigs) {
+      return undefined;
+    }
+    const dataByCalId = _.keyBy(researchesData.data, 'calendarId');
+    const configDocs = defaultConfigs.map(config => {
+      const calendarId = `${industryId}--${config.id}`
+      const doc = dataByCalId[calendarId];
+      const data = { ...doc?.data, config };
+      return { calendarId, doc, data, rule: config.repeatRule };
+    }).filter(r => !r.doc) as IndustryResearchDoc[];
+    return _set(researchesData, 'data', (prev: IndustryResearchDoc[]) => {
+      return _.uniqBy([...prev, ...configDocs], 'calendarId');
+    });
+  }, [industryId, researchesData, defaultConfigs])
+  console.log('research page', {researchesData, defaultConfigs});
 
   // 将API返回的数据转换为组件所需的格式
   const convertToGroupData = (docs: IndustryResearchDoc[]) => {
@@ -36,10 +57,13 @@ const IndustryResearchPage: React.FC = () => {
       {error && <div className="text-center py-12 text-red-500">加载失败：{error.message}</div>}
       
       {researchesData?.data && researchesData.data.map(data => {
-        console.log('mapping', data, researchesData)
+        // console.log('mapping', data, researchesData)
         return <IndustryResearchGroup 
           key={data._id} researchData={data}
-          data={convertToGroupData([data])[0]} 
+          data={convertToGroupData([data])[0]}
+          onGenerate={() => {
+            return new Promise(resolve => setTimeout(resolve, 1000));
+          }}
         />;
       })}
     </div>

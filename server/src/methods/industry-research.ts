@@ -112,7 +112,7 @@ export function handleIndustryResearchTask({ platform, model, thinking = true, i
       // msgs = await arrayFromAsync(genResult.toUIMessageStream());
       return [];
     });
-    console.log('gen-result', await genResult.toPromise());
+    // console.log('gen-result', await genResult.toPromise());
     return { ...info, ...genResult.info, config: _.omit(config, 'repeatRule'),
       json, content, reasoningText,
       totalUsage, error, msgs, industryId,

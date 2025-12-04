@@ -1,6 +1,7 @@
-import React, { useMemo } from 'react';
-import { Clock, Layers, Repeat } from 'lucide-react';
+import React, { useMemo, useState, useCallback } from 'react';
+import { Clock, Layers, Repeat, Sparkles, Loader } from 'lucide-react';
 import dayjs from 'dayjs';
+import { toast } from 'sonner';
 import { getCalendarFromResearchGroup, type IndustryResearchDoc } from '@/models/industry-research';
 import type { CalendarEvent, RepeatRule } from '@/libs/CalendarEvent';
 import InspirationItem, { type ResearchItem } from './InspirationItem';
@@ -12,10 +13,66 @@ export type ResearchGroupType = {
   inspirations: ResearchItem[];
 };
 
+interface AsyncButtonProps {
+  onClick?: () => void | Promise<any>;
+  children: React.ReactNode;
+  className?: string;
+  promiseTimeout?: number;
+}
+
+const AsyncButton: React.FC<AsyncButtonProps> = ({ 
+  onClick,  children,  className = '',
+  promiseTimeout = 60000 // 默认1分钟超时
+}) => {
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleClick = useCallback(async () => {
+    if (!onClick || isLoading) return;
+
+    setIsLoading(true);
+    
+    try {
+      // 创建超时控制
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        const timer = setTimeout(() => {
+          reject(new Error('Operation timed out after 1 minute'));
+        }, promiseTimeout);
+        return () => clearTimeout(timer);
+      });
+
+      // 并行执行操作和超时控制
+      await Promise.race([onClick(), timeoutPromise]);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
+      toast.error(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [onClick, isLoading, promiseTimeout]);
+
+  return (
+    <button
+      className={`${className} ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
+      onClick={handleClick}
+      disabled={isLoading}
+    >
+      {isLoading ? (
+        <>
+          <Loader className="w-4 h-4 animate-spin mr-2" />
+          Processing...
+        </>
+      ) : (
+        children
+      )}
+    </button>
+  );
+};
+
 interface ResearchGroupProps {
   data: ResearchGroupType;
   researchData: IndustryResearchDoc;
   onGenerateContent?: (params: { postIdea: string; inspiration: ResearchItem }) => void;
+  onGenerate?: () => void|Promise<any>
 }
 
 const formatRecurrence = (rule?: RepeatRule | null) => {
@@ -58,7 +115,7 @@ const formatRecurrence = (rule?: RepeatRule | null) => {
     }
   };
   
-const ResearchGroup: React.FC<ResearchGroupProps> = ({ data, researchData, onGenerateContent }) => {
+const ResearchGroup: React.FC<ResearchGroupProps> = ({ data, researchData, onGenerateContent, onGenerate }) => {
   const calendarEvent = useMemo(() => getCalendarFromResearchGroup(researchData), [researchData]);
   // console.log('calendar', calendarEvent);
   return (
@@ -67,9 +124,9 @@ const ResearchGroup: React.FC<ResearchGroupProps> = ({ data, researchData, onGen
         {/* <div className="mt-1 p-2 bg-blue-100 text-blue-700 rounded-lg dark:bg-blue-900/30 dark:text-blue-400">
             <Layers className="w-6 h-6" />
         </div> */}
-        <div>
+        <div className='grow'>
           <h2 className="text-xl font-bold text-slate-800 mb-2 dark:text-white">
-            <b className='inline-flex mr-2 text-green-600 dark:text-green-400 leading-5'>#{researchData.data.config.title}</b>
+            <b className='inline-flex mr-2 text-green-600 dark:text-green-400 leading-5'>#{researchData.data?.config?.title}</b>
             {data.title}
           </h2>
           <p className="text-slate-600 max-w-3xl leading-relaxed dark:text-slate-300 text-sm">
@@ -77,7 +134,7 @@ const ResearchGroup: React.FC<ResearchGroupProps> = ({ data, researchData, onGen
           </p>
         </div>
 
-        <div className="flex flex-col basis-1/3 gap-x-6 gap-y-2 text-sm text-slate-600">
+        <div className="task-info flex flex-col basis-1/3 gap-x-6 gap-y-2 text-sm text-slate-600">
           <div className="flex items-center gap-1.5">
             <Clock className="w-4 h-4 text-slate-400" />
             <span className="text-slate-500 text-xs font-semibold tracking-wide">Last Trigger:</span>
@@ -97,12 +154,21 @@ const ResearchGroup: React.FC<ResearchGroupProps> = ({ data, researchData, onGen
               <span className="">{formatRecurrence(calendarEvent.repeatRule)}</span>
             </div>
           )}
-          {/* <EventListItem className='basis-1/2' event={calendarEvent.toJSON()} onSelect={() => {}} /> */}
+          <div className="actions flex items-center">
+            <AsyncButton 
+              className="btn-generate hover:opacity-70 transition-opacity text-blue-600 border border-blue-600 px-4 py-1 rounded-md duration-200 font-medium flex items-center gap-2"
+              onClick={onGenerate}
+            >
+              <Sparkles className="w-4 h-4" />
+              Generate
+            </AsyncButton>
+          </div>
+          
         </div>
       </div>
 
       <div className="flex flex-wrap gap-4">
-        {data.inspirations.map((item, index) => (
+        {(data.inspirations || []).map((item, index) => (
           <InspirationItem 
             key={index} 
             data={item} 

@@ -22,13 +22,13 @@ export type IndustryResearchGroupData = {
 };
 
 export type IndustryResearchDoc = {
-  _id: string;
+  _id?: string;
   calendarId: string;
-  taskTime: string;
-  updatedAt: string;
+  taskTime?: string;
+  updatedAt?: string;
   rule: RepeatRule;
-  error: string | null;
-  data: {
+  error?: string | null;
+  data: Partial<{
     date: string;
     id: string;
     platform: string;
@@ -39,13 +39,8 @@ export type IndustryResearchDoc = {
     content?: string;
     json?: IndustryResearchGroupData;
     reasoningText?: string;
-    totalUsage?: {
-      inputTokens: number;
-      outputTokens: number;
-      totalTokens: number;
-      reasoningTokens: number;
-    };
-  };
+    totalUsage?: { inputTokens: number; outputTokens: number; totalTokens: number; reasoningTokens: number; };
+  }>;
 };
 
 export type IndustryResearchQueryParams = {
@@ -86,7 +81,7 @@ export const getIndustryResearches = async (
 export function getCalendarFromResearchGroup(doc: IndustryResearchDoc): CalendarEvent {
   // 构建 EventDetails
   const eventDetails: EventDetails = {
-    id: doc.calendarId || doc._id,
+    id: doc.calendarId,
     title: doc.data.config?.title || 'Untitled',
     // description: doc.data.msg || doc.data.content || doc.data.json?.summary || undefined,
     startDateTime: doc.updatedAt, // 假设是 ISO 字符串
