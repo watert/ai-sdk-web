@@ -58,7 +58,7 @@ const InspirationItem: React.FC<InspirationItemProps> = ({ data, onGenerate, cla
               <span>{data.date}</span>
             </span>
           )}
-          {data.tags.map((tag, idx) => (
+          {(data.tags || []).map((tag, idx) => (
             <span 
               key={idx} 
               className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-700 opacity-80"

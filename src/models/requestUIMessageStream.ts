@@ -311,17 +311,13 @@ export async function requestUIMessageStream(options: RequestAiStreamInit): Prom
         } else {
           Object.assign(messagesById[id], msg);
         }
-
-        
         const lastTextMsg = _.findLast(messages.flatMap(msg => msg.parts), msg => msg.type === 'text');
         if (!isJson && lastTextMsg?.text && shouldTryInferJsonType && inferJsonRegexp.test(lastTextMsg?.text)) {
-          // console.log('matched auto retry', lastTextMsg, parseJsonFromText(lastTextMsg?.text || 'undefined'));
           isJson = true;
         }
         if (isJson) {
           if (lastTextMsg && lastTextMsg?.text !== lastJsonStr) {
             try {
-
               json = parseJsonFromText(lastTextMsg?.text || 'undefined');
               lastJsonStr = lastTextMsg?.text || 'undefined';
             } catch(err) {

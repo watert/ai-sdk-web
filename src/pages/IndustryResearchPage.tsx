@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useAsync } from 'react-use';
 import IndustryResearchGroup from '../components/IndustryResearchGroup';
 import { getIndustryResearches, type IndustryResearchConfig, type IndustryResearchDoc, type IndustryResearchGroupData } from '../models/industry-research';
@@ -7,7 +7,16 @@ import _ from 'lodash';
 import { _set } from '@/libs/_set';
 import { requestUIMessageStream } from '@/models/requestUIMessageStream';
 import { toast } from 'sonner';
+import { mockSseChunks } from './mockSseChunks';
 
+type PromiseHandlerResp = Promise<any> & { resolve: (ret: any) => void, reject: (err: any) => void }
+function createPromiseHandler(): PromiseHandlerResp {
+	let defer;
+	const promise = new Promise((resolve, reject) => {
+	  defer = { resolve, reject };
+	});
+	return Object.assign(promise, defer);
+}
 
 const IndustryResearchPage: React.FC = () => {
   // 使用useAsync获取行业研究列表数据
@@ -21,6 +30,7 @@ const IndustryResearchPage: React.FC = () => {
       defaultConfigs: IndustryResearchConfig[]
     };
   });
+  const [streamJson, setStreamJson] = useState<any>();
   const researchesData = useMemo(() => {
     if (!_researchesData?.data || !defaultConfigs) {
       return undefined;
@@ -32,10 +42,21 @@ const IndustryResearchPage: React.FC = () => {
       const data = { ...doc?.data, config };
       return { calendarId, doc, data, rule: config.repeatRule };
     }).filter(r => !r.doc) as IndustryResearchDoc[];
-    return _set(_researchesData, 'data', (prev: IndustryResearchDoc[]) => {
+    let ret = _researchesData;
+    if (streamJson) {
+      console.log('streamjson', streamJson);
+      const { metadata = {}, ...json } = streamJson || {};
+      // const metadata = streamJson?.metadata || {};
+      const docIdx = ret.data.findIndex(r => r.calendarId === metadata.calendarId);
+      ret = _set(ret, `data[${docIdx}].data.json`, () => json);
+      // ret = _set(ret, 'data', (prev: IndustryResearchDoc[]) => {
+      //   return _.uniqBy([...prev, ...configDocs], 'calendarId');
+      // });
+    }
+    return _set(ret, 'data', (prev: IndustryResearchDoc[]) => {
       return _.uniqBy([...prev, ...configDocs], 'calendarId');
     });
-  }, [industryId, _researchesData, defaultConfigs])
+  }, [industryId, _researchesData, streamJson, defaultConfigs])
   console.log('research page', {researchesData, defaultConfigs});
 
   // 将API返回的数据转换为组件所需的格式
@@ -64,12 +85,19 @@ const IndustryResearchPage: React.FC = () => {
           key={data._id} researchData={data}
           data={convertToGroupData([data])[0]}
           onGenerate={async () => {
+            let toastPromise: PromiseHandlerResp | undefined;
+            let fetch: any;
+
+            // const mockFetchMod = await import('../../tests/createMockStreamFetch');
+            // fetch = mockFetchMod.createMockStreamFetch({ chunks: mockSseChunks, interval: 30 })
+
             const resp = await requestUIMessageStream({
               url: '/api/dev/industry-research',
+              fetch,
               body: {
                 thinking: true, industryId, local: true,
                 config: data.data.config,
-                // force: true,
+                force: true,
               },
               onChange: (state) => {
                 if (_.get(state, 'messages.0.metadata.status') === 'skip') {
@@ -77,8 +105,22 @@ const IndustryResearchPage: React.FC = () => {
                   toast.info('已跳过');
                   // return;
                 }
-                if (state.json) {
-                  console.log('onchange Stream state.json', state.json)
+                const allParts = _.flatMap(state.messages, 'parts');
+                const reasoningIndex = _.findLastIndex(allParts, r => r.type === 'reasoning');
+                const isThinking = reasoningIndex !== -1 && reasoningIndex === allParts.length - 1;
+                if (isThinking && !toastPromise) {
+                  toastPromise = createPromiseHandler();
+                  toast.promise(toastPromise, { loading: '思考中...', success: '思考完成' });
+                } else if (!isThinking && toastPromise) {
+                  toastPromise.resolve(state);
+                  toastPromise = undefined;
+                }
+
+                const { metadata } = _.last(state.messages) || {}
+                if (state.json || isThinking) {
+                  // setStreamJson(state.json);
+                  setStreamJson({ ...state.json, metadata });
+                  console.log('onchange Stream state.json', state, metadata)
                 } else {
                   console.log('onchange Stream state:', state);
                 }

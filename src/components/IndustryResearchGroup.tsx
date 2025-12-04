@@ -117,21 +117,30 @@ const formatRecurrence = (rule?: RepeatRule | null) => {
   
 const ResearchGroup: React.FC<ResearchGroupProps> = ({ data, researchData, onGenerateContent, onGenerate }) => {
   const calendarEvent = useMemo(() => getCalendarFromResearchGroup(researchData), [researchData]);
-  // console.log('calendar', calendarEvent);
+  // Check if we're in generating state (no title or summary)
+  const isGenerating = !data.title || !data.summary;
+
   return (
     <section className="mb-12 last:mb-0">
       <div className="flex items-start gap-4 mb-6">
-        {/* <div className="mt-1 p-2 bg-blue-100 text-blue-700 rounded-lg dark:bg-blue-900/30 dark:text-blue-400">
-            <Layers className="w-6 h-6" />
-        </div> */}
         <div className='grow'>
-          <h2 className="text-xl font-bold text-slate-800 mb-2 dark:text-white">
-            <b className='inline-flex mr-2 text-green-600 dark:text-green-400 leading-5'>#{researchData.data?.config?.title}</b>
-            {data.title}
-          </h2>
-          <p className="text-slate-600 max-w-3xl leading-relaxed dark:text-slate-300 text-sm">
-            {data.summary}
-          </p>
+          {isGenerating && !data.summary ? (
+            <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
+              <Loader className="w-5 h-5 animate-spin" />
+              <span className="text-lg font-medium">Waiting for data</span>
+            </div>
+          ) : (
+            <>
+              <h2 className="text-xl font-bold text-slate-800 mb-2 dark:text-white">
+                {isGenerating && <Loader className="w-5 h-5 animate-spin" />}
+                <b className='inline-flex mr-2 text-green-600 dark:text-green-400 leading-5'>#{researchData.data?.config?.title}</b>
+                {data.title}
+              </h2>
+              <p className="text-slate-600 max-w-3xl leading-relaxed dark:text-slate-300 text-sm">
+                {data.summary}
+              </p>
+            </>
+          )}
         </div>
 
         <div className="task-info flex flex-col basis-1/3 gap-x-6 gap-y-2 text-sm text-slate-600">
@@ -168,14 +177,21 @@ const ResearchGroup: React.FC<ResearchGroupProps> = ({ data, researchData, onGen
       </div>
 
       <div className="flex flex-wrap gap-4">
-        {(data.inspirations || []).map((item, index) => (
-          <InspirationItem 
-            key={index} 
-            data={item} 
-            onGenerate={onGenerateContent}
-            className="w-full md:w-[calc(50%-0.75rem)] lg:w-[calc(50%-0.75rem)] xl:w-[calc(33.333%-1rem)]"
-          />
-        ))}
+        {isGenerating && !data.inspirations?.length ? (
+          <div className="w-full py-8 text-center text-slate-500 dark:text-slate-400">
+            <Loader className="w-6 h-6 animate-spin mx-auto mb-2" />
+            <p>Generating content...</p>
+          </div>
+        ) : (
+          (data.inspirations || []).map((item, index) => (
+            <InspirationItem 
+              key={index} 
+              data={item} 
+              onGenerate={onGenerateContent}
+              className="w-full md:w-[calc(50%-0.75rem)] lg:w-[calc(50%-0.75rem)] xl:w-[calc(33.333%-1rem)]"
+            />
+          ))
+        )}
       </div>
     </section>
   );

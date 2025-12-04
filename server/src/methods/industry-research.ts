@@ -68,11 +68,12 @@ async function arrayFromAsync(asyncIterator: AsyncIterable<any>) {
   return arr;
 }
 export const localIndustryModel = new LocalMongoModel('test_industry_research');
-export function handleIndustryResearchTask({ platform, model, thinking = true, industryId, config, local, dbModel }: {
+export function handleIndustryResearchTask({ force, platform, model, thinking = true, industryId, config, local, dbModel }: {
   config: IndustryResearchConfig | string,
   dbModel?: mongoose.Model<any>,
   industryId: string,
-  local?: boolean;
+  local?: boolean,
+  force?: boolean,
   platform?: string,
   model?: string,
   thinking?: boolean,
@@ -97,13 +98,13 @@ export function handleIndustryResearchTask({ platform, model, thinking = true, i
     industry: (industry as any).name || industry.name_zh || industry.name_en,
     prompt,
   });
-  const genResult = aiGenTextStream({
-    platform: platform || 'GEMINI', model: model || 'gemini-flash-latest',
-    search: true, thinking, messages, metadata: { industryId, calendarId: id }
-  });
-  if (!calendar.shouldTrigger()) {
+  if (!force && !calendar.shouldTrigger()) {
     return { status: 'skip', message: 'not trigger' } as any;
   }
+  const genResult = aiGenTextStream({
+    platform: platform || 'GEMINI', model: model || 'gemini-flash-latest',
+    search: true, thinking, messages, metadata: { industryId, calendarId },
+  });
   const task = async (info: { taskTime: Date, calendarId: string }) => {
     let msgs: any[] = [], error;
     const [content, json, reasoningText, totalUsage] = await Promise.all([
@@ -123,6 +124,6 @@ export function handleIndustryResearchTask({ platform, model, thinking = true, i
       msg: `Executed: ${(new Date()).toISOString()}`,
     };
   };
-  const taskResult = handleCalendarTask({ calendar, task, model: dbModel as any, force: true });
+  const taskResult = handleCalendarTask({ calendar, task, model: dbModel as any, force });
   return { ...genResult, taskResult };
 }

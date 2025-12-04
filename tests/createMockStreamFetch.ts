@@ -2,12 +2,15 @@
  * 创建模拟的流 fetch 函数，用于测试 SSE 事件流
  * @param options 配置选项
  * @param options.chunks 要发送的数据流，可以是字符串或字符串/对象数组
+ * @param options.interval 可选，每个数据块之间的延迟时间（毫秒），默认30ms
  * @returns 模拟的 fetch 函数
  */
 export function createMockStreamFetch({
   chunks,
+  interval = 100,
 }: {
   chunks: string | (string | object)[];
+  interval?: number;
 }): typeof fetch {
   // 确保 chunks 是数组格式
   const chunksArray = Array.isArray(chunks) ? chunks : [chunks];
@@ -53,8 +56,8 @@ export function createMockStreamFetch({
             // 写入当前数据块
             controller.enqueue(encoder.encode(chunk));
             
-            // 模拟网络延迟，每个数据块之间延迟 50-200ms
-            await new Promise(resolve => setTimeout(resolve, Math.random() * 50 + 10));
+            // 模拟网络延迟
+            await new Promise(resolve => setTimeout(resolve, interval));
           }
           
           // 关闭流
