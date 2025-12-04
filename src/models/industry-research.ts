@@ -43,35 +43,6 @@ export type IndustryResearchDoc = {
   }>;
 };
 
-export type IndustryResearchQueryParams = {
-  page?: number;
-  limit?: number;
-  sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
-  'data.industryId'?: string;
-  [key: string]: any;
-};
-
-export type IndustryResearchListResponse = {
-  total: number;
-  count: number;
-  data: IndustryResearchDoc[];
-};
-
-/**
- * 获取行业研究列表
- * @param params 查询参数
- * @returns 行业研究列表数据
- */
-export const getIndustryResearches = async (
-  params: IndustryResearchQueryParams
-): Promise<IndustryResearchListResponse> => {
-  const response = await appAxios.get<IndustryResearchListResponse>(
-    '/industry/researches',
-    { params }
-  );
-  return response.data;
-};
 
 /**
  * 从 IndustryResearchDoc 构建 CalendarEvent 实例
@@ -84,7 +55,7 @@ export function getCalendarFromResearchGroup(doc: IndustryResearchDoc): Calendar
     id: doc.calendarId,
     title: doc.data.config?.title || 'Untitled',
     // description: doc.data.msg || doc.data.content || doc.data.json?.summary || undefined,
-    startDateTime: doc.updatedAt, // 假设是 ISO 字符串
+    startDateTime: doc.updatedAt as any, // 假设是 ISO 字符串
     // startDateTime: doc.taskTime, // 假设是 ISO 字符串
     // endDateTime: undefined, // 没有明确的结束时间
     // hasEndTime: false,

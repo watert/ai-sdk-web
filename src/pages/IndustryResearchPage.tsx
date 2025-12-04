@@ -1,13 +1,36 @@
-import React, { useMemo, useState } from 'react';
-import { useAsync } from 'react-use';
+import React, { useMemo, useState, useEffect } from 'react';
+import { useAsync, useAsyncFn } from 'react-use';
 import IndustryResearchGroup from '../components/IndustryResearchGroup';
-import { getIndustryResearches, type IndustryResearchConfig, type IndustryResearchDoc, type IndustryResearchGroupData } from '../models/industry-research';
+import { type IndustryResearchConfig, type IndustryResearchDoc, type IndustryResearchGroupData } from '../models/industry-research';
 import { appAxios } from '@/models/appAxios';
 import _ from 'lodash';
 import { _set } from '@/libs/_set';
 import { requestUIMessageStream } from '@/models/requestUIMessageStream';
 import { toast } from 'sonner';
 import { mockSseChunks } from './mockSseChunks';
+
+
+export type IndustryResearchQueryParams = {
+  page?: number; limit?: number; sortBy?: string; sortOrder?: 'asc' | 'desc';
+  'data.industryId'?: string; [key: string]: any;
+};
+
+export type IndustryResearchListResponse = { total: number; count: number; data: IndustryResearchDoc[]; };
+
+/**
+ * 获取行业研究列表
+ * @param params 查询参数
+ * @returns 行业研究列表数据
+ */
+export const getIndustryResearches = async (
+  params: IndustryResearchQueryParams
+): Promise<IndustryResearchListResponse> => {
+  const response = await appAxios.get<IndustryResearchListResponse>(
+    '/industry/researches',
+    { params }
+  );
+  return response.data;
+};
 
 type PromiseHandlerResp = Promise<any> & { resolve: (ret: any) => void, reject: (err: any) => void }
 function createPromiseHandler(): PromiseHandlerResp {
@@ -19,11 +42,14 @@ function createPromiseHandler(): PromiseHandlerResp {
 }
 
 const IndustryResearchPage: React.FC = () => {
-  // 使用useAsync获取行业研究列表数据
+  // 使用useAsyncFn获取行业研究列表数据
   const industryId = 'ai';
-  const { value: _researchesData, loading, error } = useAsync(async () => {
+  const [{ loading, error, value: _researchesData }, fetchDocs] = useAsyncFn(async () => {
     return await getIndustryResearches({ 'data.industryId': industryId });
   }, [industryId]);
+
+  // 初始化调用获取行业研究列表数据
+  useEffect(() => { fetchDocs(); }, [fetchDocs]);
   const { value: { defaultConfigs } = {} } = useAsync(async () => {
     const resp = await appAxios.get('/dev/industry-research/info')
     return resp.data?.data as {
@@ -36,12 +62,12 @@ const IndustryResearchPage: React.FC = () => {
       return undefined;
     }
     const dataByCalId = _.keyBy(_researchesData.data, 'calendarId');
-    const configDocs = defaultConfigs.map(config => {
+    const configDocs = defaultConfigs.map((config: IndustryResearchConfig) => {
       const calendarId = `${industryId}--${config.id}`
       const doc = dataByCalId[calendarId];
       const data = { ...doc?.data, config };
       return { calendarId, doc, data, rule: config.repeatRule };
-    }).filter(r => !r.doc) as IndustryResearchDoc[];
+    }).filter((r: any) => !r.doc) as IndustryResearchDoc[];
     let ret = _researchesData;
     if (streamJson) {
       console.log('streamjson', streamJson);
@@ -54,7 +80,7 @@ const IndustryResearchPage: React.FC = () => {
       // });
     }
     return _set(ret, 'data', (prev: IndustryResearchDoc[]) => {
-      return _.uniqBy([...prev, ...configDocs], 'calendarId');
+      return _.uniqBy([...prev, ...configDocs], (r: IndustryResearchDoc) => r.calendarId);
     });
   }, [industryId, _researchesData, streamJson, defaultConfigs])
   console.log('research page', {researchesData, defaultConfigs});
@@ -63,7 +89,7 @@ const IndustryResearchPage: React.FC = () => {
   const convertToGroupData = (docs: IndustryResearchDoc[]) => {
     // 这里可以根据实际业务需求转换数据格式
     // 目前使用mock数据的结构作为示例
-    return docs.map(row => {
+    return docs.map((row: IndustryResearchDoc) => {
       return {
         title: row.data.config?.title,
         ...row.data.json! as any
@@ -96,7 +122,7 @@ const IndustryResearchPage: React.FC = () => {
               fetch,
               body: {
                 thinking: true, industryId, local: true,
-                config: data.data.config,
+                config: data.data.config as IndustryResearchConfig,
                 force: true,
               },
               onChange: (state) => {
@@ -127,6 +153,8 @@ const IndustryResearchPage: React.FC = () => {
               }
             });
             await resp.promise;
+            // 重新拉取数据
+            fetchDocs();
             // return new Promise(resolve => setTimeout(resolve, 1000));
           }}
         />;
