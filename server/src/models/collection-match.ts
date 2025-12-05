@@ -186,7 +186,7 @@ export function match(src, value, extendOps = {}) {
         return !!src.find(row => match(row, value, extendOps));
       }
 
-      const operatorFn = extendOps[op] || operators[op];
+      const operatorFn: any = extendOps[op] || operators[op];
       if (operatorFn) {
         // console.log('operatorFn', {src, value, val, operatorFn});
         return operatorFn(src, val, extendOps);

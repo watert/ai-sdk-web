@@ -6,8 +6,9 @@
     "moduleDetection": "force",
     "noEmit": true,
     "strict": true,
+    "noImplicitAny": false,
     "noUnusedLocals": false,
-    "erasableSyntaxOnly": true,
+    "erasableSyntaxOnly": false,
     "noFallthroughCasesInSwitch": true,
     "paths": {
       "@/*": ["./src/*"]

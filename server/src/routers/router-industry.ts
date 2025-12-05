@@ -49,7 +49,7 @@ const router = Router();
 
 // 通用查询函数 - 只关注业务逻辑，不依赖 Express 对象
 const handleQuery = async (queryParams: IndustryResearchQueryParams): Promise<IndustryResearchQueryResult> => {
-  const params = { ...queryParams };
+  const params = { $sort: '-updatedAt', ...queryParams };
   let { total, count, data } = await queryMongoDocsWithTotal(localIndustryModel as any, params);
   // 移除不需要返回的敏感字段
   const processedData = data.map(doc => {

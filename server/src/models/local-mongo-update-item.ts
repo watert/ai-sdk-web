@@ -127,7 +127,7 @@ function handleMath(doc: object, fields: object, operation: (curr: any, val: any
 
 function handleCurrentDate(doc: object, fields: object) {
   const now = new Date();
-  _.forEach(fields, (typeSpec, path) => {
+  _.forEach(fields, (_typeSpec, path) => {
     // MongoDB 支持 { $type: "timestamp" } 或 { $type: "date" } 或 true
     // 这里简化处理, 统一设为 JS Date 对象, 除非明确模拟 Timestamp
     _.set(doc, path, now);

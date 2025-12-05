@@ -74,7 +74,7 @@ export class LocalMongoQuery<T = any> { // internal query object. LocalMongoQuer
   ): PromiseLike<TResult1 | TResult2> {
     return Promise.resolve(this.exec()).then(onfulfilled as any, onrejected);
   }
-  async exec() {
+  async exec(): Promise<T[] | any> {
     const items = ([] as any[]).concat((await this.lean()));
     const res = items.filter(r => r).map(v => new LocalMongoDocument(this.model, v));
     return this.opts.isOne ? res[0] : res;
@@ -84,7 +84,26 @@ export class LocalMongoQuery<T = any> { // internal query object. LocalMongoQuer
     if (this.opts?.filter) {
       data = data.filter(v => collectionMatch(v, this.opts.filter));
     }
-    const res = data.slice(this.opts.skip || 0, this.opts.limit);
+    if (this.opts?.sort) {
+      let { sort } = this.opts;
+      if (typeof sort === 'string' && sort.startsWith('-')) {
+        sort = { [sort.slice(1)]: -1 };
+      } else if (typeof sort === 'string') {
+        sort = { [sort]: 1 };
+      }
+      // console.log('sort', sort);
+      const key = Object.keys(sort)[0];
+      const sorter = (row: any) => _.get(row, key, 0);
+      data = _.sortBy(data, sorter);
+      const sortVal = _.get(sort, key, 0);
+      if (sortVal < 0 || sortVal === false) {
+        data = data.reverse();
+      }
+    }
+    const skip = this.opts.skip || 0;
+    let { limit } = this.opts;
+    if (limit) limit += skip;
+    const res = data.slice(skip, limit);
     return this.opts.isOne ? res[0] : res;
   }
 }
@@ -155,7 +174,7 @@ export class LocalMongoModel<T = any> {
     await this.saveLocalCollection(items);
     return { acknowledged: true, modifiedCount: updateItemsIds.length }
   }
-  async insertMany(docs: any[], opts?: any) {
+  async insertMany(docs: any[], _opts?: any) {
     const data = await this.loadLocalCollection();
     const byId = _.keyBy(data, '_id');
     docs.forEach(doc => {

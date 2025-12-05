@@ -14,6 +14,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
   text, 
   className,
 }) => {
+  text = text.replace(/\*\*“/gm, ' **“');
   return (
     <div className={twMerge(clsx('text-sm md:text-base markdown-content', className))}>
       <ReactMarkdown remarkPlugins={[[remarkGfm]]}>
