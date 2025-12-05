@@ -7,7 +7,6 @@ import _ from 'lodash';
 import { _set } from '@/libs/_set';
 import { requestUIMessageStream } from '@/models/requestUIMessageStream';
 import { toast } from 'sonner';
-import { mockSseChunks } from './mockSseChunks';
 
 
 export type IndustryResearchQueryParams = {
@@ -62,6 +61,7 @@ const IndustryResearchPage: React.FC = () => {
       return undefined;
     }
     const dataByCalId = _.keyBy(_researchesData.data, 'calendarId');
+    const configById = _.keyBy(defaultConfigs, c => `${industryId}--${c.id}`);
     const configDocs = defaultConfigs.map((config: IndustryResearchConfig) => {
       const calendarId = `${industryId}--${config.id}`
       const doc = dataByCalId[calendarId];
@@ -70,17 +70,20 @@ const IndustryResearchPage: React.FC = () => {
     }).filter((r: any) => !r.doc) as IndustryResearchDoc[];
     let ret = _researchesData;
     if (streamJson) {
-      console.log('streamjson', streamJson);
       const { metadata = {}, ...json } = streamJson || {};
-      // const metadata = streamJson?.metadata || {};
       const docIdx = ret.data.findIndex(r => r.calendarId === metadata.calendarId);
       ret = _set(ret, `data[${docIdx}].data.json`, () => json);
-      // ret = _set(ret, 'data', (prev: IndustryResearchDoc[]) => {
-      //   return _.uniqBy([...prev, ...configDocs], 'calendarId');
-      // });
     }
+
     return _set(ret, 'data', (prev: IndustryResearchDoc[]) => {
-      return _.uniqBy([...prev, ...configDocs], (r: IndustryResearchDoc) => r.calendarId);
+      let data = _.uniqBy([...prev, ...configDocs], (r: IndustryResearchDoc) => r.calendarId)
+      data = data.map(row => {
+        const config = configById[row.calendarId];
+        if (!row.rule) { row = _set(row, 'rule', config?.repeatRule); }
+        return row;
+      });
+      data = _.sortBy(data, (r: IndustryResearchDoc) => defaultConfigs.indexOf(configById[r.calendarId]));
+      return data;
     });
   }, [industryId, _researchesData, streamJson, defaultConfigs])
   console.log('research page', {researchesData, defaultConfigs});
@@ -106,25 +109,21 @@ const IndustryResearchPage: React.FC = () => {
       {error && <div className="text-center py-12 text-red-500">加载失败：{error.message}</div>}
       
       {researchesData?.data && researchesData.data.map(data => {
-        // console.log('mapping', data, researchesData)
         return <IndustryResearchGroup 
           key={data._id} researchData={data}
           data={convertToGroupData([data])[0]}
           onGenerate={async () => {
-            let toastPromise: PromiseHandlerResp | undefined;
-            let fetch: any;
-
-            // const mockFetchMod = await import('../../tests/createMockStreamFetch');
-            // fetch = mockFetchMod.createMockStreamFetch({ chunks: mockSseChunks, interval: 30 })
+            let toastPromise: PromiseHandlerResp | undefined, fetch: any;
+            const body = {
+              thinking: true, industryId, local: true,
+              config: data.data.config as IndustryResearchConfig,
+              force: true,
+            };
+            // console.log('fetch body', body);
+            fetch = (await import ('@/pages/mockSseChunks')).fetchMockSse;
 
             const resp = await requestUIMessageStream({
-              url: '/api/dev/industry-research',
-              fetch,
-              body: {
-                thinking: true, industryId, local: true,
-                config: data.data.config as IndustryResearchConfig,
-                force: true,
-              },
+              url: '/api/dev/industry-research', fetch, body,
               onChange: (state) => {
                 if (_.get(state, 'messages.0.metadata.status') === 'skip') {
                   console.log('call toast info');

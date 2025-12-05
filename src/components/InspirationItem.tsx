@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, type ReactNode } from 'react';
 import { Calendar, Hash, Sparkles, Copy, Check, ChevronDown, ChevronUp, Wand2 } from 'lucide-react';
 import { MarkdownRenderer } from './MarkdownRenderer';
+import { twMerge } from 'tailwind-merge';
 
 // import Button from './Button';
 
@@ -12,6 +13,78 @@ export type ResearchItem = {
   postIdeas: string[]; // 3 条相关联的社媒灵感 Prompt
 };
 
+interface PostIdeaItemProps {
+  idea: string;
+  prefix?: string | number | ReactNode;
+  className?: string;
+  onGenerate?: () => void;
+}
+
+const PostIdeaItem: React.FC<PostIdeaItemProps> = ({ 
+  idea, 
+  prefix, 
+  className, 
+  onGenerate 
+}) => {
+  const [isCopied, setIsCopied] = useState(false);
+  
+  const handleCopy = () => {
+    navigator.clipboard.writeText(idea);
+    setIsCopied(true);
+    setTimeout(() => setIsCopied(false), 2000);
+  };
+  
+  return (
+    <div 
+      className={twMerge(
+        "post-idea-item grow group hover:bg-[#FFFFFF22] flex items-start gap-1 rounded border border-transparent transition-all relative dark:bg-slate-750",
+        className
+      )}
+    >
+      {prefix && <div className="mt-0.5 min-w-[12px] text-[10px] font-mono opacity-60 text-green-600 dark:text-green-400">
+        {prefix}
+      </div>}
+      <span title={idea} className="text-sm pt-0.5 truncate leading-snug shrink opacity-80">
+        {idea}
+      </span>
+      
+      <div className="inline-flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ">
+        {onGenerate && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onGenerate();
+            }}
+            className="p-1 text-green-600 dark:text-green-400 rounded-md border cursor-pointer opacity-80 hover:opacity-100 transition-opacity"
+            title="Generate Post"
+          >
+            <Wand2 className="w-3.5 h-3.5" />
+          </button>
+        )}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handleCopy();
+          }}
+          className={twMerge(
+            "p-1 rounded-md border bg-white transition-colors cursor-pointer opacity-80 hover:opacity-100 transition-opacity",
+            isCopied 
+              ? "text-green-600 border-green-200 bg-green-50 dark:border-green-900/50 dark:bg-green-900/20 dark:text-green-400"
+              : "opacity-60 border-slate-400 dark:bg-slate-700 dark:border-slate-600"
+          )}
+          title="Copy Prompt"
+        >
+          {isCopied ? (
+            <Check className="w-3.5 h-3.5" />
+          ) : (
+            <Copy className="w-3.5 h-3.5" />
+          )}
+        </button>
+      </div>
+    </div>
+  );
+};
+
 interface InspirationItemProps {
   data: ResearchItem;
   onGenerate?: (params: { postIdea: string; inspiration: ResearchItem }) => void;
@@ -19,14 +92,7 @@ interface InspirationItemProps {
 }
 
 const InspirationItem: React.FC<InspirationItemProps> = ({ data, onGenerate, className }) => {
-  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
-  const [isExpanded, setIsExpanded] = useState(true);
-
-  const handleCopy = (text: string, index: number) => {
-    navigator.clipboard.writeText(text);
-    setCopiedIndex(index);
-    setTimeout(() => setCopiedIndex(null), 2000);
-  };
+  const [isExpanded, setIsExpanded] = useState(false);
 
   return (
     <div className={`bg-white hover:shadow-md transition-shadow duration-300 rounded-lg border border-slate-200 flex flex-col h-full ${className || ''} dark:bg-slate-800 dark:border-slate-700 dark:hover:shadow-xl text-slate-900 dark:text-white`}>
@@ -38,9 +104,9 @@ const InspirationItem: React.FC<InspirationItemProps> = ({ data, onGenerate, cla
       </div> */}
 
       {/* Card Body */}
-      <div className="p-3 grow">
+      <div className="p-2 grow">
         <div className="text-sm leading-relaxed mb-1 opacity-70">
-          <b className='text-green-600 dark:text-green-400 text-md leading-5'>{data.title}</b>
+          <div className='font-semibold truncate text-green-600 dark:text-green-400 text-md leading-5'>{data.title}</div>
           <div title={data.content}>
             <MarkdownRenderer text={data.content || ''} className='line-clamp-2 leading-[1.5em]' />
           </div>
@@ -72,59 +138,31 @@ const InspirationItem: React.FC<InspirationItemProps> = ({ data, onGenerate, cla
       {/* Prompts Section */}
       <div className="rounded-b-lg bg-[#00000011]">
         <div 
-          className="px-3 py-2 flex items-center justify-between cursor-pointer hover:opacity-80 transition-opacity"
+          className="p-2 py-1 flex items-center justify-between cursor-pointer overflow-hidden max-w-full hover:opacity-80 transition-opacity"
           onClick={() => setIsExpanded(!isExpanded)}
         >
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide opacity-80">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Post Ideas</span>
+          <div className="flex items-center gap-1 text-xs font-semibold uppercase tracking-wide opacity-80">
+            <Sparkles className="w-3.5 h-3.5 shrink-0" />
+            {isExpanded && <span>Post Ideas</span>}
+            {!isExpanded && <PostIdeaItem
+              className=' inline-flex shrink font-normal'
+              idea={data.postIdeas?.[0] || ''}
+              // prefix={`${idx + 1}.`}
+              onGenerate={() => onGenerate?.({ postIdea: data.postIdeas?.[0] || '', inspiration: data })}
+            />}
           </div>
-          {isExpanded ? <ChevronUp className="w-3.5 h-3.5 opacity-80" /> : <ChevronDown className="w-3.5 h-3.5 opacity-80" />}
+          {isExpanded ? <ChevronUp className="w-3.5 h-3.5 opacity-80 shrink-0" /> : <ChevronDown className="w-3.5 h-3.5 opacity-80 shrink-0" />}
         </div>
         
         {isExpanded && (
           <div className="px-2 pb-1">
             {(data.postIdeas || []).map((idea, idx) => (
-              <div 
-                key={idx} 
-                className="post-idea-item group hover:bg-[#FFFFFF22] flex items-start gap-1 px-2 py-1 rounded border border-transparent transition-all relative dark:bg-slate-750"
-              >
-                 <div className="mt-0.5 min-w-[12px] text-[10px] font-mono opacity-60 text-green-600 dark:text-green-400">
-                  {idx + 1}.
-                </div>
-                <p title={idea} className="text-sm truncate leading-snug grow pr-16 opacity-80">
-                  {idea}
-                </p>
-                
-                <div className="absolute right-2 top-0.5 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (onGenerate) {
-                        onGenerate({ postIdea: idea, inspiration: data });
-                      }
-                    }}
-                    className="p-1 text-green-600 dark:text-green-400 rounded-md border cursor-pointer opacity-80 hover:opacity-100 transition-opacity"
-                    title="Generate Post"
-                  >
-                    <Wand2 className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleCopy(idea, idx);
-                    }}
-                    className={`p-1 rounded-md border bg-white transition-colors  ${copiedIndex === idx ? 'text-green-600 border-green-200 bg-green-50' : 'opacity-60 border-slate-400'} dark:bg-slate-700 dark:border-slate-600 ${copiedIndex === idx ? 'dark:border-green-900/50 dark:bg-green-900/20 dark:text-green-400' : ''} cursor-pointer opacity-80 hover:opacity-100 transition-opacity`}
-                    title="Copy Prompt"
-                  >
-                    {copiedIndex === idx ? (
-                      <Check className="w-3.5 h-3.5" />
-                    ) : (
-                      <Copy className="w-3.5 h-3.5" />
-                    )}
-                  </button>
-                </div>
-              </div>
+              <PostIdeaItem
+                key={idx}
+                idea={idea}
+                prefix={`${idx + 1}.`}
+                onGenerate={() => onGenerate?.({ postIdea: idea, inspiration: data })}
+              />
             ))}
           </div>
         )}

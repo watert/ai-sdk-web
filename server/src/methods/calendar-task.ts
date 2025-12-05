@@ -49,7 +49,7 @@ export async function handleCalendarTask<T=any>({ calendar, task, model, force }
   let status: 'success' | 'error' = 'success';
   let taskMessage = '';
   
-  const data = await task(info).catch(err => {
+  let data = await task(info).catch(err => {
     error = getErrorInfo(err);
     status = 'error';
     taskMessage = error.message || 'Task execution failed';
@@ -59,13 +59,15 @@ export async function handleCalendarTask<T=any>({ calendar, task, model, force }
   // 计算执行时长
   const duration = Date.now() - startTime;
   
-  Object.assign(data, await prevDocPromise, data);
-  Object.assign(body, { data, rule: calendar.data?.repeatRule, updatedAt: new Date(), error });
+  console.log('assign?', await prevDocPromise || {}, data);
+  Object.assign(data, await prevDocPromise || {}, data);
+  Object.assign(body, { data, rule: calendar.repeatRule, updatedAt: new Date(), error });
   
   // 执行状态信息
   const taskInfo = { status, duration, message: taskMessage };
   
   // 不将 taskInfo 写入 model，仅作为返回值
   const result = await model.findOneAndUpdate({ calendarId, taskTime }, body, { upsert: true }).lean();
+  console.log('result', result);
   return { ...result, taskInfo };
 }

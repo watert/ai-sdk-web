@@ -50,6 +50,7 @@ export type IndustryResearchDoc = {
  * @returns 对应的 CalendarEvent 实例
  */
 export function getCalendarFromResearchGroup(doc: IndustryResearchDoc): CalendarEvent {
+  console.log('get calen', doc);
   // 构建 EventDetails
   const eventDetails: EventDetails = {
     id: doc.calendarId,
