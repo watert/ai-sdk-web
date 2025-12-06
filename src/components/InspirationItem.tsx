@@ -106,14 +106,14 @@ const InspirationItem: React.FC<InspirationItemProps> = ({ data, onGenerate, cla
       {/* Card Body */}
       <div className="p-2 grow">
         <div className="text-sm leading-relaxed mb-1 opacity-70">
-          <div className='font-semibold truncate text-green-600 dark:text-green-400 text-md leading-5'>{data.title}</div>
+          <div className={`font-semibold text-green-600 dark:text-green-400 text-md leading-5 ${isExpanded ? '' : 'truncate'}`}>{data.title}</div>
           <div title={data.content}>
-            <MarkdownRenderer text={data.content || ''} className='line-clamp-2 leading-[1.5em]' />
+            <MarkdownRenderer text={data.content || ''} className={isExpanded ? 'leading-[1.5em]' : 'line-clamp-2 leading-[1.5em]'} />
           </div>
         </div>
         
         {/* Tags */}
-        <div className="flex flex-1 overflow-x-auto gap-1">
+        <div className={`flex flex-1 gap-1 ${isExpanded ? 'flex-wrap' : 'overflow-x-auto'}`}>
           {data.date && (
             
             <span 
