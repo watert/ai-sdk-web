@@ -2,6 +2,7 @@ import React, { useState, type ReactNode } from 'react';
 import { Calendar, Hash, Sparkles, Copy, Check, ChevronDown, ChevronUp, Wand2 } from 'lucide-react';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { twMerge } from 'tailwind-merge';
+import { compact } from 'lodash';
 
 // import Button from './Button';
 
@@ -11,6 +12,16 @@ export type ResearchItem = {
   content: string; // 内容主体, 200 字左右
   tags: string[]; // 标签, 3~5 个
   postIdeas: string[]; // 3 条相关联的社媒灵感 Prompt
+};
+
+/**
+ * 生成内容的参数类型定义
+ */
+export type GenerateContentParams = {
+  postIdea: string; // 社媒灵感 Prompt
+  inspiration: ResearchItem; // 原始研究数据
+  text: string; // 从 ResearchItem 解析生成的文本内容
+  prompt: string; // 用于调用 LLM 的完整指令
 };
 
 interface PostIdeaItemProps {
@@ -87,12 +98,44 @@ const PostIdeaItem: React.FC<PostIdeaItemProps> = ({
 
 interface InspirationItemProps {
   data: ResearchItem;
-  onGenerate?: (params: { postIdea: string; inspiration: ResearchItem }) => void;
+  onGenerate?: (params: GenerateContentParams) => void;
   className?: string;
 }
 
 const InspirationItem: React.FC<InspirationItemProps> = ({ data, onGenerate, className }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+
+  /**
+   * 从 ResearchItem 解析生成用于 LLM 调用的文本内容
+   */
+  const generateTextFromResearch = (research: ResearchItem): string => {
+    const { title, content, tags, date } = research;
+    
+    // 组合标题、日期、内容和标签
+    const parts = compact([
+      title,
+      date ? `日期: ${date}` : undefined,
+      content,
+      tags.length > 0 ? `相关标签: ${tags.join(', ')}` : undefined
+    ]);
+    
+    return parts.join('\n');
+  };
+
+  /**
+   * 生成用于调用 LLM 的完整指令模板
+   */
+  const promptTemplate = (postIdea: string): string => {
+    return `基于以下研究内容和社媒灵感，请生成一篇优质的社交媒体帖子：
+
+社媒灵感：${postIdea}
+
+请确保生成的内容：
+1. 符合给定的社媒灵感主题
+2. 内容原创、吸引人
+3. 适合社交媒体平台的风格
+4. 包含相关关键词`;
+  };
 
   return (
     <div className={`bg-white hover:shadow-md transition-shadow duration-300 rounded-lg border border-slate-200 flex flex-col h-full ${className || ''} dark:bg-slate-800 dark:border-slate-700 dark:hover:shadow-xl text-slate-900 dark:text-white`}>
@@ -148,7 +191,12 @@ const InspirationItem: React.FC<InspirationItemProps> = ({ data, onGenerate, cla
               className=' inline-flex shrink font-normal'
               idea={data.postIdeas?.[0] || ''}
               // prefix={`${idx + 1}.`}
-              onGenerate={() => onGenerate?.({ postIdea: data.postIdeas?.[0] || '', inspiration: data })}
+              onGenerate={() => {
+                const postIdea = data.postIdeas?.[0] || '';
+                const text = generateTextFromResearch(data);
+                const prompt = promptTemplate(postIdea);
+                onGenerate?.({ postIdea, inspiration: data, text, prompt });
+              }}
             />}
           </div>
           {isExpanded ? <ChevronUp className="w-3.5 h-3.5 opacity-80 shrink-0" /> : <ChevronDown className="w-3.5 h-3.5 opacity-80 shrink-0" />}
@@ -161,7 +209,11 @@ const InspirationItem: React.FC<InspirationItemProps> = ({ data, onGenerate, cla
                 key={idx}
                 idea={idea}
                 prefix={`${idx + 1}.`}
-                onGenerate={() => onGenerate?.({ postIdea: idea, inspiration: data })}
+                onGenerate={() => {
+                  const text = generateTextFromResearch(data);
+                  const prompt = promptTemplate(idea);
+                  onGenerate?.({ postIdea: idea, inspiration: data, text, prompt });
+                }}
               />
             ))}
           </div>

@@ -4,7 +4,7 @@ import dayjs from 'dayjs';
 import { toast } from 'sonner';
 import { getCalendarFromResearchGroup, type IndustryResearchDoc } from '@/models/industry-research';
 import type { CalendarEvent, RepeatRule } from '@/libs/CalendarEvent';
-import InspirationItem, { type ResearchItem } from './InspirationItem';
+import InspirationItem, { type ResearchItem, type GenerateContentParams } from './InspirationItem';
 
 
 export type ResearchGroupType = {
@@ -71,7 +71,7 @@ const AsyncButton: React.FC<AsyncButtonProps> = ({
 interface ResearchGroupProps {
   data: ResearchGroupType;
   researchData: IndustryResearchDoc;
-  onGenerateContent?: (params: { postIdea: string; inspiration: ResearchItem }) => void;
+  onGenerateContent?: (params: GenerateContentParams) => void;
   onGenerate?: () => void|Promise<any>
 }
 

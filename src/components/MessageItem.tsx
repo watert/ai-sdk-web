@@ -186,7 +186,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
   // Calculate TPS (Tokens Per Second)
   const startedAt = metadata.startedAt ? new Date(metadata.startedAt).getTime() : null;
   const finishAt = metadata.finishAt ? new Date(metadata.finishAt).getTime() : null;
-  let tps = null, durationInSeconds = 0;
+  let tps: number | null = null, durationInSeconds = 0;
   if (tokens && startedAt && finishAt && finishAt > startedAt) {
     durationInSeconds = (finishAt - startedAt) / 1000;
     tps = Math.round(tokens / durationInSeconds);
