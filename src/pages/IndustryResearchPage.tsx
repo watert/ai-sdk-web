@@ -114,13 +114,17 @@ const IndustryResearchPage: React.FC = () => {
           data={convertToGroupData([data])[0]}
           onGenerate={async () => {
             let toastPromise: PromiseHandlerResp | undefined, fetch: any;
+            const config: IndustryResearchConfig = { ...data.data.config, repeatRule: data.rule } as any;
+            // console.log('config', config);
+            // throw 'stop';
+
             const body = {
               thinking: true, industryId, local: true,
-              config: data.data.config as IndustryResearchConfig,
+              config,
               force: true,
             };
             // console.log('fetch body', body);
-            fetch = (await import ('@/pages/mockSseChunks')).fetchMockSse;
+            // fetch = (await import ('@/pages/mockSseChunks')).fetchMockSse;
 
             const resp = await requestUIMessageStream({
               url: '/api/dev/industry-research', fetch, body,

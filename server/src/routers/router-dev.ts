@@ -24,12 +24,9 @@ router.post('/ai-gen-stream', createAiStreamMiddleware((bodyWithSignal) => {
 }));
 
 
-// GET /dev/industry-research/info endpoint for getting industry research configuration info
 router.get('/industry-research/info', (req: Request, res: Response) => {
-  const data = { defaultConfigs: baseIndustryResearchList };
-  res.json({ data });
+  res.json({ data: { defaultConfigs: baseIndustryResearchList } });
 });
-// POST /dev/industry-research-task endpoint for industry research task
 router.post('/industry-research', createAiStreamMiddleware((bodyWithSignal) => {
   return handleIndustryResearchTask(bodyWithSignal);
 }));

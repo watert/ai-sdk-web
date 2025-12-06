@@ -42,7 +42,7 @@ export function parseJsonFromText(text: string) {
 }
 
 const proxyUrl = process.env.HTTP_PROXY || process.env.http_proxy || process.env.HTTPS_PROXY || process.env.https_proxy;
-const proxyFetch = !proxyUrl? undefined: (input: RequestInit | URL, init?: RequestInit) => {
+export const proxyFetch = !proxyUrl? undefined: (input: RequestInit | URL, init?: RequestInit) => {
   // console.log('proxy?', {proxyUrl});
   const dispatcher = new ProxyAgent({
     uri: proxyUrl!,
@@ -182,12 +182,7 @@ export type AiGenTextStreamResult = StreamTextResult<any,any> & {
   toJsonFormat: () => Promise<any>;
 }
 export function aiGenTextStream(opts: AiGenTextStreamOpts, ctx?: any): AiGenTextStreamResult{
-  
   const { params, info } = prepareAiSdkRequest(opts, ctx);
-  // console.log('call streamText opts', opts, 'final params', params);
-  // throw 'stop';
-  // const abortCtrl = ctx?.abortSignal ? undefined: new AbortController();
-  // const abortSignal = ctx?.abortSignal || abortCtrl?.signal;
   const resp = streamText({ ..._.omit(params, 'search', 'thinking') as any });
   resp.request.then(req => {
     console.log('streamText req', req);

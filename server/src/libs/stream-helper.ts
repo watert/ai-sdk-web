@@ -7,7 +7,7 @@ function isReadableStream(stream?: any) {
 export function createAiStreamMiddleware(fn: (bodyWithSignal: any) => any) {
   return async (req: Request, res: Response) => {
     const controller = new AbortController();
-    // res.on('close', () => { console.log('abort by res "close"'); controller.abort(); });
+    res.on('close', () => { console.log('abort by res "close"'); controller.abort(); });
     req.on('abort', () => { console.log('abort by req "abort"'); controller.abort(); });
     
     let aiStreamResult = fn({ ...req.body, abortSignal: controller.signal });
