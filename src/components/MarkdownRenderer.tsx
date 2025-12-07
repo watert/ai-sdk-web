@@ -1,6 +1,5 @@
 import React from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import Marked from 'marked-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import './MarkdownRenderer.css';
@@ -17,9 +16,9 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
   text = text.replace(/\*\*“/gm, ' **“');
   return (
     <div className={twMerge(clsx('text-sm md:text-base markdown-content', className))}>
-      <ReactMarkdown remarkPlugins={[[remarkGfm]]}>
+      <Marked gfm>
         {text}
-      </ReactMarkdown>
+      </Marked>
     </div>
   );
 };

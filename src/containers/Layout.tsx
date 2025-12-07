@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import MenuItem from '../components/MenuItem';
-import { MessageSquare, Bot, Calendar, Building2, LogIn, User, Layers, Code } from 'lucide-react';
+import { MessageSquare, Bot, Calendar, Building2, LogIn, User, Layers, Code, FileText } from 'lucide-react';
 import { useUser } from '../hooks/useUser';
 import { Toaster } from 'sonner';
 
@@ -155,7 +155,14 @@ const Layout: React.FC = () => {
                 icon={<Code size={18} />} 
                 label="AI流演示" 
                 isSidebarOpen={isSidebarOpen} 
-                matchExact={true}
+                matchExact={true} 
+              />
+              <MenuItem 
+                to="/note-block-debug" 
+                icon={<FileText size={18} />} 
+                label="NoteBlock调试" 
+                isSidebarOpen={isSidebarOpen} 
+                matchExact={true} 
               />
             </ul>
           </nav>
