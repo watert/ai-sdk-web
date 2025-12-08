@@ -47,7 +47,8 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
   const transport = useMemo(() => {
 
     return createAiHttpTransport({
-      api: () => '/api/dev/ai-gen-stream',
+      api: () => '/api/dev/ai-gen-stream-tools',
+      // api: () => '/api/dev/ai-gen-stream',
       headers: async () => getAppReqHeaders(),
       body: async () => latestTransportBody.current,
       // 确保只有在 customFetch 存在时才传递，否则使用默认值
@@ -91,6 +92,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
   });
   
   const { messages, error, sendMessage, regenerate, setMessages, stop, status } = chatState;
+  const isStreaming = status === 'streaming';
   console.log('chatState', chatState);
   
   // 处理消息编辑提交
@@ -164,9 +166,11 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
         ) : (
           <>
             {messages.map(message => {
+              const isLastMsg = message.id === messages[messages.length - 1].id;
               return (
                 <MessageItem 
                   key={message.id} 
+                  streaming={isStreaming && isLastMsg}
                   message={message as any} 
                   onEditSubmit={handleEditSubmit} 
                   onRegenerate={handleRegenerate} 

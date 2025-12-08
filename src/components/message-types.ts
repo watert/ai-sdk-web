@@ -1,3 +1,5 @@
+import type { ToolUIPart } from "ai";
+
 // 消息元数据类型
 export interface TokenUsage {
   promptTokens: number;
@@ -62,13 +64,14 @@ export interface ToolCallPart {
   args: Record<string, any>;
 }
 
-export interface ToolResultPart {
-  type: 'tool-result';
-  toolCallId: string;
-  toolName: string;
-  result: any;
-  isError?: boolean;
-}
+export type ToolResultPart = ToolUIPart;
+// export interface ToolResultPart {
+//   type: `tool-${string}`;
+//   toolCallId: string;
+//   state: string;
+//   result: any;
+//   isError?: boolean;
+// }
 
 // Union type for all possible parts
 export type MessagePart = 

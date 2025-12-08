@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import type {
     ExtendedUIMessage, MessagePart,
-    ReasoningPart, ToolCallPart, ToolResultPart,
+    ReasoningPart, ToolCallPart,
 } from './message-types.ts';
-import { Bot, Brain, ChevronDown, ChevronRight, Wrench, Check, FileText, RefreshCw } from 'lucide-react';
+import { Bot, Brain, ChevronDown, ChevronRight, Wrench, Check, FileText, RefreshCw, LoaderCircle } from 'lucide-react';
 import { UserMessageItem } from './UserMessageItem';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { BaseTextMessageItem } from './BaseTextMessageItem';
+import clsx from 'clsx';
+import type { ToolUIPart } from 'ai';
 
 // --- Sub-components for specific part types ---
 
@@ -69,23 +71,37 @@ const ToolCallBlock: React.FC<{ part: ToolCallPart }> = ({ part }) => {
   );
 };
 
-const ToolResultBlock: React.FC<{ part: ToolResultPart }> = ({ part }) => {
+function tryGetString(maybeString: any) {
+  if (!maybeString) return '';
+  if (typeof maybeString === 'string') {
+    return maybeString;
+  }
+  return tryGetString(maybeString?.text) || tryGetString(maybeString?.content) || '';
+}
+const ToolResultBlock: React.FC<{ part: ToolUIPart }> = ({ part }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const resultString = typeof part.result === 'object' ? JSON.stringify(part.result, null, 2) : String(part.result);
+  const resultString = tryGetString(part.output);
   const isLarge = resultString.length > 200;
-
+  const toolName = part.type.replace(/^tool-/, '');
+  console.log('tool part', part);
+  const isDone = part.state === 'output-available' && !(part as any).preliminary;
   return (
     <div className="my-2 border-l-2 border-green-500 pl-3 py-1">
       <div className="flex items-center gap-2 text-green-600 dark:text-green-400 text-xs font-semibold mb-1">
-        <Check size={14} strokeWidth={3} />
-        <span>Tool Finished: {part.toolName}</span>
+        {(() => {
+          if (!isDone) {
+            return <LoaderCircle size={14} strokeWidth={3} className="animate-spin" />
+          }
+          return <Check size={14} strokeWidth={3} />
+        })()}
+        <span>Tool Call: {toolName}</span>
       </div>
-      <div className={`font-mono text-xs text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/50 rounded p-2 overflow-hidden ${!isExpanded && isLarge ? 'max-h-24 relative' : ''}`}>
+      {resultString && <div className={`font-mono text-xs text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/50 rounded p-2 overflow-hidden ${!isExpanded && isLarge ? 'max-h-24 relative' : ''}`}>
         <pre className="whitespace-pre-wrap break-all">{resultString}</pre>
         {!isExpanded && isLarge && (
-           <div className="absolute bottom-0 left-0 w-full h-8 bg-gradient-to-t from-slate-50 dark:from-slate-900 to-transparent"></div>
+           <div className="absolute bottom-0 left-0 w-full h-8 bg-linear-to-t from-slate-50 dark:from-slate-900 to-transparent"></div>
         )}
-      </div>
+      </div>}
       {isLarge && (
         <button 
             onClick={() => setIsExpanded(!isExpanded)}
@@ -126,7 +142,7 @@ const ImageBlock: React.FC<{ part: any }> = ({ part }) => {
 };
 
 // --- Custom bubble content for assistant messages --- 
-const AssistantBubbleContent: React.FC<{ message: ExtendedUIMessage }> = ({ message }) => {
+const AssistantBubbleContent: React.FC<{ streaming?: boolean; message: ExtendedUIMessage }> = ({ streaming, message }) => {
   // Determine content to render
   let renderParts: MessagePart[] = message.parts || [];
   if (renderParts.length === 0 && message.content) {
@@ -136,22 +152,25 @@ const AssistantBubbleContent: React.FC<{ message: ExtendedUIMessage }> = ({ mess
   return (
     <div className="flex flex-col gap-1">
       {renderParts.map((part, index) => {
-        switch (part.type) {
-          case 'text':
-            return <MarkdownRenderer key={index} text={part.text} />;
-          case 'reasoning':
-            return <ReasoningBlock key={index} part={part} />;
-          case 'tool-call':
-            return <ToolCallBlock key={index} part={part} />;
-          case 'tool-result':
-            return <ToolResultBlock key={index} part={part} />;
-          case 'image':
-            return <ImageBlock key={index} part={part} />;
-          case 'file':
-            return <FileAttachment key={index} part={part} />;
-          default:
-            return null;
+        if (part.type === 'text') {
+          return <MarkdownRenderer key={index} text={part.text} />;
         }
+        if (part.type === 'reasoning') {
+          return <ReasoningBlock key={index} part={part} />;
+        }
+        // if (part.type === 'tool-call') {
+        //   return <ToolCallBlock key={index} part={part} />;
+        // }
+        if (part.type.startsWith('tool-')) {
+          return <ToolResultBlock key={index} part={part as ToolUIPart} />;
+        }
+        if (part.type === 'image') {
+          return <ImageBlock key={index} part={part} />;
+        }
+        if (part.type === 'file') {
+          return <FileAttachment key={index} part={part} />;
+        }
+        return null;
       })}
     </div>
   );
@@ -160,20 +179,21 @@ const AssistantBubbleContent: React.FC<{ message: ExtendedUIMessage }> = ({ mess
 // --- Main Message Item Component ---
 
 interface MessageItemProps {
+  streaming?: boolean;
   message: ExtendedUIMessage;
   onRegenerate?: (id: string) => void;
   onEditSubmit?: (id: string, newContent: string) => void;
 }
 
 export const MessageItem: React.FC<MessageItemProps> = ({ 
-    message, 
-    onRegenerate, 
-    onEditSubmit 
+  streaming,
+  message, 
+  onRegenerate, 
+  onEditSubmit 
 }) => {
   const isUser = message.role === 'user';
   const isAssistant = message.role === 'assistant';
-  
-  // If it's a user message, render UserMessageItem component
+
   if (isUser) {
     return <UserMessageItem message={message} onEditSubmit={onEditSubmit} />;
   }
@@ -194,10 +214,11 @@ export const MessageItem: React.FC<MessageItemProps> = ({
 
   // Bot Avatar
   const botAvatar = (
-    <div className={`
-      flex-shrink-0 w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center shadow-sm
-      bg-emerald-600 text-white
-    `}>
+    <div className={(clsx(
+      'shrink-0 w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center',
+      'shadow-sm bg-emerald-600 text-white',
+      streaming && 'animate-pulse',
+    ))}>
       <Bot size={20} />
     </div>
   );
@@ -226,6 +247,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
 
   return (
     <BaseTextMessageItem
+      streaming={streaming}
       message={message}
       onEditSubmit={onEditSubmit}
       showEditButton={message.role === 'system'}
@@ -240,7 +262,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
         </>
       }
     >
-      <AssistantBubbleContent message={message} />
+      <AssistantBubbleContent streaming={streaming} message={message} />
     </BaseTextMessageItem>
   );
 };

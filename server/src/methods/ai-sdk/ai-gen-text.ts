@@ -22,7 +22,7 @@ type AiGenTextStreamOpts = Omit<Parameters<typeof streamText>[0], 'model'> & {
   model?: string; options?: any;
   search?: boolean;
   thinking?: boolean;
-  metadata?: Record<string, any>;
+  context?: Record<string, any>;
 }
 
 export function parseJsonFromText(text: string) {
@@ -183,11 +183,22 @@ export type AiGenTextStreamResult = StreamTextResult<any,any> & {
 }
 export function aiGenTextStream(opts: AiGenTextStreamOpts, ctx?: any): AiGenTextStreamResult{
   const { params, info } = prepareAiSdkRequest(opts, ctx);
-  const resp = streamText({ ..._.omit(params, 'search', 'thinking') as any });
-  resp.request.then(req => {
-    console.log('streamText req', req);
-    // abortCtrl?.abort();
-  })
+  let context: any = { metadata: {}, ...opts.experimental_context || {}, ...opts.context };
+  const resp = streamText({
+    experimental_context: context,
+    ..._.omit(params, 'search', 'thinking') as any,
+  });
+  
+  (async () => {
+    for await (const chunk of resp.toUIMessageStream({
+      messageMetadata: aiHandleUIMsgMetadata
+    })) {
+      if (chunk.type === 'message-metadata') {
+        console.log('message-metadata', chunk);
+        Object.assign(context.metadata, chunk.messageMetadata || {});
+      }
+    }
+  })();
   const toPromise = async () => {
     return {
       text: await resp.text,
@@ -201,34 +212,38 @@ export function aiGenTextStream(opts: AiGenTextStreamOpts, ctx?: any): AiGenText
   const toJsonFormat = async () => {
     return parseJsonFromText(await resp.text);
   }
+  const pipeAiStreamResultToResponse = (res: any) => {
+    return _pipeAiStreamResultToResponse(resp, res, context)
+  }
+  
   return Object.assign(resp, {
     params: opts, info, toPromise, toJsonFormat,
-    pipeAiStreamResultToResponse: (res: any) => {
-      return pipeAiStreamResultToResponse(resp, res, opts.metadata)
-    }
+    pipeAiStreamResultToResponse,
   });
 }
 
-export function pipeAiStreamResultToResponse(result: StreamTextResult<any,any> & { metadata?: Record<string, any> }, res: Response, metadata: any) {
+export function aiHandleUIMsgMetadata({ part }: { part: any }) {
+  if (part.type === 'start') {
+    console.log('msg metadata: type start')
+    return { createdAt: Date.now() };
+  } else if (part.type === 'start-step') {
+    return { startedAt: Date.now() };
+  } else if (part.type === 'finish-step') {
+    const { modelId: model, id, timestamp } = part.response;
+    return { usage: part.usage, model, id, timestamp, finishAt: Date.now() };
+  } else if (part.type === 'finish') {
+    return { totalUsage: part.totalUsage };
+  }
+}
+
+export function _pipeAiStreamResultToResponse(result: StreamTextResult<any,any> & { context?: Record<string, any> }, res: Response, metadata: any) {
   // const { metadata } = result;
   const stream = createUIMessageStream({
     execute: async ({ writer }) => {
-      const { params, info } = result as any;
+      // const { params, info } = result as any;
       // console.log('result', result);
       writer.merge(result.toUIMessageStream({
-        messageMetadata: ({ part }) => {
-          // console.log('msg meta', part);
-          if (part.type === 'start') {
-            return { createdAt: Date.now(), ...info, ...metadata };
-          } else if (part.type === 'start-step') {
-            return { startedAt: Date.now() };
-          } else if (part.type === 'finish-step') {
-            const { modelId: model, id, timestamp } = part.response;
-            return { usage: part.usage, model, id, timestamp, finishAt: Date.now() };
-          } else if (part.type === 'finish') {
-            return { totalUsage: part.totalUsage };
-          }
-        }
+        messageMetadata: aiHandleUIMsgMetadata
       }));
       await Promise.all([
         result.content.then(resp => {

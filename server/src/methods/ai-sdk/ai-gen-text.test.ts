@@ -1,5 +1,40 @@
-import { readUIMessageStream } from 'ai';
-import { aiGenText, aiGenTextStream, parseJsonFromText, prepareAiSdkRequest } from "./ai-gen-text";
+import { readUIMessageStream, stepCountIs, tool } from 'ai';
+import { z } from 'zod';
+import { aiGenText, aiGenTextStream, aiHandleUIMsgMetadata, parseJsonFromText, prepareAiSdkRequest } from "./ai-gen-text";
+import _ from 'lodash';
+
+const weatherTool = tool({
+  description: 'Get the current weather for a location',
+  inputSchema: z.object({
+    location: z.string().describe('The location to get weather for'),
+    unit: z.enum(['celsius', 'fahrenheit']).describe('Temperature unit')
+  }),
+  execute: async ({ location }) => ({
+    location,
+    temperature: 25,
+    description: 'Sunny'
+  })
+});
+const weatherTool2 = tool({
+  description: 'Get the current weather for a location',
+  inputSchema: z.object({
+    location: z.string().describe('The location to get weather for'),
+    unit: z.enum(['celsius', 'fahrenheit']).describe('Temperature unit')
+  }),
+  async *execute({ location }, opts) {
+    const { messages } = opts;
+    yield { status: 'loading' as const, text: 'fetch weather started' };
+    await new Promise(resolve => setTimeout(resolve, 500));
+    console.log('execute opts', opts);
+    console.log('execute msgs', messages);
+    console.log('execute last(opts.msgs)', _.last(messages));
+    yield {
+      location,
+      temperature: 25,
+      description: 'Sunny'
+    }
+  }
+});
 
 describe('ai-gen-text', () => {
   it.skip('basic test', async () => {
@@ -28,7 +63,7 @@ describe('ai-gen-text', () => {
     const res = await aiGenTextStream({ platform: 'GLM', model: 'glm-4.5-flash', prompt: 'Hello' });
     const stream = readUIMessageStream({ stream: res.toUIMessageStream() });
     for await (const chunk of stream) {
-      console.log('ui msg chunk', chunk);
+      console.log('ui msg chunk', chunk, _.last(chunk.parts));
     }
   }, 30e3);
   it.skip('basic stream', async () => {
@@ -39,6 +74,62 @@ describe('ai-gen-text', () => {
       console.log('chunk', chunk);
     }
   });
+  
+  it('should handle tool calls in response', async () => {
+    // 使用 ai-sdk 的 tool 函数定义天气查询工具
+    
+    // 调用AI生成文本，指定工具
+    const result = await aiGenText({
+      platform: 'OLLAMA', model: 'qwen3:4b-instruct',
+      // platform: 'GLM', model: 'glm-4.5-flash',
+      // model: 'gemini-2.5-flash',
+      stopWhen: stepCountIs(5),
+      prompt: '北京气温?',
+      tools: { get_weather: weatherTool }
+    });
+    
+    console.log('AI response with tools steps:', result.steps.map(r => r.content));
+    console.log('AI response full result:', result);
+    console.log('AI response content:', result.content);
+    
+    // 检查是否有工具调用
+    expect(result).toHaveProperty('toolCalls');
+    if (result.toolCalls && result.toolCalls.length > 0) {
+      console.log('Tool call detected:', result.toolCalls[0]);
+      // 使用更灵活的方式检查工具调用结构
+      const toolCall = result.toolCalls[0];
+      // 检查工具名称，无论它是在toolName还是name字段中
+      expect(toolCall.toolName).toBe('get_weather');
+      // 获取参数，无论它是在args还是parameters字段中
+      const params = toolCall.input;
+      expect(params).toBeDefined();
+      expect(params).toHaveProperty('location');
+    }
+  }, 30e3);
+  
+  it.only('should handle tool calls in streaming response', async () => {
+    // 使用 ai-sdk 的 tool 函数定义天气查询工具（weatherTool2 是生成器版本）
+    
+    // 调用AI生成文本流，指定工具
+    const streamResult = aiGenTextStream({
+      platform: 'OLLAMA', model: 'qwen3:4b-instruct',
+      prompt: '北京气温?',
+      tools: { get_weather: weatherTool2 },
+      stopWhen: stepCountIs(5),
+      context: { foo: 'bar' },
+    });
+    const uiMsgs = readUIMessageStream({ stream: streamResult.toUIMessageStream({ messageMetadata: aiHandleUIMsgMetadata }) });
+    let lastMsg: any = null;
+    for await (const chunk of uiMsgs) {
+      console.log('ui msg chunk', chunk, _.last(chunk.parts));
+      lastMsg = chunk;
+    }
+    console.log('lastMsg', lastMsg);
+    console.log('steps', await streamResult.steps);
+    console.log('content', await streamResult.content);
+    console.log('usage', await streamResult.usage, await streamResult.totalUsage);
+    
+  }, 30e3);
   
   describe('prepareAiSdkRequest', () => {
     it('should handle GEMINI platform with search option', () => {
@@ -148,6 +239,36 @@ describe('ai-gen-text', () => {
       
       expect(result.info).toEqual({ platform: 'VERCEL', model: 'gpt-4' });
       expect(result.params.model).toBe('gpt-4');
+    });
+    
+    it('should handle tool configuration using ai-sdk tool function', () => {
+      // 使用 ai-sdk 的 tool 函数定义天气工具
+      const weatherTool = tool({
+        description: 'Get the current weather for a location',
+        inputSchema: z.object({
+          location: z.string().describe('The location to get weather for'),
+          unit: z.enum(['celsius', 'fahrenheit']).describe('Temperature unit')
+        }),
+        execute: async ({ location }) => ({
+          location,
+          temperature: 25,
+          description: 'Sunny'
+        })
+      });
+      
+      const opts = {
+        platform: 'GEMINI',
+        model: 'gemini-2.5-flash',
+        prompt: 'What is the weather in Beijing?',
+        tools: { get_weather: weatherTool }
+      };
+      
+      const result = prepareAiSdkRequest(opts);
+      
+      expect(result.info).toEqual({ platform: 'GEMINI', model: 'gemini-2.5-flash' });
+      expect(result.params).toHaveProperty('tools');
+      expect(typeof result.params.tools).toBe('object');
+      expect(result.params.tools).toHaveProperty('get_weather');
     });
   });
 })
