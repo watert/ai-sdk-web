@@ -129,7 +129,7 @@ export const SelectField: React.FC<FieldProps> = ({ field, value, onChange }) =>
                 className={twMerge(
                   "px-2 py-0.5 min-h-8 rounded-md text-sm font-medium border transition-all shadow-xs",
                   isSelected
-                    ? "bg-indigo-600 text-white border-indigo-600 ring-1 ring-indigo-600"
+                    ? "bg-indigo-100 text-indigo-700 border-indigo-200 ring-1 ring-indigo-200"
                     : "bg-white text-slate-600 border-slate-200 hover:border-indigo-300 hover:text-indigo-600"
                 )}
               >

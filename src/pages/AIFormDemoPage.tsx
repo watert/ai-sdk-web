@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-import AIForm from '../components/ai-form/AIForm';
-// import { FormField, FormData } from '../types';
-import { Sparkles, Bot, Code2, RefreshCcw } from 'lucide-react';
 import { twMerge } from 'tailwind-merge';
-import type { FormField } from '@/components/ai-form/FormFields';
+import { Sparkles, Bot, Code2 } from 'lucide-react';
+import AIForm from '../components/ai-form/AIForm';
+import type { FormField } from '../components/ai-form/FormFields';
 
 // --- Simulation Data ---
 export type FormData = Record<string, any>;
@@ -79,20 +78,7 @@ const EVENT_PLANNING_SCHEMA: FormSchema = {
   submitLabel: '策划活动'
 };
 
-const PROGRAMMING_QUIZ_SCHEMA: FormSchema = {
-  title: '编程语言知识小测验',
-  fields: [
-    {
-      key: 'language',
-      label: '您想了解的编程语言',
-      description: '请选择您最感兴趣的编程语言',
-      required: true,
-      type: 'select',
-      options: ['Python', 'JavaScript', 'Java', 'C++', 'C#', 'Go', 'Ruby', 'Swift']
-    }
-  ],
-  submitLabel: '开始测试'
-};
+const PROGRAMMING_QUIZ_SCHEMA: FormSchema = {"title":"编程语言知识小测验","fields":[{"key":"language","label":"您想了解的编程语言","description":"例如：Python, JavaScript, Java, C++ 等","required":true,"type":"select","options":["Python","JavaScript","Java","C++","Go","Rust","Swift"]},{"key":"topic","label":"您想了解的具体主题","description":"例如：数据结构、算法、网络编程等","required":true,"type":"select","options":["数据结构","算法","网络编程","并发编程","机器学习","前端开发"]},{"key":"difficulty","label":"您希望小测验的难度","description":"请选择一个难度等级","required":true,"type":"select","options":["初学者","中级","高级"]}],"submitLabel":"生成小测验"};
 
 const AIFormDemoPage: React.FC = () => {
   const [currentSchema, setCurrentSchema] = useState<FormSchema>(PROJECT_MANAGEMENT_SCHEMA);
@@ -143,12 +129,12 @@ const AIFormDemoPage: React.FC = () => {
         
         {/* Left Column: Controls & Context */}
         <div className="lg:col-span-4 space-y-6">
-          <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+          <div className="bg-white p-2 rounded-xl shadow-sm border border-slate-200">
             <h2 className="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-4 flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-amber-500" />
               Simulate AI Context
             </h2>
-            <div className="space-y-3">
+            <div className="space-y-1">
               <button
                 onClick={() => simulateAIGeneration('project')}
                 disabled={isGenerating}

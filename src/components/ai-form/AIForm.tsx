@@ -16,6 +16,23 @@ export interface AIFormProps {
   autoPickValue?: boolean;
   submitLabel?: string;
 }
+const getDefaultValues = ({ initialData, fields, autoPickValue }: { initialData: FormData, fields: FormField[], autoPickValue: boolean }) => {
+  const defaults: Record<string, any> = { ...initialData };
+  
+  if (autoPickValue) {
+    fields.forEach(field => {
+      // Only set auto-picked value if no initial data exists for this key
+      if (defaults[field.key] === undefined && field.options && field.options.length > 0) {
+        if (field.type === 'tags') {
+          defaults[field.key] = [field.options[0]];
+        } else {
+          defaults[field.key] = field.options[0];
+        }
+      }
+    });
+  }
+  return defaults;
+};
 
 const AIForm: React.FC<AIFormProps> = ({ 
   title,
@@ -28,34 +45,15 @@ const AIForm: React.FC<AIFormProps> = ({
   submitLabel = 'Submit Form'
 }) => {
   // Determine default values based on autoPickValue and initialData
-  const getDefaultValues = () => {
-    const defaults: Record<string, any> = { ...initialData };
-    
-    if (autoPickValue) {
-      fields.forEach(field => {
-        // Only set auto-picked value if no initial data exists for this key
-        if (defaults[field.key] === undefined && field.options && field.options.length > 0) {
-          if (field.type === 'tags') {
-            defaults[field.key] = [field.options[0]];
-          } else {
-            defaults[field.key] = field.options[0];
-          }
-        }
-      });
-    }
-    return defaults;
-  };
 
   const { control, handleSubmit, reset, watch } = useForm({
-    defaultValues: getDefaultValues()
+    defaultValues: getDefaultValues({ initialData, fields, autoPickValue })
   });
 
   // Watch for changes to report back to parent
   useEffect(() => {
     if (onChange) {
-      const subscription = watch((value) => {
-        onChange(value as any);
-      });
+      const subscription = watch((value) => { onChange(value as any); });
       return () => subscription.unsubscribe();
     }
   }, [watch, onChange]);
@@ -84,7 +82,7 @@ const AIForm: React.FC<AIFormProps> = ({
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+    <div className="">
       {title && (
         <div className="mb-6">
           <h2 className="text-xl font-bold text-slate-900 mb-1">{title}</h2>
@@ -120,7 +118,7 @@ const AIForm: React.FC<AIFormProps> = ({
           {onSubmit && <div className="pt-2 mt-2 border-t border-slate-100 flex justify-start">
             <button
               type="submit"
-              className="inline-flex items-center px-3 py-1 min-h-9 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+              className="inline-flex items-center px-3 py-1 min-h-8 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
             >
               {submitLabel}
             </button>
