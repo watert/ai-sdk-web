@@ -171,6 +171,13 @@ const Layout: React.FC = () => {
                 isSidebarOpen={isSidebarOpen} 
                 matchExact={true} 
               />
+              <MenuItem 
+                to="/components" 
+                icon={<Code size={18} />} 
+                label="组件演示" 
+                isSidebarOpen={isSidebarOpen} 
+                matchExact={true} 
+              />
             </ul>
           </nav>
         </aside>

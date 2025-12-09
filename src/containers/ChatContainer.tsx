@@ -6,7 +6,7 @@ import { DefaultChatTransport, type ImagePart, type UIMessage } from 'ai';
 import { ChatInput } from '../components/ChatInput';
 import { useLatest, useSetState } from 'react-use';
 import type { MessageMetadata } from '../types/chat';
-import { MessageItem } from '../components/MessageItem';
+import { MessageItem, type renderToolFunc } from '../components/MessageItem';
 import { getAppReqHeaders } from '../models/appAxios';
 import { createAiHttpTransport } from '../models/AiHttpTransport';
 import type { ExtendedUIMessage } from '@/components/message-types';
@@ -32,6 +32,7 @@ const useLatestFunction = <T extends (...args: any[]) => any>(fn: T): T => {
 interface ChatContainerProps {
   platform: string;
   model?: string;
+  renderTool?: renderToolFunc;
   defaultImages?: string[];
   fetch?: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 }
@@ -40,6 +41,7 @@ const EMPTYARR = [];
 const ChatContainer: React.FC<ChatContainerProps> = ({ 
   platform, 
   model,
+  renderTool,
   defaultImages = EMPTYARR,
   fetch: customFetch 
 }) => {
@@ -88,11 +90,14 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
     Object.assign(window, { chat });
   }, [transport]);
   const chatState = useChat<ExtendedUIMessage>({
-    transport, onFinish, onData, messages: [],
+    transport, onFinish, onData, messages: [], experimental_throttle: 66,
   });
   
   const { messages, error, sendMessage, regenerate, setMessages, stop, status } = chatState;
   const isStreaming = status === 'streaming';
+  useEffect(() => {
+    console.log('chatState stream status changed', status, chatState)
+  }, [status]);
   
   // 处理消息编辑提交
   const handleEditSubmit = (messageId: string, newContent: string) => {
@@ -168,7 +173,9 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
               const isLastMsg = message.id === messages[messages.length - 1].id;
               return (
                 <MessageItem 
+                  renderTool={renderTool}
                   key={message.id} 
+                  status={isLastMsg ? status: undefined}
                   streaming={isStreaming && isLastMsg}
                   message={message as any} 
                   onEditSubmit={handleEditSubmit} 

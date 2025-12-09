@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import clsx from 'clsx';
-import type { ReasoningUIPart, ToolUIPart, UIDataTypes, UIMessage, UIMessagePart, UITools } from 'ai';
-import { Bot, Brain, ChevronDown, ChevronRight, Check, FileText, RefreshCw, LoaderCircle, User } from 'lucide-react';
+import type { ChatStatus, ReasoningUIPart, ToolUIPart, UIDataTypes, UIMessage, UIMessagePart, UITools } from 'ai';
+import { Bot, Brain, ChevronDown, ChevronRight, Check, FileText, RefreshCw, LoaderCircle, User, AlertCircle, PauseCircle } from 'lucide-react';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { BaseTextMessageItem, ImageBlock } from './BaseTextMessageItem';
 import type { ExtendedUIMessage, MessagePart } from './message-types';
+import { twMerge } from 'tailwind-merge';
 
 const ReasoningBlock: React.FC<{ part: ReasoningUIPart }> = ({ part }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -63,17 +64,27 @@ function tryGetString(maybeString: any) {
   return tryGetString(maybeString?.text) || tryGetString(maybeString?.content) || '';
 }
 
-const ToolResultBlock: React.FC<{ part: ToolUIPart }> = ({ part }) => {
+const ToolResultBlock: React.FC<{ renderTool?: renderToolFunc, part: ToolUIPart, message: ExtendedUIMessage, streaming?: boolean }> = ({ renderTool, part, message, streaming }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const resultString = tryGetString(part.output);
   const isLarge = resultString.length > 200;
   const toolName = part.type.replace(/^tool-/, '');
   // console.log('tool part', part);
   const isDone = part.state === 'output-available' && !(part as any).preliminary;
+  const isPaused = !streaming && !isDone;
+  const isError = part.state === 'output-error';
+  const errMsg = part.errorText || '';
+  
   return (
-    <div className="my-2 border-l-2 border-green-500 pl-3 py-1">
-      <div className="flex items-center gap-2 text-green-600 dark:text-green-400 text-xs font-semibold mb-1">
+    <div className={twMerge("my-2 border-l-2 border-green-500 pl-3 py-1", isError && 'border-red-500', isPaused && 'border-blue-500')}>
+      <div className={twMerge('flex items-center gap-2 text-green-600 dark:text-green-400 text-xs font-semibold mb-1', isError && 'text-red-600', isPaused && 'text-blue-600')}>
         {(() => {
+          if (isError) {
+            return <AlertCircle size={14} strokeWidth={3} className="text-red-600" />
+          }
+          if (isPaused) {
+            return <PauseCircle size={14} strokeWidth={3} className="" />
+          }
           if (!isDone) {
             return <LoaderCircle size={14} strokeWidth={3} className="animate-spin" />
           }
@@ -95,6 +106,7 @@ const ToolResultBlock: React.FC<{ part: ToolUIPart }> = ({ part }) => {
             {isExpanded ? 'Show Less' : 'Show Full Result'}
         </button>
       )}
+      {renderTool?.(part, { streaming: streaming || false, message })}
     </div>
   );
 };
@@ -115,7 +127,7 @@ const FileAttachment: React.FC<{ part: any }> = ({ part }) => {
 
 
 // --- Custom bubble content for assistant messages --- 
-const AssistantBubbleContent: React.FC<{ streaming?: boolean; message: ExtendedUIMessage }> = ({ streaming, message }) => {
+const AssistantBubbleContent: React.FC<{ renderTool?: renderToolFunc, streaming?: boolean; message: ExtendedUIMessage }> = ({ renderTool, streaming, message }) => {
   // Determine content to render
   let renderParts: MessagePart[] = message.parts || [];
   // if (renderParts.length === 0 && message.content) {
@@ -135,7 +147,7 @@ const AssistantBubbleContent: React.FC<{ streaming?: boolean; message: ExtendedU
         //   return <ToolCallBlock key={index} part={part} />;
         // }
         if (part.type.startsWith('tool-')) {
-          return <ToolResultBlock key={index} part={part as ToolUIPart} />;
+          return <ToolResultBlock message={message} renderTool={renderTool} key={index} part={part as ToolUIPart} streaming={streaming} />;
         }
         if (part.type === 'file' && part.mediaType?.includes?.('image/')) {
           return <ImageBlock key={index} part={part} />;
@@ -152,9 +164,12 @@ const AssistantBubbleContent: React.FC<{ streaming?: boolean; message: ExtendedU
 
 // --- Main Message Item Component ---
 
+export type renderToolFunc = (part: ToolUIPart, ctx: { message: ExtendedUIMessage; streaming: boolean }) => React.ReactNode;
 interface MessageItemProps {
   streaming?: boolean;
+  status?: ChatStatus;
   message: ExtendedUIMessage;
+  renderTool?: renderToolFunc;
   onRegenerate?: (id: string) => void;
   onEditSubmit?: (id: string, newContent: string) => void;
 }
@@ -196,6 +211,8 @@ export const UserMessageItem: React.FC<UserMessageItemProps> = ({
 export const MessageItem: React.FC<MessageItemProps> = ({ 
   streaming,
   message, 
+  renderTool,
+  status = 'ready',
   onRegenerate, 
   onEditSubmit 
 }) => {
@@ -270,7 +287,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
         </>
       }
     >
-      <AssistantBubbleContent streaming={streaming} message={message} />
+      <AssistantBubbleContent renderTool={renderTool} streaming={streaming} message={message} />
     </BaseTextMessageItem>
   );
 };

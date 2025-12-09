@@ -245,11 +245,11 @@ export function _pipeAiStreamResultToResponse(result: StreamTextResult<any,any> 
       writer.merge(result.toUIMessageStream({
         messageMetadata: aiHandleUIMsgMetadata
       }));
-      await Promise.all([
-        result.content.then(resp => {
-          writer.write({ type: 'data-finish-content', data: resp });
-        }),
-      ]);
+      // await Promise.all([
+      //   result.content.then(resp => {
+      //     writer.write({ type: 'data-finish-content', data: resp });
+      //   }),
+      // ]);
     }
   })
   return pipeUIMessageStreamToResponse({ response: res as any, stream });

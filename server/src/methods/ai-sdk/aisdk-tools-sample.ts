@@ -62,16 +62,16 @@ export const GenerateFormSchema = z.object({
 });
 
 export const getQuizForm = tool({
-  description: '生成动态紧凑的AI表单，弥合用户意图与结构化执行之间的差距。分析请求，识别必要参数，构建UI界面供用户确认或填写详情。遵循以下原则：使用预填充选项加速输入，保持表单紧凑（约3个字段），使用描述性键确保清晰，输出Record<string, string | string[]>数据结构，并保持与用户输入的语言一致性。',
-  inputSchema: GenerateFormSchema,
-  async *execute(params, opts) {
-    const { title, fields, submitLabel } = params;
-    console.log('params', JSON.stringify(params));
-    throw new Error('TODO: implement getQuizForm');
-    yield { status: 'loading' as const, text: 'generate quiz form started' }; // output will be changed later
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    yield { title, fields, submitLabel }
-  }
+  description: '生成动态紧凑的AI表单，弥合用户意图与结构化执行之间的差距。分析请求，识别必要参数，构建UI界面供用户确认或填写详情。遵循以下原则：保持表单紧凑（约3个字段），使用描述性键确保清晰，可能多选的都应该是 tags type, 重要的输入应该是 text type; 所有 field 类型都应该有 3~5 个 option 选项; 保持与用户输入的语言一致性。',
+  inputSchema: GenerateFormSchema, // no execute for frontend execution
+  // async *execute(params, opts) {
+  //   const { title, fields, submitLabel } = params;
+  //   console.log('params', JSON.stringify(params));
+  //   throw new Error('TODO: implement getQuizForm');
+  //   yield { status: 'loading' as const, text: 'generate quiz form started' }; // output will be changed later
+  //   await new Promise(resolve => setTimeout(resolve, 1000));
+  //   yield { title, fields, submitLabel }
+  // }
 });
 
 export const quizFormSysPrompt = `
