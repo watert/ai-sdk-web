@@ -2,7 +2,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { aiGenTextStream } from '../methods/ai-sdk/ai-gen-text';
 import { createAiStreamMiddleware } from '../libs/stream-helper';
 import { handleIndustryResearchTask, baseIndustryResearchList } from '../methods/industry-research';
-import { getWeather } from '../methods/ai-sdk/aisdk-tools-sample';
+import { getQuizForm, getWeather } from '../methods/ai-sdk/aisdk-tools-sample';
 import { stepCountIs } from 'ai';
 
 const router = Router();
@@ -22,7 +22,7 @@ router.post('/ai-gen-stream', createAiStreamMiddleware((bodyWithSignal) => {
 }));
 router.post('/ai-gen-stream-tools', createAiStreamMiddleware((bodyWithSignal) => {
   return aiGenTextStream({ ...bodyWithSignal,
-    stopWhen: stepCountIs(5), tools: { getWeather },
+    stopWhen: stepCountIs(5), tools: { getWeather, getQuizForm },
   });
 }));
 

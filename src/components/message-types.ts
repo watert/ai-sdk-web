@@ -1,7 +1,7 @@
 import type { UIDataTypes, UIMessage, UIMessagePart, UITools } from "ai";
 
 // 消息元数据类型
-export interface TokenUsage { promptTokens: number; completionTokens: number; totalTokens: number; }
+export interface TokenUsage { inputTokens: number; outputTokens: number; totalTokens: number; }
 export interface MessageMetadata {
   /** Message timestamps (ms) */
   createdAt?: number;
