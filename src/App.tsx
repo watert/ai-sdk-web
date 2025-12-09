@@ -12,6 +12,7 @@ import IndustryDetailPage from './pages/IndustryDetailPage';
 import IndustryResearchPage from './pages/IndustryResearchPage';
 import RequestAiStreamDemoPage from './pages/RequestAiStreamDemoPage';
 import NoteBlockDebugPage from './pages/NoteBlockDebugPage';
+import AIFormDemoPage from './pages/AIFormDemoPage';
 import axios from 'axios';
 
 if (typeof window !== 'undefined') {
@@ -37,6 +38,7 @@ function App() {
           <Route path="industry-research" element={<IndustryResearchPage />} />
           <Route path="demo-ai-stream" element={<RequestAiStreamDemoPage />} />
           <Route path="note-block-debug" element={<NoteBlockDebugPage />} />
+          <Route path="ai-form-demo" element={<AIFormDemoPage />} />
         </Route>
       </Routes>
     </BrowserRouter>
