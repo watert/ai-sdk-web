@@ -1,7 +1,7 @@
 import _ from 'lodash'
 import { useMemo, useRef, useEffect } from 'react';
 import { Chat, useChat } from '@ai-sdk/react';
-import { DefaultChatTransport, type UIMessage } from 'ai';
+import { DefaultChatTransport, type ImagePart, type UIMessage } from 'ai';
 // import MessageItem from '../components/MessageItem';
 import { ChatInput } from '../components/ChatInput';
 import { useLatest, useSetState } from 'react-use';
@@ -9,7 +9,8 @@ import type { MessageMetadata } from '../types/chat';
 import { MessageItem } from '../components/MessageItem';
 import { getAppReqHeaders } from '../models/appAxios';
 import { createAiHttpTransport } from '../models/AiHttpTransport';
-type MyMessageItemType = UIMessage<MessageMetadata>;
+import type { ExtendedUIMessage } from '@/components/message-types';
+// type MyMessageItemType = UIMessage<MessageMetadata>;
 // 自定义hook：确保函数始终能拿到最新的引用和render上下文
 const useLatestFunction = <T extends (...args: any[]) => any>(fn: T): T => {
   // 使用useRef存储最新的函数引用
@@ -31,12 +32,15 @@ const useLatestFunction = <T extends (...args: any[]) => any>(fn: T): T => {
 interface ChatContainerProps {
   platform: string;
   model?: string;
+  defaultImages?: string[];
   fetch?: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 }
 
+const EMPTYARR = [];
 const ChatContainer: React.FC<ChatContainerProps> = ({ 
   platform, 
-  model, 
+  model,
+  defaultImages = EMPTYARR,
   fetch: customFetch 
 }) => {
   const [chatDataState, setDataState] = useSetState<any>({});
@@ -73,7 +77,6 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
     const { type, data } = part;
     const attrKey = _.camelCase(type.replace(/^data-/, ''));
     setDataState({ [attrKey]: data });
-    console.log('onData', part, { [attrKey]: data });
   });
   useEffect(() => {
     if (!transport || typeof window === 'undefined') { return; }
@@ -84,20 +87,16 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
     });
     Object.assign(window, { chat });
   }, [transport]);
-  const chatState = useChat<MyMessageItemType>({
-    transport, onFinish, onData,
-    messages: [
-      // TEST_SYS_MSG
-    ],
+  const chatState = useChat<ExtendedUIMessage>({
+    transport, onFinish, onData, messages: [],
   });
   
   const { messages, error, sendMessage, regenerate, setMessages, stop, status } = chatState;
   const isStreaming = status === 'streaming';
-  console.log('chatState', chatState);
   
   // 处理消息编辑提交
   const handleEditSubmit = (messageId: string, newContent: string) => {
-    setMessages((prevMessages: MyMessageItemType[]) => {
+    setMessages((prevMessages: ExtendedUIMessage[]) => {
       return prevMessages.map((message) => {
         if (message.id === messageId) {
           // 检查消息是否有 parts 数组
@@ -187,7 +186,9 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
       {/* 输入区域 */}
       <div className='w-full p-4'>
         <ChatInput 
-          onSendMessage={(text: string) => sendMessage({ text })} 
+          onSendMessage={sendMessage} 
+          defaultImages={defaultImages}
+          // onSendMessage={(text: string) => sendMessage({ text })} 
           onStop={stop}
           disabled={false}
           isStreaming={status === 'streaming'}

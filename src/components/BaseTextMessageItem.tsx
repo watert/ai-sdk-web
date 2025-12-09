@@ -1,9 +1,25 @@
 import React, { useState, useEffect, useRef } from 'react';
-import type { ExtendedUIMessage } from './message-types.ts';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { Copy, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 import { copyToClipboard } from '../libs/copyToClipboard';
+import type { ExtendedUIMessage } from './message-types';
+import type { FileUIPart } from 'ai';
+import { twMerge } from 'tailwind-merge';
+
+
+export const ImageBlock: React.FC<{ part: FileUIPart, className?: string }> = ({ part, className = '' }) => {
+    return (
+        <div className={twMerge(`rounded-xl overflow-hidden shadow-sm border border-slate-200 dark:border-slate-700`, className)}>
+            <img 
+                src={part.url} 
+                alt={part.filename || "Generated Image"} 
+                className="max-h-12 w-auto object-cover"
+                loading="lazy"
+            />
+        </div>
+    )
+};
 
 interface BaseTextMessageItemProps {
   message: ExtendedUIMessage;
@@ -33,7 +49,7 @@ export const BaseTextMessageItem: React.FC<BaseTextMessageItemProps> = ({
     if (message.parts && message.parts.length > 0 && message.parts[0].type === 'text') {
       return message.parts[0].text;
     }
-    return message.content || '';
+    return '';
   };
 
   // Edit State
@@ -96,7 +112,7 @@ export const BaseTextMessageItem: React.FC<BaseTextMessageItemProps> = ({
   const timestamp = metadata.createdAt ? new Date(metadata.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
 
   // Dynamic Styles for Bubble
-  let dynamicBubbleClasses = "relative px-5 py-4 rounded-2xl shadow-sm text-left overflow-hidden w-full transition-all duration-200";
+  let dynamicBubbleClasses = "relative px-3 py-2 rounded-2xl shadow-sm text-left overflow-hidden w-full transition-all duration-200";
   
   if (isEditing) {
       // Edit Mode Style: White Card, Blue Border
@@ -108,12 +124,12 @@ export const BaseTextMessageItem: React.FC<BaseTextMessageItemProps> = ({
 
   // Determine content to render
   let renderParts = message.parts || [];
-  if (renderParts.length === 0 && message.content) {
-    renderParts = [{ type: 'text', text: message.content }];
-  }
+  // if (renderParts.length === 0 && message.content) {
+  //   renderParts = [{ type: 'text', text: message.content }];
+  // }
 
   return (
-    <div className={`flex w-full gap-4 p-4 animate-fade-in group ${containerClasses}`}>
+    <div className={`flex w-full gap-2 p-2 animate-fade-in group ${containerClasses}`}>
       {/* Avatar */}
       {avatar}
 
@@ -171,15 +187,24 @@ export const BaseTextMessageItem: React.FC<BaseTextMessageItemProps> = ({
               </div>
           ) : (
               // View Mode UI
-              <div className="flex flex-col gap-1">
+              <div className="flex flex-col items-start gap-1">
                 {children ? children : (
                   renderParts.map((part, index) => {
-                    switch (part.type) {
-                      case 'text':
-                        return <MarkdownRenderer key={index} text={part.text} />;
-                      default:
-                        return null;
+                    if (part.type === 'file' && part.mediaType?.includes?.('image/')) {
+                      return <ImageBlock key={index} part={part} />;
                     }
+                    if (part.type === 'text') {
+                      return <MarkdownRenderer key={index} text={part.text} />;
+                    }
+                    return null;
+                    // switch (part.type) {
+                    //   case 'file':
+                    //     return <ImageBlock key={index} part={part} />;
+                    //   case 'text':
+                    //     return <MarkdownRenderer key={index} text={part.text} />;
+                    //   default:
+                    //     return null;
+                    // }
                   })
                 )}
               </div>

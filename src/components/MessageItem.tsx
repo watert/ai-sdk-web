@@ -1,18 +1,12 @@
 import React, { useState } from 'react';
-import type {
-    ExtendedUIMessage, MessagePart,
-    ReasoningPart, ToolCallPart,
-} from './message-types.ts';
-import { Bot, Brain, ChevronDown, ChevronRight, Wrench, Check, FileText, RefreshCw, LoaderCircle } from 'lucide-react';
-import { UserMessageItem } from './UserMessageItem';
-import { MarkdownRenderer } from './MarkdownRenderer';
-import { BaseTextMessageItem } from './BaseTextMessageItem';
 import clsx from 'clsx';
-import type { ToolUIPart } from 'ai';
+import type { ReasoningUIPart, ToolUIPart, UIDataTypes, UIMessage, UIMessagePart, UITools } from 'ai';
+import { Bot, Brain, ChevronDown, ChevronRight, Check, FileText, RefreshCw, LoaderCircle, User } from 'lucide-react';
+import { MarkdownRenderer } from './MarkdownRenderer';
+import { BaseTextMessageItem, ImageBlock } from './BaseTextMessageItem';
+import type { ExtendedUIMessage, MessagePart } from './message-types';
 
-// --- Sub-components for specific part types ---
-
-const ReasoningBlock: React.FC<{ part: ReasoningPart }> = ({ part }) => {
+const ReasoningBlock: React.FC<{ part: ReasoningUIPart }> = ({ part }) => {
   const [isOpen, setIsOpen] = useState(false);
   const isStreaming = part.state === 'streaming';
   const title = isStreaming ? "Thinking..." : "Thinking Process";
@@ -23,25 +17,15 @@ const ReasoningBlock: React.FC<{ part: ReasoningPart }> = ({ part }) => {
         onClick={() => setIsOpen(!isOpen)}
         className="w-full flex items-center gap-2 px-3 py-2 bg-amber-100/50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs font-medium hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors"
       >
-        <div className={isStreaming ? "animate-pulse" : ""}>
-          <Brain size={16} />
-        </div>
+        <div className={isStreaming ? "animate-pulse" : ""}> <Brain size={16} /> </div>
         <span>{title}</span>
         
-        {/* Status feedback logic: Visual indicator if streaming */}
         {isStreaming && (
-             <span className="relative flex h-2 w-2 ml-1">
-               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-               <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
-             </span>
+          <span className="relative flex h-2 w-2 ml-1">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+          </span>
         )}
-
-        {/* {part.signature && (
-            <span className="ml-2 opacity-60 font-normal">
-                {part.signature}
-            </span>
-        )} */}
-
         <span className="ml-auto opacity-70">
            {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
         </span>
@@ -57,19 +41,19 @@ const ReasoningBlock: React.FC<{ part: ReasoningPart }> = ({ part }) => {
   );
 };
 
-const ToolCallBlock: React.FC<{ part: ToolCallPart }> = ({ part }) => {
-  return (
-    <div className="my-2 p-3 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-mono text-xs">
-      <div className="flex items-center gap-2 text-slate-500 mb-2">
-        <Wrench size={16} />
-        <span className="font-semibold uppercase tracking-wider">Using Tool: {part.toolName}</span>
-      </div>
-      <div className="bg-slate-200 dark:bg-slate-900 p-2 rounded text-slate-700 dark:text-slate-300 overflow-x-auto custom-scrollbar">
-        {JSON.stringify(part.args, null, 2)}
-      </div>
-    </div>
-  );
-};
+// const ToolCallBlock: React.FC<{ part: ToolCallPart }> = ({ part }) => {
+//   return (
+//     <div className="my-2 p-3 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-mono text-xs">
+//       <div className="flex items-center gap-2 text-slate-500 mb-2">
+//         <Wrench size={16} />
+//         <span className="font-semibold uppercase tracking-wider">Using Tool: {part.toolName}</span>
+//       </div>
+//       <div className="bg-slate-200 dark:bg-slate-900 p-2 rounded text-slate-700 dark:text-slate-300 overflow-x-auto custom-scrollbar">
+//         {JSON.stringify(part.args, null, 2)}
+//       </div>
+//     </div>
+//   );
+// };
 
 function tryGetString(maybeString: any) {
   if (!maybeString) return '';
@@ -78,12 +62,13 @@ function tryGetString(maybeString: any) {
   }
   return tryGetString(maybeString?.text) || tryGetString(maybeString?.content) || '';
 }
+
 const ToolResultBlock: React.FC<{ part: ToolUIPart }> = ({ part }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const resultString = tryGetString(part.output);
   const isLarge = resultString.length > 200;
   const toolName = part.type.replace(/^tool-/, '');
-  console.log('tool part', part);
+  // console.log('tool part', part);
   const isDone = part.state === 'output-available' && !(part as any).preliminary;
   return (
     <div className="my-2 border-l-2 border-green-500 pl-3 py-1">
@@ -128,26 +113,14 @@ const FileAttachment: React.FC<{ part: any }> = ({ part }) => {
     )
 }
 
-const ImageBlock: React.FC<{ part: any }> = ({ part }) => {
-    return (
-        <div className="my-3 rounded-xl overflow-hidden shadow-sm border border-slate-200 dark:border-slate-700 max-w-sm">
-            <img 
-                src={part.uri} 
-                alt={part.alt || "Generated Image"} 
-                className="w-full h-auto object-cover"
-                loading="lazy"
-            />
-        </div>
-    )
-};
 
 // --- Custom bubble content for assistant messages --- 
 const AssistantBubbleContent: React.FC<{ streaming?: boolean; message: ExtendedUIMessage }> = ({ streaming, message }) => {
   // Determine content to render
   let renderParts: MessagePart[] = message.parts || [];
-  if (renderParts.length === 0 && message.content) {
-    renderParts = [{ type: 'text', text: message.content }];
-  }
+  // if (renderParts.length === 0 && message.content) {
+  //   renderParts = [{ type: 'text', text: message.content }];
+  // }
 
   return (
     <div className="flex flex-col gap-1">
@@ -164,12 +137,13 @@ const AssistantBubbleContent: React.FC<{ streaming?: boolean; message: ExtendedU
         if (part.type.startsWith('tool-')) {
           return <ToolResultBlock key={index} part={part as ToolUIPart} />;
         }
-        if (part.type === 'image') {
+        if (part.type === 'file' && part.mediaType?.includes?.('image/')) {
           return <ImageBlock key={index} part={part} />;
-        }
-        if (part.type === 'file') {
+        } else if (part.type === 'file') {
           return <FileAttachment key={index} part={part} />;
         }
+        if (part.type === 'step-start') return null;
+        console.log('unknown part type', part);
         return null;
       })}
     </div>
@@ -184,6 +158,40 @@ interface MessageItemProps {
   onRegenerate?: (id: string) => void;
   onEditSubmit?: (id: string, newContent: string) => void;
 }
+
+
+interface UserMessageItemProps {
+  message: ExtendedUIMessage;
+  onEditSubmit?: (id: string, newContent: string) => void;
+}
+
+export const UserMessageItem: React.FC<UserMessageItemProps> = ({ 
+    message, 
+    onEditSubmit 
+}) => {
+  // User Avatar
+  const userAvatar = (
+    <div className={`
+      flex-shrink-0 w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center shadow-sm
+      bg-blue-600 text-white
+    `}>
+      <User size={20} />
+    </div>
+  );
+
+  return (
+    <BaseTextMessageItem
+      message={message}
+      onEditSubmit={onEditSubmit}
+      showEditButton={true}
+      authorName="You"
+      avatar={userAvatar}
+      bubbleClasses="bg-blue-600 text-white rounded-tr-sm"
+      containerClasses="flex-row-reverse"
+    />
+  );
+};
+
 
 export const MessageItem: React.FC<MessageItemProps> = ({ 
   streaming,
@@ -247,7 +255,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
 
   return (
     <BaseTextMessageItem
-      streaming={streaming}
+      // streaming={streaming}
       message={message}
       onEditSubmit={onEditSubmit}
       showEditButton={message.role === 'system'}
