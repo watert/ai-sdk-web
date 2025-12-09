@@ -84,16 +84,15 @@ const AIForm: React.FC<AIFormProps> = ({
   return (
     <div className="">
       {title && (
-        <div className="mb-6">
+        <div className="mb-2">
           <h2 className="text-xl font-bold text-slate-900 mb-1">{title}</h2>
-          <p className="text-slate-500 text-sm">AI 生成的智能表单</p>
         </div>
       )}
       
       <form onSubmit={handleSubmit(onSubmit || (() => {}))} className="space-y-1">
-        <div className="">
+        <div className="flex flex-col gap-y-2">
           {fields.map((field) => (
-            <div className='mb-2'>
+            <div className=''>
               <Controller
                 key={field.key}
                 name={field.key}

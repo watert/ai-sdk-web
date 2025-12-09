@@ -27,7 +27,7 @@ const FieldWrapper: React.FC<{
   children: React.ReactNode;
 }> = ({ label, description, required, children }) => (
   <div className="mb-0">
-    <div className="flex flex-wrap items-baseline gap-1 mb-1.5">
+    <div className="flex flex-wrap items-baseline gap-1 mb-1">
       <label className="text-sm font-semibold text-slate-700 whitespace-nowrap">
         {label} {required && <span className="text-red-500">*</span>}
       </label>
@@ -118,7 +118,7 @@ export const SelectField: React.FC<FieldProps> = ({ field, value, onChange }) =>
     // Render as buttons + custom input at the end
     return (
       <FieldWrapper label={field.label} description={field.description} required={field.required}>
-        <div className="flex flex-wrap items-center gap-1 p-1 bg-slate-50/50 rounded-lg border border-transparent hover:border-slate-200 transition-colors">
+        <div className="flex flex-wrap items-center gap-1 p-1 bg-slate-50/50 rounded-lg border border-transparent hover:border-slate-200 -mt-1 -mx-1 transition-colors">
           {options.map((opt) => {
             const isSelected = safeValue === opt;
             return (
@@ -259,7 +259,7 @@ export const TagsField: React.FC<FieldProps> = ({ field, value, onChange }) => {
   if (useCompactMode) {
     return (
       <FieldWrapper label={field.label} description={field.description} required={field.required}>
-        <div className="flex flex-wrap items-center gap-1 p-1 bg-slate-50/50 rounded-lg border border-transparent hover:border-slate-200 transition-colors">
+        <div className="flex flex-wrap items-center gap-1 p-1 bg-slate-50/50 rounded-lg border border-transparent hover:border-slate-200 -mt-1 -mx-1 transition-colors">
           {displayOptions.map((opt) => {
             const isSelected = selectedTags.includes(opt);
             return (
