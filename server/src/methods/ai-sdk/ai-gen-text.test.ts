@@ -1,6 +1,7 @@
 import { readUIMessageStream, stepCountIs, tool } from 'ai';
 import { z } from 'zod';
 import { aiGenText, aiGenTextStream, aiHandleUIMsgMetadata, parseJsonFromText, prepareAiSdkRequest } from "./ai-gen-text";
+import { getQuizForm, quizFormSysPrompt } from "./aisdk-tools-sample";
 import _ from 'lodash';
 
 const weatherTool = tool({
@@ -107,7 +108,7 @@ describe('ai-gen-text', () => {
     }
   }, 30e3);
   
-  it.only('should handle tool calls in streaming response', async () => {
+  it('should handle tool calls in streaming response', async () => {
     // 使用 ai-sdk 的 tool 函数定义天气查询工具（weatherTool2 是生成器版本）
     
     // 调用AI生成文本流，指定工具
@@ -164,7 +165,7 @@ describe('ai-gen-text', () => {
     it('should handle GEMINI platform with thinking option for non-gemini-3', () => {
       const opts1 = {
         platform: 'GEMINI', model: 'gemini-flash-latest',
-        thinking: true, prompt: 'test prompt'
+        thinking: true, prompt: 'test prompt', stopWhen: stepCountIs(5),
       };
       const result1 = prepareAiSdkRequest(opts1);
       
@@ -271,4 +272,80 @@ describe('ai-gen-text', () => {
       expect(result.params.tools).toHaveProperty('get_weather');
     });
   });
+  
+  it.only('should generate quiz form using getQuizForm tool', async () => {
+    // 调用AI生成表单，使用quizFormSysPrompt和getQuizForm工具
+    const result = await aiGenText({
+      platform: 'OLLAMA', model: 'qwen3:4b-instruct',
+      prompt: quizFormSysPrompt + '\n\n请生成一个关于编程语言知识的小测验表单',
+      tools: { getQuizForm }
+    });
+    
+    console.log('Quiz form generation result:', result);
+    console.log('Steps:', result.steps?.map(s => s.content));
+    console.log('Tool calls:', result.toolCalls);
+    
+    // 检查是否有工具调用
+    expect(result).toHaveProperty('toolCalls');
+    if (result.toolCalls && result.toolCalls.length > 0) {
+      const toolCall = result.toolCalls[0];
+      // 检查是否调用了getQuizForm工具
+      expect(toolCall.toolName).toBe('getQuizForm');
+      
+      // 检查工具输入参数是否符合预期
+      const params = toolCall.input as any;
+      expect(params).toBeDefined();
+      expect(params).toHaveProperty('title');
+      expect(params).toHaveProperty('fields');
+      expect(Array.isArray(params?.fields)).toBeTruthy();
+      
+      // 检查表单字段是否包含预期的属性
+      if (params?.fields && params.fields.length > 0) {
+        const field = params.fields[0];
+        expect(field).toHaveProperty('key');
+        expect(field).toHaveProperty('label');
+        expect(field).toHaveProperty('type');
+        expect(field).toHaveProperty('options');
+      }
+    }
+  }, 30e3);
+  
+  it('should generate quiz form in streaming response', async () => {
+    // 调用AI生成表单流，使用quizFormSysPrompt和getQuizForm工具
+    const streamResult = aiGenTextStream({
+      platform: 'OLLAMA', model: 'qwen3:4b-instruct',
+      prompt: quizFormSysPrompt + '\n\n请生成一个关于前端开发的小测验表单',
+      tools: { getQuizForm },
+      stopWhen: stepCountIs(5),
+    });
+    
+    const uiMsgs = readUIMessageStream({ stream: streamResult.toUIMessageStream({ messageMetadata: aiHandleUIMsgMetadata }) });
+    let lastMsg: any = null;
+    
+    for await (const chunk of uiMsgs) {
+      console.log('UI message chunk:', chunk, _.last(chunk.parts));
+      lastMsg = chunk;
+    }
+    
+    console.log('Final UI message:', lastMsg);
+    console.log('Stream steps:', await streamResult.steps);
+    console.log('Stream content:', await streamResult.content);
+    console.log('Stream tool calls:', await streamResult.toolCalls);
+    
+    // 检查是否有工具调用
+    const toolCalls = await streamResult.toolCalls;
+    expect(Array.isArray(toolCalls)).toBeTruthy();
+    
+    if (toolCalls.length > 0) {
+      const toolCall = toolCalls[0];
+      // 检查是否调用了getQuizForm工具
+      expect(toolCall.toolName).toBe('getQuizForm');
+      
+      // 检查工具输入参数是否符合预期
+      const params = toolCall.input as any;
+      expect(params).toBeDefined();
+      expect(params).toHaveProperty('title');
+      expect(params).toHaveProperty('fields');
+    }
+  }, 30e3);
 })

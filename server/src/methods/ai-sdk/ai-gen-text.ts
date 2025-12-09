@@ -236,7 +236,7 @@ export function aiHandleUIMsgMetadata({ part }: { part: any }) {
   }
 }
 
-export function _pipeAiStreamResultToResponse(result: StreamTextResult<any,any> & { context?: Record<string, any> }, res: Response, metadata: any) {
+export function _pipeAiStreamResultToResponse(result: StreamTextResult<any,any> & { context?: Record<string, any> }, res: Response, _metadata: any) {
   // const { metadata } = result;
   const stream = createUIMessageStream({
     execute: async ({ writer }) => {

@@ -8,70 +8,100 @@ import type { FormField } from '@/components/ai-form/FormFields';
 // --- Simulation Data ---
 export type FormData = Record<string, any>;
 
-const PROJECT_MANAGEMENT_SCHEMA: FormField[] = [
-  {
-    key: 'title',
-    label: 'Task Title',
-    type: 'text',
-    description: 'A concise name for the task.',
-    options: ['Fix login bug', 'Update landing page', 'Refactor API', 'Write documentation'],
-    required: true,
-  },
-  {
-    key: 'priority',
-    label: 'Priority',
-    type: 'select',
-    description: 'How urgent is this task?',
-    options: ['Low', 'Medium', 'High', 'Critical'],
-    creatable: false,
-  },
-  {
-    key: 'assignees',
-    label: 'Assignees',
-    type: 'tags',
-    description: 'Who is responsible for this.',
-    options: ['Alice', 'Bob', 'Charlie', 'Dave', 'Eve'],
-  },
-  {
-    key: 'tags',
-    label: 'Labels',
-    type: 'tags',
-    description: 'Categorize this task.',
-    options: ['Bug', 'Feature', 'Documentation', 'Design', 'Backend', 'Frontend'],
-  }
-];
+// 表单配置类型定义
+export type FormSchema = {
+  title: string;
+  fields: FormField[];
+  submitLabel?: string;
+};
 
-const EVENT_PLANNING_SCHEMA: FormField[] = [
-  {
-    key: 'eventName',
-    label: 'Event Name',
-    type: 'text',
-    options: ['Team Building', 'Quarterly Review', 'Product Launch', 'Holiday Party'],
-    required: true,
-  },
-  {
-    key: 'venue',
-    label: 'Venue Type',
-    type: 'select',
-    options: ['Office HQ', 'Virtual (Zoom)', 'Conference Center', 'Restaurant'],
-    creatable: true,
-  },
-  {
-    key: 'requirements',
-    label: 'Requirements',
-    type: 'tags',
-    options: ['Catering', 'Projector', 'Sound System', 'Swag Bags', 'Recording'],
-  }
-];
+const PROJECT_MANAGEMENT_SCHEMA: FormSchema = {
+  title: '项目任务管理',
+  fields: [
+    {
+      key: 'title',
+      label: 'Task Title',
+      type: 'text',
+      description: 'A concise name for the task.',
+      options: ['Fix login bug', 'Update landing page', 'Refactor API', 'Write documentation'],
+      required: true,
+    },
+    {
+      key: 'priority',
+      label: 'Priority',
+      type: 'select',
+      description: 'How urgent is this task?',
+      options: ['Low', 'Medium', 'High', 'Critical'],
+      creatable: false,
+    },
+    {
+      key: 'assignees',
+      label: 'Assignees',
+      type: 'tags',
+      description: 'Who is responsible for this.',
+      options: ['Alice', 'Bob', 'Charlie', 'Dave', 'Eve'],
+    },
+    {
+      key: 'tags',
+      label: 'Labels',
+      type: 'tags',
+      description: 'Categorize this task.',
+      options: ['Bug', 'Feature', 'Documentation', 'Design', 'Backend', 'Frontend'],
+    }
+  ],
+  submitLabel: '创建任务'
+};
+
+const EVENT_PLANNING_SCHEMA: FormSchema = {
+  title: '活动策划',
+  fields: [
+    {
+      key: 'eventName',
+      label: 'Event Name',
+      type: 'text',
+      options: ['Team Building', 'Quarterly Review', 'Product Launch', 'Holiday Party'],
+      required: true,
+    },
+    {
+      key: 'venue',
+      label: 'Venue Type',
+      type: 'select',
+      options: ['Office HQ', 'Virtual (Zoom)', 'Conference Center', 'Restaurant'],
+      creatable: true,
+    },
+    {
+      key: 'requirements',
+      label: 'Requirements',
+      type: 'tags',
+      options: ['Catering', 'Projector', 'Sound System', 'Swag Bags', 'Recording'],
+    }
+  ],
+  submitLabel: '策划活动'
+};
+
+const PROGRAMMING_QUIZ_SCHEMA: FormSchema = {
+  title: '编程语言知识小测验',
+  fields: [
+    {
+      key: 'language',
+      label: '您想了解的编程语言',
+      description: '请选择您最感兴趣的编程语言',
+      required: true,
+      type: 'select',
+      options: ['Python', 'JavaScript', 'Java', 'C++', 'C#', 'Go', 'Ruby', 'Swift']
+    }
+  ],
+  submitLabel: '开始测试'
+};
 
 const AIFormDemoPage: React.FC = () => {
-  const [currentSchema, setCurrentSchema] = useState<FormField[]>(PROJECT_MANAGEMENT_SCHEMA);
+  const [currentSchema, setCurrentSchema] = useState<FormSchema>(PROJECT_MANAGEMENT_SCHEMA);
   const [formData, setFormData] = useState<FormData>({});
   const [isGenerating, setIsGenerating] = useState(false);
-  const [activeScenario, setActiveScenario] = useState<'project' | 'event'>('project');
+  const [activeScenario, setActiveScenario] = useState<'project' | 'event' | 'quiz'>('project');
   const [lastSubmitted, setLastSubmitted] = useState<FormData | null>(null);
 
-  const simulateAIGeneration = (scenario: 'project' | 'event') => {
+  const simulateAIGeneration = (scenario: 'project' | 'event' | 'quiz') => {
     setIsGenerating(true);
     setLastSubmitted(null);
     setFormData({}); // clear form
@@ -80,12 +110,14 @@ const AIFormDemoPage: React.FC = () => {
     setTimeout(() => {
       if (scenario === 'project') {
         setCurrentSchema(PROJECT_MANAGEMENT_SCHEMA);
-      } else {
+      } else if (scenario === 'event') {
         setCurrentSchema(EVENT_PLANNING_SCHEMA);
+      } else {
+        setCurrentSchema(PROGRAMMING_QUIZ_SCHEMA);
       }
       setActiveScenario(scenario);
       setIsGenerating(false);
-    }, 800);
+    }, 200);
   };
 
   const handleSubmit = (data: FormData) => {
@@ -128,7 +160,7 @@ const AIFormDemoPage: React.FC = () => {
                 )}
               >
                 <div className="flex justify-between items-center mb-1">
-                  <span className="font-medium text-slate-900">Project Task</span>
+                  <span className="font-medium text-slate-900">{PROJECT_MANAGEMENT_SCHEMA.title}</span>
                   {activeScenario === 'project' && !isGenerating && <span className="text-xs bg-indigo-200 text-indigo-800 px-2 py-0.5 rounded-full">Active</span>}
                 </div>
                 <p className="text-xs text-slate-500">Generates fields for tracking engineering tasks.</p>
@@ -145,10 +177,27 @@ const AIFormDemoPage: React.FC = () => {
                 )}
               >
                  <div className="flex justify-between items-center mb-1">
-                  <span className="font-medium text-slate-900">Event Planning</span>
+                  <span className="font-medium text-slate-900">{EVENT_PLANNING_SCHEMA.title}</span>
                   {activeScenario === 'event' && !isGenerating && <span className="text-xs bg-indigo-200 text-indigo-800 px-2 py-0.5 rounded-full">Active</span>}
                 </div>
                 <p className="text-xs text-slate-500">Generates fields for organizing company events.</p>
+              </button>
+
+              <button
+                onClick={() => simulateAIGeneration('quiz')}
+                disabled={isGenerating}
+                className={twMerge(
+                  "w-full text-left px-4 py-3 rounded-lg border transition-all relative overflow-hidden",
+                  activeScenario === 'quiz' 
+                    ? "bg-indigo-50 border-indigo-200 ring-1 ring-indigo-500" 
+                    : "bg-white border-slate-200 hover:border-indigo-300 hover:shadow-sm"
+                )}
+              >
+                 <div className="flex justify-between items-center mb-1">
+                  <span className="font-medium text-slate-900">{PROGRAMMING_QUIZ_SCHEMA.title}</span>
+                  {activeScenario === 'quiz' && !isGenerating && <span className="text-xs bg-indigo-200 text-indigo-800 px-2 py-0.5 rounded-full">Active</span>}
+                </div>
+                <p className="text-xs text-slate-500">生成编程语言知识小测验表单</p>
               </button>
             </div>
             
@@ -175,10 +224,14 @@ const AIFormDemoPage: React.FC = () => {
         {/* Right Column: The AI Form */}
         <div className="lg:col-span-8">
            <AIForm 
-             fields={currentSchema} 
-             isGenerating={isGenerating}
-             onChange={setFormData}
-             onSubmit={handleSubmit}
+              key={currentSchema.title}
+              title={currentSchema.title}
+              fields={currentSchema.fields} 
+              autoPickValue
+              isGenerating={isGenerating}
+              onChange={setFormData}
+              onSubmit={handleSubmit}
+              submitLabel={currentSchema.submitLabel}
            />
 
            {lastSubmitted && (
