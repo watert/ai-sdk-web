@@ -84,7 +84,7 @@ export const TextField: React.FC<FieldProps> = ({ field, value, onChange }) => {
     <FieldWrapper className='mb-1' label={field.label || field.key} description={field.description} required={field.required}>
       <input
         type="text"
-        className="block w-full rounded-lg border-slate-300 shadow-xs focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2 min-h-8 px-2 border bg-white transition-all"
+        className="block w-full rounded-lg border-slate-300 shadow-xs focus:border-indigo-500 sm:text-sm py-2 min-h-8 px-2 border bg-white transition-all"
         placeholder={field.placeholder || "Enter text..."}
         value={safeValue}
         onChange={(e) => onChange(e.target.value)}
@@ -128,10 +128,10 @@ export const SelectField: React.FC<FieldProps> = ({ field, value, onChange }) =>
                 type="button"
                 onClick={() => onChange(opt)}
                 className={twMerge(
-                  "px-2 py-0.5 min-h-8 rounded-md text-sm font-medium border transition-all shadow-xs",
+                  "px-2 py-0.5 min-h-8 rounded-md text-sm font-medium border border-slate-200 transition-all shadow-xs",
                   isSelected
-                    ? "bg-indigo-100 text-indigo-700 border-indigo-200 ring-1 ring-indigo-200"
-                    : "bg-white text-slate-600 border-slate-200 hover:border-indigo-300 hover:text-indigo-600"
+                    ? "bg-indigo-100 text-indigo-700 border-indigo-200"
+                    : "bg-white text-slate-600 hover:border-indigo-300 hover:text-indigo-600"
                 )}
               >
                 {opt}
@@ -144,7 +144,7 @@ export const SelectField: React.FC<FieldProps> = ({ field, value, onChange }) =>
              <input
                type="text"
                placeholder="Custom..."
-               className="text-xs min-h-8 block w-full rounded-md border-slate-200 shadow-xs focus:border-indigo-500 focus:ring-indigo-500 py-0.5 px-2 border bg-white"
+               className="text-xs min-h-8 block w-full rounded-md border-slate-200 shadow-xs focus:border-indigo-500 py-0.5 px-2 border bg-white"
                value={options.includes(safeValue) ? '' : safeValue}
                onChange={(e) => onChange(e.target.value)}
                onClick={(e) => e.stopPropagation()}
@@ -162,7 +162,7 @@ export const SelectField: React.FC<FieldProps> = ({ field, value, onChange }) =>
         {isCreatable ? (
           <input
              type="text"
-             className="block w-full rounded-lg border-slate-300 shadow-xs focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2 px-2 border bg-white pr-10"
+             className="block w-full rounded-lg border-slate-300 shadow-xs focus:border-indigo-500 sm:text-sm py-2 px-2 border bg-white pr-10"
              placeholder="Select or type..."
              value={safeValue}
              onChange={(e) => onChange(e.target.value)}
@@ -171,7 +171,7 @@ export const SelectField: React.FC<FieldProps> = ({ field, value, onChange }) =>
         ) : (
           <div className="relative">
             <select
-              className="block w-full appearance-none rounded-lg border-slate-300 shadow-xs focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2 px-2 border bg-white pr-10"
+              className="block w-full appearance-none rounded-lg border-slate-300 shadow-xs focus:border-indigo-500 sm:text-sm py-2 px-2 border bg-white pr-10"
               value={safeValue}
               onChange={(e) => onChange(e.target.value)}
             >
@@ -269,10 +269,10 @@ export const TagsField: React.FC<FieldProps> = ({ field, value, onChange }) => {
                 type="button"
                 onClick={() => toggleTag(opt)}
                 className={twMerge(
-                  "inline-flex items-center min-h-8 px-2 py-0.5 rounded-md text-sm font-medium border transition-all shadow-xs group",
+                  "inline-flex items-center min-h-8 px-2 py-0.5 rounded-md text-sm font-medium border border-slate-200 transition-all shadow-xs group",
                   isSelected
-                    ? "bg-indigo-100 text-indigo-700 border-indigo-200 ring-1 ring-indigo-200 hover:bg-orange-100 hover:text-orange-700 hover:border-orange-200 hover:ring-orange-200 cursor-pointer"
-                    : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:border-indigo-300 hover:text-indigo-600 cursor-pointer"
+                    ? "bg-indigo-100 text-indigo-700 border-indigo-200 hover:bg-orange-100 hover:text-orange-700 hover:border-orange-200 cursor-pointer"
+                    : "bg-white text-slate-600 hover:bg-slate-50 hover:border-indigo-300 hover:text-indigo-600 cursor-pointer"
                 )}
               >
                 {isSelected && (
@@ -291,7 +291,7 @@ export const TagsField: React.FC<FieldProps> = ({ field, value, onChange }) => {
              <input
                  type="text"
                  placeholder="Add custom..."
-                 className="block w-full min-h-8 text-xs rounded-md border-slate-200 shadow-xs focus:border-indigo-500 focus:ring-indigo-500 py-0.5 px-2 border bg-white"
+                 className="block w-full min-h-8 text-xs rounded-md border-slate-200 shadow-xs focus:border-indigo-500 py-0.5 px-2 border bg-white"
                  value={inputValue}
                  onChange={(e) => setInputValue(e.target.value)}
                  onKeyDown={handleKeyDown}
@@ -306,7 +306,7 @@ export const TagsField: React.FC<FieldProps> = ({ field, value, onChange }) => {
   // Standard Tags Mode
   return (
     <FieldWrapper label={field.label} description={field.description} required={field.required}>
-      <div className="min-h-[42px] block w-full rounded-lg border-slate-300 border bg-white p-1.5 shadow-xs focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 sm:text-sm">
+      <div className="min-h-[42px] block w-full rounded-lg border-slate-300 border bg-white p-1.5 shadow-xs focus-within:border-indigo-500 sm:text-sm">
         <div className="flex flex-wrap gap-1.5">
           {selectedTags.map(tag => (
             <div 

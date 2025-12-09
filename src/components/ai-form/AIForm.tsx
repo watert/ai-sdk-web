@@ -117,7 +117,7 @@ const AIForm: React.FC<AIFormProps> = ({
           {onSubmit && <div className="pt-1 mt-0 border-t border-slate-200 flex justify-start">
             <button
               type="submit"
-              className="inline-flex items-center px-3 py-1 min-h-8 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+              className="inline-flex items-center px-3 py-1 min-h-8 border border-indigo-500 text-sm font-medium rounded-lg shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none transition-colors"
             >
               {submitLabel}
             </button>
