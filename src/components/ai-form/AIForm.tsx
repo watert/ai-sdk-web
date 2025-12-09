@@ -1,9 +1,8 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect } from 'react';
 import z from 'zod';
 import { useForm, Controller } from 'react-hook-form';
-import { TextField, SelectField, TagsField, type FormField } from './FormFields';
-import { Loader2 } from 'lucide-react';
 import { twMerge } from 'tailwind-merge';
+import { TextField, SelectField, TagsField, type FormField } from './FormFields';
 
 
 // 基础字段属性
@@ -140,7 +139,7 @@ const AIForm: React.FC<AIFormProps> = ({
 
   if (!fields || fields.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-8 text-slate-400 border border-slate-200 rounded-lg bg-slate-50">
+      <div className="flex flex-col items-center justify-center h-8 text-slate-400 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800">
         <p>No fields defined.</p>
       </div>
     );
@@ -150,7 +149,7 @@ const AIForm: React.FC<AIFormProps> = ({
     <div className="">
       {title && (
         <div className="mb-2">
-          <h2 className="text-md font-bold text-slate-900 mb-1">{title}</h2>
+          <h2 className="text-md font-bold text-slate-900 dark:text-white mb-1">{title}</h2>
         </div>
       )}
       
@@ -178,11 +177,11 @@ const AIForm: React.FC<AIFormProps> = ({
             </div>
           ))}
 
-          {onSubmit && !streaming && <div className="pt-1 mt-0 border-t border-slate-200 flex justify-start">
+          {onSubmit && !streaming && <div className="pt-1 mt-0 border-t border-slate-200 dark:border-slate-700 flex justify-start">
             <button
               disabled={submitDisabled}
               type="submit"
-              className={twMerge("inline-flex items-center px-3 py-1 min-h-8 border border-indigo-500 text-sm font-medium rounded-lg shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none transition-colors", submitDisabled ? "cursor-not-allowed opacity-50" : "")}
+              className={twMerge("inline-flex items-center px-3 py-1 min-h-8 border border-indigo-500 dark:border-indigo-400 text-sm font-medium rounded-lg shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 dark:hover:bg-indigo-500 focus:outline-none transition-colors", submitDisabled ? "cursor-not-allowed opacity-50" : "")}
             >
               {/* {streaming && <Loader2 className="w-4 h-4 animate-spin text-white mr-2" />} */}
               {submitLabel}

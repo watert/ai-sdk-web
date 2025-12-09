@@ -29,18 +29,18 @@ const FieldWrapper: React.FC<{
 }> = ({ label, description, required, className, children }) => (
   <div className={twMerge("mb-0", className)}>
     <div className="flex flex-wrap items-baseline gap-1 mb-1">
-      <label className="text-sm font-semibold text-slate-700 whitespace-nowrap">
-        {label} {required && <span className="text-red-500">*</span>}
+      <label className="text-sm font-semibold text-slate-700 dark:text-slate-200 whitespace-nowrap">
+        {label} {required && <span className="text-red-500 dark:text-red-400">*</span>}
       </label>
       {description && (
-        <span className="text-xs text-slate-400 font-normal leading-tight">
+        <span className="text-xs text-slate-400 dark:text-slate-500 font-normal leading-tight">
           {description}
         </span>
       )}
     </div>
     {children}
   </div>
-);
+)
 
 const SuggestionChip: React.FC<{
   label: string;
@@ -53,14 +53,14 @@ const SuggestionChip: React.FC<{
     className={twMerge(
       "inline-flex items-center px-2 py-0.5 rounded-xl text-xs font-medium transition-colors border",
       isActive
-        ? "bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100"
-        : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50 hover:border-slate-300"
+        ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-800"
+        : "bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
     )}
   >
-    {isActive && <Check className="w-3 h-3 mr-1" />}
+    {isActive && <Check className="w-3 h-3 mr-1 text-indigo-600 dark:text-indigo-400" />}
     {label}
   </button>
-);
+)
 
 const SuggestionsContainer: React.FC<{ children: React.ReactNode, className?: string }> = ({ children, className }) => (
   <div className={twMerge("flex flex-wrap gap-1 mt-2", className)}>
@@ -84,7 +84,7 @@ export const TextField: React.FC<FieldProps> = ({ field, value, onChange }) => {
     <FieldWrapper className='mb-1' label={field.label || field.key} description={field.description} required={field.required}>
       <input
         type="text"
-        className="block w-full rounded-lg border-slate-300 shadow-xs focus:border-indigo-500 sm:text-sm py-2 min-h-8 px-2 border bg-white transition-all"
+        className="block w-full rounded-lg border-slate-300 dark:border-slate-600 shadow-xs focus:border-indigo-500 dark:focus:border-indigo-400 sm:text-sm py-2 min-h-8 px-2 border bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 transition-all"
         placeholder={field.placeholder || "Enter text..."}
         value={safeValue}
         onChange={(e) => onChange(e.target.value)}
@@ -104,7 +104,7 @@ export const TextField: React.FC<FieldProps> = ({ field, value, onChange }) => {
       )}
     </FieldWrapper>
   );
-};
+}
 
 // 2. Select Field
 export const SelectField: React.FC<FieldProps> = ({ field, value, onChange }) => {
@@ -119,7 +119,7 @@ export const SelectField: React.FC<FieldProps> = ({ field, value, onChange }) =>
     // Render as buttons + custom input at the end
     return (
       <FieldWrapper label={field.label} description={field.description} required={field.required}>
-        <div className="flex flex-wrap items-center gap-1 p-1 bg-slate-50/50 rounded-lg border border-transparent hover:border-slate-200 -mt-1 -mx-1 transition-colors">
+        <div className="flex flex-wrap items-center gap-1 p-1 bg-slate-50/50 dark:bg-slate-800/50 rounded-lg border border-transparent hover:border-slate-200 dark:hover:border-slate-700 -mt-1 -mx-1 transition-colors">
           {options.map((opt) => {
             const isSelected = safeValue === opt;
             return (
@@ -128,10 +128,10 @@ export const SelectField: React.FC<FieldProps> = ({ field, value, onChange }) =>
                 type="button"
                 onClick={() => onChange(opt)}
                 className={twMerge(
-                  "px-2 py-0.5 min-h-8 rounded-md text-sm font-medium border border-slate-200 transition-all shadow-xs",
+                  "px-2 py-0.5 min-h-8 rounded-md text-sm font-medium border border-slate-200 dark:border-slate-700 transition-all shadow-xs",
                   isSelected
-                    ? "bg-indigo-100 text-indigo-700 border-indigo-200"
-                    : "bg-white text-slate-600 hover:border-indigo-300 hover:text-indigo-600"
+                    ? "bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800"
+                    : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:border-indigo-300 dark:hover:border-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-400"
                 )}
               >
                 {opt}
@@ -144,7 +144,7 @@ export const SelectField: React.FC<FieldProps> = ({ field, value, onChange }) =>
              <input
                type="text"
                placeholder="Custom..."
-               className="text-xs min-h-8 block w-full rounded-md border-slate-200 shadow-xs focus:border-indigo-500 py-0.5 px-2 border bg-white"
+               className="text-xs min-h-8 block w-full rounded-md border-slate-200 dark:border-slate-600 shadow-xs focus:border-indigo-500 dark:focus:border-indigo-400 py-0.5 px-2 border bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500"
                value={options.includes(safeValue) ? '' : safeValue}
                onChange={(e) => onChange(e.target.value)}
                onClick={(e) => e.stopPropagation()}
@@ -162,7 +162,7 @@ export const SelectField: React.FC<FieldProps> = ({ field, value, onChange }) =>
         {isCreatable ? (
           <input
              type="text"
-             className="block w-full rounded-lg border-slate-300 shadow-xs focus:border-indigo-500 sm:text-sm py-2 px-2 border bg-white pr-10"
+             className="block w-full rounded-lg border-slate-300 dark:border-slate-600 shadow-xs focus:border-indigo-500 dark:focus:border-indigo-400 sm:text-sm py-2 px-2 border bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 pr-10"
              placeholder="Select or type..."
              value={safeValue}
              onChange={(e) => onChange(e.target.value)}
@@ -171,7 +171,7 @@ export const SelectField: React.FC<FieldProps> = ({ field, value, onChange }) =>
         ) : (
           <div className="relative">
             <select
-              className="block w-full appearance-none rounded-lg border-slate-300 shadow-xs focus:border-indigo-500 sm:text-sm py-2 px-2 border bg-white pr-10"
+              className="block w-full appearance-none rounded-lg border-slate-300 dark:border-slate-600 shadow-xs focus:border-indigo-500 dark:focus:border-indigo-400 sm:text-sm py-2 px-2 border bg-white dark:bg-slate-800 text-slate-900 dark:text-white pr-10"
               value={safeValue}
               onChange={(e) => onChange(e.target.value)}
             >
@@ -180,7 +180,7 @@ export const SelectField: React.FC<FieldProps> = ({ field, value, onChange }) =>
                 <option key={opt} value={opt}>{opt}</option>
               ))}
             </select>
-            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500">
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500 dark:text-slate-400">
               <ChevronDown className="h-4 w-4" />
             </div>
           </div>
@@ -194,7 +194,7 @@ export const SelectField: React.FC<FieldProps> = ({ field, value, onChange }) =>
 
       {!useCompactMode && options.length > 0 && (
         <SuggestionsContainer>
-          <span className="text-xs text-slate-400 self-center mr-1">Suggestions:</span>
+          <span className="text-xs text-slate-400 dark:text-slate-500 self-center mr-1">Suggestions:</span>
           {options.slice(0, 5).map((opt) => (
             <SuggestionChip
               key={opt}
@@ -207,7 +207,8 @@ export const SelectField: React.FC<FieldProps> = ({ field, value, onChange }) =>
       )}
     </FieldWrapper>
   );
-};
+}
+
 
 // 3. Tags Field
 export const TagsField: React.FC<FieldProps> = ({ field, value, onChange }) => {
@@ -260,7 +261,7 @@ export const TagsField: React.FC<FieldProps> = ({ field, value, onChange }) => {
   if (useCompactMode) {
     return (
       <FieldWrapper label={field.label} description={field.description} required={field.required}>
-        <div className="flex flex-wrap items-center gap-1 p-1 bg-slate-50/50 rounded-lg border border-transparent hover:border-slate-200 -mt-1 -mx-1 transition-colors">
+        <div className="flex flex-wrap items-center gap-1 p-1 bg-slate-50/50 dark:bg-slate-800/50 rounded-lg border border-transparent hover:border-slate-200 dark:hover:border-slate-700 -mt-1 -mx-1 transition-colors">
           {displayOptions.map((opt) => {
             const isSelected = selectedTags.includes(opt);
             return (
@@ -269,19 +270,19 @@ export const TagsField: React.FC<FieldProps> = ({ field, value, onChange }) => {
                 type="button"
                 onClick={() => toggleTag(opt)}
                 className={twMerge(
-                  "inline-flex items-center min-h-8 px-2 py-0.5 rounded-md text-sm font-medium border border-slate-200 transition-all shadow-xs group",
+                  "inline-flex items-center min-h-8 px-2 py-0.5 rounded-md text-sm font-medium border border-slate-200 dark:border-slate-700 transition-all shadow-xs group",
                   isSelected
-                    ? "bg-indigo-100 text-indigo-700 border-indigo-200 hover:bg-orange-100 hover:text-orange-700 hover:border-orange-200 cursor-pointer"
-                    : "bg-white text-slate-600 hover:bg-slate-50 hover:border-indigo-300 hover:text-indigo-600 cursor-pointer"
+                    ? "bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800 hover:bg-orange-100 dark:hover:bg-orange-900/30 hover:text-orange-700 dark:hover:text-orange-300 hover:border-orange-200 dark:hover:border-orange-800 cursor-pointer"
+                    : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 hover:border-indigo-300 dark:hover:border-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer"
                 )}
               >
                 {isSelected && (
                   <div className="relative">
-                    <Check className="w-3.5 h-3.5 mr-1.5 transition-opacity group-hover:opacity-0" />
-                    <X className="w-3.5 h-3.5 mr-1.5 absolute inset-0 text-orange-600 opacity-0 transition-opacity group-hover:opacity-100" />
+                    <Check className="w-3.5 h-3.5 mr-1.5 text-indigo-600 dark:text-indigo-400 transition-opacity group-hover:opacity-0" />
+                    <X className="w-3.5 h-3.5 mr-1.5 absolute inset-0 text-orange-600 dark:text-orange-400 opacity-0 transition-opacity group-hover:opacity-100" />
                   </div>
                 )}
-                {!isSelected && <Plus className="w-3.5 h-3.5 mr-1.5 text-slate-400" />}
+                {!isSelected && <Plus className="w-3.5 h-3.5 mr-1.5 text-slate-400 dark:text-slate-500" />}
                  {opt}
               </button>
             );
@@ -291,7 +292,7 @@ export const TagsField: React.FC<FieldProps> = ({ field, value, onChange }) => {
              <input
                  type="text"
                  placeholder="Add custom..."
-                 className="block w-full min-h-8 text-xs rounded-md border-slate-200 shadow-xs focus:border-indigo-500 py-0.5 px-2 border bg-white"
+                 className="block w-full min-h-8 text-xs rounded-md border-slate-200 dark:border-slate-600 shadow-xs focus:border-indigo-500 dark:focus:border-indigo-400 py-0.5 px-2 border bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500"
                  value={inputValue}
                  onChange={(e) => setInputValue(e.target.value)}
                  onKeyDown={handleKeyDown}
@@ -306,18 +307,18 @@ export const TagsField: React.FC<FieldProps> = ({ field, value, onChange }) => {
   // Standard Tags Mode
   return (
     <FieldWrapper label={field.label} description={field.description} required={field.required}>
-      <div className="min-h-[42px] block w-full rounded-lg border-slate-300 border bg-white p-1.5 shadow-xs focus-within:border-indigo-500 sm:text-sm">
+      <div className="min-h-[42px] block w-full rounded-lg border-slate-300 dark:border-slate-600 border bg-white dark:bg-slate-800 p-1.5 shadow-xs focus-within:border-indigo-500 dark:focus-within:border-indigo-400 sm:text-sm">
         <div className="flex flex-wrap gap-1.5">
           {selectedTags.map(tag => (
             <div 
               key={tag} 
-              className="inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-indigo-100 text-indigo-800 animate-fadeIn hover:bg-orange-100 hover:text-orange-800 cursor-pointer transition-colors"
+              className="inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300 animate-fadeIn hover:bg-orange-100 dark:hover:bg-orange-900/30 hover:text-orange-800 dark:hover:text-orange-300 cursor-pointer transition-colors"
             >
               {tag}
               <button
                 type="button"
                 onClick={() => handleRemoveTag(tag)}
-                className="ml-1.5 text-indigo-600 hover:text-orange-600 focus:outline-none"
+                className="ml-1.5 text-indigo-600 dark:text-indigo-400 hover:text-orange-600 dark:hover:text-orange-400 focus:outline-none"
               >
                 <X className="h-3.5 w-3.5 opacity-0 hover:opacity-100 transition-opacity" />
               </button>
@@ -325,7 +326,7 @@ export const TagsField: React.FC<FieldProps> = ({ field, value, onChange }) => {
           ))}
           <input
             type="text"
-            className="flex-1 min-w-[100px] bg-transparent border-none p-1.5 focus:ring-0 text-sm focus:outline-none placeholder:text-slate-400"
+            className="flex-1 min-w-[100px] bg-transparent border-none p-1.5 focus:ring-0 text-sm focus:outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500 text-slate-900 dark:text-white"
             placeholder={selectedTags.length === 0 ? "Add tags..." : ""}
             value={inputValue}
             onChange={e => setInputValue(e.target.value)}
@@ -337,7 +338,7 @@ export const TagsField: React.FC<FieldProps> = ({ field, value, onChange }) => {
 
       {definedOptions.length > 0 && (
         <SuggestionsContainer>
-          <span className="text-xs text-slate-400 self-center mr-1">Popular:</span>
+          <span className="text-xs text-slate-400 dark:text-slate-500 self-center mr-1">Popular:</span>
           {definedOptions.map((opt) => {
              const isSelected = selectedTags.includes(opt);
              return (
@@ -348,17 +349,17 @@ export const TagsField: React.FC<FieldProps> = ({ field, value, onChange }) => {
                 className={twMerge(
                   "inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium transition-colors border group",
                   isSelected
-                    ? "bg-slate-100 text-slate-400 border-slate-200 cursor-pointer line-through hover:bg-orange-100 hover:text-orange-700 hover:border-orange-200 hover:line-through"
-                    : "bg-white text-slate-600 border-slate-200 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200"
+                    ? "bg-slate-100 dark:bg-slate-700 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-600 cursor-pointer line-through hover:bg-orange-100 dark:hover:bg-orange-900/30 hover:text-orange-700 dark:hover:text-orange-300 hover:border-orange-200 dark:hover:border-orange-800 hover:line-through"
+                    : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 hover:text-emerald-700 dark:hover:text-emerald-300 hover:border-emerald-200 dark:hover:border-emerald-800"
                 )}
               >
                 {isSelected && (
                   <div className="relative">
-                    <Check className="w-3 h-3 mr-1 transition-opacity group-hover:opacity-0" />
-                    <X className="w-3 h-3 mr-1 absolute inset-0 text-orange-600 opacity-0 transition-opacity group-hover:opacity-100" />
+                    <Check className="w-3 h-3 mr-1 text-indigo-600 dark:text-indigo-400 transition-opacity group-hover:opacity-0" />
+                    <X className="w-3 h-3 mr-1 absolute inset-0 text-orange-600 dark:text-orange-400 opacity-0 transition-opacity group-hover:opacity-100" />
                   </div>
                 )}
-                {!isSelected && <Plus className="w-3 h-3 mr-1" />}
+                {!isSelected && <Plus className="w-3 h-3 mr-1 text-slate-400 dark:text-slate-500" />}
                 {opt}
               </button>
             );
