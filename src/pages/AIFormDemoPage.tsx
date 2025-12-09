@@ -152,14 +152,11 @@ const AIFormDemoPage: React.FC = () => {
               </button>
             </div>
             
-            <div className="mt-6 pt-4 border-t border-slate-100">
-              <button 
-                onClick={() => simulateAIGeneration(activeScenario)}
-                className="w-full flex items-center justify-center gap-2 text-sm text-slate-600 hover:text-indigo-600 transition-colors"
-              >
-                <RefreshCcw className={twMerge("w-4 h-4", isGenerating && "animate-spin")} />
-                Regenerate Schema
-              </button>
+            <div className='mt-4'>
+
+              <AIForm fields={[
+                { key: 'prompt', type: 'text', options: ['Bug Report', 'Customer Feedback', 'Event Registration']}
+              ]} />
             </div>
           </div>
 

@@ -6,7 +6,7 @@ export type FormFieldType = 'text' | 'select' | 'tags';
 
 export interface FormField {
   key: string;
-  label: string;
+  label?: string;
   type: FormFieldType;
   description?: string;
   placeholder?: string;
@@ -21,13 +21,13 @@ export interface FormField {
 // --- Shared Components ---
 
 const FieldWrapper: React.FC<{
-  label: string;
+  label?: string;
   description?: string;
   required?: boolean;
   children: React.ReactNode;
 }> = ({ label, description, required, children }) => (
-  <div className="mb-4">
-    <div className="flex flex-wrap items-baseline gap-2 mb-1.5">
+  <div className="mb-0">
+    <div className="flex flex-wrap items-baseline gap-1 mb-1.5">
       <label className="text-sm font-semibold text-slate-700 whitespace-nowrap">
         {label} {required && <span className="text-red-500">*</span>}
       </label>
@@ -50,7 +50,7 @@ const SuggestionChip: React.FC<{
     type="button"
     onClick={onClick}
     className={twMerge(
-      "inline-flex items-center px-2 py-1 rounded-md text-xs font-medium transition-colors border",
+      "inline-flex items-center px-2 py-0.5 rounded-xl text-xs font-medium transition-colors border",
       isActive
         ? "bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100"
         : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50 hover:border-slate-300"
@@ -61,8 +61,8 @@ const SuggestionChip: React.FC<{
   </button>
 );
 
-const SuggestionsContainer: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="flex flex-wrap gap-2 mt-2">
+const SuggestionsContainer: React.FC<{ children: React.ReactNode, className?: string }> = ({ children, className }) => (
+  <div className={twMerge("flex flex-wrap gap-1 mt-2", className)}>
     {children}
   </div>
 );
@@ -80,17 +80,17 @@ export const TextField: React.FC<FieldProps> = ({ field, value, onChange }) => {
   const safeValue = (value as string) || '';
 
   return (
-    <FieldWrapper label={field.label} description={field.description} required={field.required}>
+    <FieldWrapper label={field.label || field.key} description={field.description} required={field.required}>
       <input
         type="text"
-        className="block w-full rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2 px-3 border bg-white transition-all"
+        className="block w-full rounded-lg border-slate-300 shadow-xs focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2 min-h-8 px-2 border bg-white transition-all"
         placeholder={field.placeholder || "Enter text..."}
         value={safeValue}
         onChange={(e) => onChange(e.target.value)}
       />
       {field.options && field.options.length > 0 && (
-        <SuggestionsContainer>
-          <span className="text-xs text-slate-400 self-center mr-1">Quick pick:</span>
+        <SuggestionsContainer className='mt-1'>
+          {/* <span className="text-xs text-slate-400 self-center mr-1">Quick pick:</span> */}
           {field.options.map((opt) => (
             <SuggestionChip
               key={opt}
@@ -118,7 +118,7 @@ export const SelectField: React.FC<FieldProps> = ({ field, value, onChange }) =>
     // Render as buttons + custom input at the end
     return (
       <FieldWrapper label={field.label} description={field.description} required={field.required}>
-        <div className="flex flex-wrap items-center gap-2 p-1 bg-slate-50/50 rounded-lg border border-transparent hover:border-slate-200 transition-colors">
+        <div className="flex flex-wrap items-center gap-1 p-1 bg-slate-50/50 rounded-lg border border-transparent hover:border-slate-200 transition-colors">
           {options.map((opt) => {
             const isSelected = safeValue === opt;
             return (
@@ -127,7 +127,7 @@ export const SelectField: React.FC<FieldProps> = ({ field, value, onChange }) =>
                 type="button"
                 onClick={() => onChange(opt)}
                 className={twMerge(
-                  "px-3 py-1.5 rounded-md text-sm font-medium border transition-all shadow-sm",
+                  "px-2 py-0.5 min-h-8 rounded-md text-sm font-medium border transition-all shadow-xs",
                   isSelected
                     ? "bg-indigo-600 text-white border-indigo-600 ring-1 ring-indigo-600"
                     : "bg-white text-slate-600 border-slate-200 hover:border-indigo-300 hover:text-indigo-600"
@@ -143,7 +143,7 @@ export const SelectField: React.FC<FieldProps> = ({ field, value, onChange }) =>
              <input
                type="text"
                placeholder="Custom..."
-               className="block w-full rounded-md border-slate-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-1.5 px-3 border bg-white"
+               className="text-xs min-h-8 block w-full rounded-md border-slate-200 shadow-xs focus:border-indigo-500 focus:ring-indigo-500 py-0.5 px-2 border bg-white"
                value={options.includes(safeValue) ? '' : safeValue}
                onChange={(e) => onChange(e.target.value)}
                onClick={(e) => e.stopPropagation()}
@@ -161,7 +161,7 @@ export const SelectField: React.FC<FieldProps> = ({ field, value, onChange }) =>
         {isCreatable ? (
           <input
              type="text"
-             className="block w-full rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2 px-3 border bg-white pr-10"
+             className="block w-full rounded-lg border-slate-300 shadow-xs focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2 px-2 border bg-white pr-10"
              placeholder="Select or type..."
              value={safeValue}
              onChange={(e) => onChange(e.target.value)}
@@ -170,7 +170,7 @@ export const SelectField: React.FC<FieldProps> = ({ field, value, onChange }) =>
         ) : (
           <div className="relative">
             <select
-              className="block w-full appearance-none rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2 px-3 border bg-white pr-10"
+              className="block w-full appearance-none rounded-lg border-slate-300 shadow-xs focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2 px-2 border bg-white pr-10"
               value={safeValue}
               onChange={(e) => onChange(e.target.value)}
             >
@@ -259,7 +259,7 @@ export const TagsField: React.FC<FieldProps> = ({ field, value, onChange }) => {
   if (useCompactMode) {
     return (
       <FieldWrapper label={field.label} description={field.description} required={field.required}>
-        <div className="flex flex-wrap items-center gap-2 p-1 bg-slate-50/50 rounded-lg border border-transparent hover:border-slate-200 transition-colors">
+        <div className="flex flex-wrap items-center gap-1 p-1 bg-slate-50/50 rounded-lg border border-transparent hover:border-slate-200 transition-colors">
           {displayOptions.map((opt) => {
             const isSelected = selectedTags.includes(opt);
             return (
@@ -268,7 +268,7 @@ export const TagsField: React.FC<FieldProps> = ({ field, value, onChange }) => {
                 type="button"
                 onClick={() => toggleTag(opt)}
                 className={twMerge(
-                  "inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium border transition-all shadow-sm",
+                  "inline-flex items-center min-h-8 px-2 py-0.5 rounded-md text-sm font-medium border transition-all shadow-xs",
                   isSelected
                     ? "bg-indigo-100 text-indigo-700 border-indigo-200 ring-1 ring-indigo-200"
                     : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:border-indigo-300 hover:text-indigo-600"
@@ -284,7 +284,7 @@ export const TagsField: React.FC<FieldProps> = ({ field, value, onChange }) => {
              <input
                  type="text"
                  placeholder="Add custom..."
-                 className="block w-full rounded-md border-slate-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-1.5 px-3 border bg-white"
+                 className="block w-full min-h-8 text-xs rounded-md border-slate-200 shadow-xs focus:border-indigo-500 focus:ring-indigo-500 py-0.5 px-2 border bg-white"
                  value={inputValue}
                  onChange={(e) => setInputValue(e.target.value)}
                  onKeyDown={handleKeyDown}
@@ -299,10 +299,10 @@ export const TagsField: React.FC<FieldProps> = ({ field, value, onChange }) => {
   // Standard Tags Mode
   return (
     <FieldWrapper label={field.label} description={field.description} required={field.required}>
-      <div className="min-h-[42px] block w-full rounded-lg border-slate-300 border bg-white p-1.5 shadow-sm focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 sm:text-sm">
+      <div className="min-h-[42px] block w-full rounded-lg border-slate-300 border bg-white p-1.5 shadow-xs focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 sm:text-sm">
         <div className="flex flex-wrap gap-1.5">
           {selectedTags.map(tag => (
-            <span key={tag} className="inline-flex items-center px-2.5 py-1 rounded-md text-sm font-medium bg-indigo-100 text-indigo-800 animate-fadeIn">
+            <span key={tag} className="inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-indigo-100 text-indigo-800 animate-fadeIn">
               {tag}
               <button
                 type="button"
@@ -336,7 +336,7 @@ export const TagsField: React.FC<FieldProps> = ({ field, value, onChange }) => {
                 type="button"
                 onClick={() => toggleTag(opt)}
                 className={twMerge(
-                  "inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium transition-colors border",
+                  "inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium transition-colors border",
                   isSelected
                     ? "bg-slate-100 text-slate-400 border-slate-200 cursor-default line-through"
                     : "bg-white text-slate-600 border-slate-200 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200"

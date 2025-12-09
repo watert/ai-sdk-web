@@ -81,36 +81,38 @@ const AIForm: React.FC<AIFormProps> = ({
 
   return (
     <form onSubmit={handleSubmit(onSubmit || (() => {}))} className="space-y-1">
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+      <div className="">
         {fields.map((field) => (
-          <Controller
-            key={field.key}
-            name={field.key}
-            control={control}
-            rules={{ required: field.required }}
-            render={({ field: { onChange, value } }) => {
-              switch (field.type) {
-                case 'text':
-                  return <TextField field={field} value={value} onChange={onChange} />;
-                case 'select':
-                  return <SelectField field={field} value={value} onChange={onChange} />;
-                case 'tags':
-                  return <TagsField field={field} value={value} onChange={onChange} />;
-                default:
-                  return <div className="text-red-500 text-xs">Unknown field type: {field.type}</div>;
-              }
-            }}
-          />
+          <div className='mb-2'>
+            <Controller
+              key={field.key}
+              name={field.key}
+              control={control}
+              rules={{ required: field.required }}
+              render={({ field: { onChange, value } }) => {
+                switch (field.type) {
+                  case 'text':
+                    return <TextField field={field} value={value} onChange={onChange} />;
+                  case 'select':
+                    return <SelectField field={field} value={value} onChange={onChange} />;
+                  case 'tags':
+                    return <TagsField field={field} value={value} onChange={onChange} />;
+                  default:
+                    return <div className="text-red-500 text-xs">Unknown field type: {field.type}</div>;
+                }
+              }}
+            />
+          </div>
         ))}
 
-        <div className="pt-4 mt-6 border-t border-slate-100 flex justify-end">
+        {onSubmit && <div className="pt-2 mt-2 border-t border-slate-100 flex justify-start">
           <button
             type="submit"
-            className="inline-flex items-center px-5 py-2.5 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+            className="inline-flex items-center px-3 py-1 min-h-9 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
           >
             Submit Form
           </button>
-        </div>
+        </div>}
       </div>
     </form>
   );
