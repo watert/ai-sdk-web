@@ -90,7 +90,7 @@ const AIForm: React.FC<AIFormProps> = ({
       )}
       
       <form onSubmit={handleSubmit(onSubmit || (() => {}))} className="space-y-1">
-        <div className="flex flex-col gap-y-2">
+        <div className="flex flex-col gap-y-1">
           {fields.map((field) => (
             <div className=''>
               <Controller
@@ -114,7 +114,7 @@ const AIForm: React.FC<AIFormProps> = ({
             </div>
           ))}
 
-          {onSubmit && <div className="pt-2 mt-2 border-t border-slate-100 flex justify-start">
+          {onSubmit && <div className="pt-1 mt-0 border-t border-slate-200 flex justify-start">
             <button
               type="submit"
               className="inline-flex items-center px-3 py-1 min-h-8 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"

@@ -24,9 +24,10 @@ const FieldWrapper: React.FC<{
   label?: string;
   description?: string;
   required?: boolean;
+  className?: string;
   children: React.ReactNode;
-}> = ({ label, description, required, children }) => (
-  <div className="mb-0">
+}> = ({ label, description, required, className, children }) => (
+  <div className={twMerge("mb-0", className)}>
     <div className="flex flex-wrap items-baseline gap-1 mb-1">
       <label className="text-sm font-semibold text-slate-700 whitespace-nowrap">
         {label} {required && <span className="text-red-500">*</span>}
@@ -80,7 +81,7 @@ export const TextField: React.FC<FieldProps> = ({ field, value, onChange }) => {
   const safeValue = (value as string) || '';
 
   return (
-    <FieldWrapper label={field.label || field.key} description={field.description} required={field.required}>
+    <FieldWrapper className='mb-1' label={field.label || field.key} description={field.description} required={field.required}>
       <input
         type="text"
         className="block w-full rounded-lg border-slate-300 shadow-xs focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2 min-h-8 px-2 border bg-white transition-all"
@@ -268,13 +269,19 @@ export const TagsField: React.FC<FieldProps> = ({ field, value, onChange }) => {
                 type="button"
                 onClick={() => toggleTag(opt)}
                 className={twMerge(
-                  "inline-flex items-center min-h-8 px-2 py-0.5 rounded-md text-sm font-medium border transition-all shadow-xs",
+                  "inline-flex items-center min-h-8 px-2 py-0.5 rounded-md text-sm font-medium border transition-all shadow-xs group",
                   isSelected
-                    ? "bg-indigo-100 text-indigo-700 border-indigo-200 ring-1 ring-indigo-200"
-                    : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:border-indigo-300 hover:text-indigo-600"
+                    ? "bg-indigo-100 text-indigo-700 border-indigo-200 ring-1 ring-indigo-200 hover:bg-orange-100 hover:text-orange-700 hover:border-orange-200 hover:ring-orange-200 cursor-pointer"
+                    : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:border-indigo-300 hover:text-indigo-600 cursor-pointer"
                 )}
               >
-                 {isSelected ? <Check className="w-3.5 h-3.5 mr-1.5" /> : <Plus className="w-3.5 h-3.5 mr-1.5 text-slate-400" />}
+                {isSelected && (
+                  <div className="relative">
+                    <Check className="w-3.5 h-3.5 mr-1.5 transition-opacity group-hover:opacity-0" />
+                    <X className="w-3.5 h-3.5 mr-1.5 absolute inset-0 text-orange-600 opacity-0 transition-opacity group-hover:opacity-100" />
+                  </div>
+                )}
+                {!isSelected && <Plus className="w-3.5 h-3.5 mr-1.5 text-slate-400" />}
                  {opt}
               </button>
             );
@@ -302,16 +309,19 @@ export const TagsField: React.FC<FieldProps> = ({ field, value, onChange }) => {
       <div className="min-h-[42px] block w-full rounded-lg border-slate-300 border bg-white p-1.5 shadow-xs focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 sm:text-sm">
         <div className="flex flex-wrap gap-1.5">
           {selectedTags.map(tag => (
-            <span key={tag} className="inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-indigo-100 text-indigo-800 animate-fadeIn">
+            <div 
+              key={tag} 
+              className="inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-indigo-100 text-indigo-800 animate-fadeIn hover:bg-orange-100 hover:text-orange-800 cursor-pointer transition-colors"
+            >
               {tag}
               <button
                 type="button"
                 onClick={() => handleRemoveTag(tag)}
-                className="ml-1.5 text-indigo-600 hover:text-indigo-900 focus:outline-none"
+                className="ml-1.5 text-indigo-600 hover:text-orange-600 focus:outline-none"
               >
-                <X className="h-3.5 w-3.5" />
+                <X className="h-3.5 w-3.5 opacity-0 hover:opacity-100 transition-opacity" />
               </button>
-            </span>
+            </div>
           ))}
           <input
             type="text"
@@ -336,13 +346,19 @@ export const TagsField: React.FC<FieldProps> = ({ field, value, onChange }) => {
                 type="button"
                 onClick={() => toggleTag(opt)}
                 className={twMerge(
-                  "inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium transition-colors border",
+                  "inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium transition-colors border group",
                   isSelected
-                    ? "bg-slate-100 text-slate-400 border-slate-200 cursor-default line-through"
+                    ? "bg-slate-100 text-slate-400 border-slate-200 cursor-pointer line-through hover:bg-orange-100 hover:text-orange-700 hover:border-orange-200 hover:line-through"
                     : "bg-white text-slate-600 border-slate-200 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200"
                 )}
               >
-                {isSelected ? <Check className="w-3 h-3 mr-1" /> : <Plus className="w-3 h-3 mr-1" />}
+                {isSelected && (
+                  <div className="relative">
+                    <Check className="w-3 h-3 mr-1 transition-opacity group-hover:opacity-0" />
+                    <X className="w-3 h-3 mr-1 absolute inset-0 text-orange-600 opacity-0 transition-opacity group-hover:opacity-100" />
+                  </div>
+                )}
+                {!isSelected && <Plus className="w-3 h-3 mr-1" />}
                 {opt}
               </button>
             );
