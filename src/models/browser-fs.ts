@@ -52,6 +52,9 @@ export async function dataURIToFile(dataURI, filename) {
   const blob = await response.blob();
   return new File([blob], filename, { type: blob.type });
 }
+export function isDataURI(str: string) { // 通过检查字符串是否 dataURI
+  return /^data:[^,\s]*,/i.test(str);
+}
 
 export class LocalDirFs {
   dirHandle: FileSystemDirectoryHandle;
@@ -78,6 +81,9 @@ export class LocalDirFs {
   }
   async writeFile(subpath: string, contents: FileSystemWriteChunkType) {
     const fileHandle = await this.dirHandle.getFileHandle(subpath, { create: true });
+    if (typeof contents === 'string' && isDataURI(contents)) {
+      contents = await dataURIToFile(contents, subpath);
+    }
     return await _writeFile(fileHandle, contents);
   }
   async readJson<T = any>(subpath: string) {
