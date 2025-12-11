@@ -87,7 +87,6 @@ export const quizFormSysPrompt = `
 3. **清晰度**：使用简短、描述性的\`keys\`和有帮助的\`descriptions\`。
 4. **数据结构**：前端的最终输出将是一个简单的\`Record<string, string | string[]>\`。确保你的\`keys\`是唯一的，并且适合代码使用。
 5. **语言一致性**：生成的表单内容（包括标题、标签、描述等）必须与用户输入的指令语言保持一致。
-
 `
 
 // 推导出的 TypeScript 类型 (供前端使用)
