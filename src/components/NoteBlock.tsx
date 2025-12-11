@@ -39,17 +39,17 @@ export const IDEA_TYPE_LABELS: Record<IdeaType, string> = {
 
 interface NoteBlockCardProps {
   block: Partial<NoteBlock>; // Partial because it might be streaming/incomplete
-  conversationId: string;
-  messageId: string;
-  index: number;
-  onAction: (block: NoteBlock, action: string) => void;
+  conversationId?: string;
+  messageId?: string;
+  index?: number;
+  onAction?: (block: NoteBlock, action: string) => void;
 }
 
 const NoteBlockCard: React.FC<NoteBlockCardProps> = ({ 
   block, 
-  conversationId, 
-  messageId, 
-  index, 
+  conversationId = 'UNKNOWN', 
+  messageId = 'UNKNOWN', 
+  index = 0, 
   onAction 
 }) => {
   const [saved, setSaved] = useState(false);
@@ -128,19 +128,19 @@ const NoteBlockCard: React.FC<NoteBlockCardProps> = ({
   const handleCustomActionSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (customAction.trim()) {
-        onAction(getFullBlock(), customAction);
+        onAction?.(getFullBlock(), customAction);
         setShowPopover(false);
         setCustomAction('');
     }
   };
 
   const handleCreateArticle = () => {
-      onAction(getFullBlock(), 'CREATE_ARTICLE');
+      onAction?.(getFullBlock(), 'CREATE_ARTICLE');
       setShowPopover(false);
   };
 
   const handleCreateXiaohongshu = () => {
-      onAction(getFullBlock(), 'CREATE_XIAOHONGSHU');
+      onAction?.(getFullBlock(), 'CREATE_XIAOHONGSHU');
       setShowPopover(false);
   };
 
@@ -190,7 +190,7 @@ const NoteBlockCard: React.FC<NoteBlockCardProps> = ({
           {block.actions && block.actions.map((action, i) => (
             <button
               key={i}
-              onClick={() => onAction(getFullBlock(), action)}
+              onClick={() => onAction?.(getFullBlock(), action)}
               className="group/btn flex items-center gap-1 text-[10px] font-medium bg-white text-gray-600 hover:text-blue-600 px-2 py-1 rounded-md border border-gray-200 hover:border-blue-200 hover:bg-blue-50 transition-all shadow-sm"
             >
               <Zap size={10} className="text-amber-400 group-hover/btn:text-blue-500 transition-colors" />

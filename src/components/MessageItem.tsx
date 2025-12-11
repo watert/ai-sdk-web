@@ -127,32 +127,28 @@ const FileAttachment: React.FC<{ part: any }> = ({ part }) => {
 
 
 // --- Custom bubble content for assistant messages --- 
-const AssistantBubbleContent: React.FC<{ renderTool?: renderToolFunc, streaming?: boolean; message: ExtendedUIMessage }> = ({ renderTool, streaming, message }) => {
-  // Determine content to render
+const AssistantBubbleContent: React.FC<{
+  renderTool?: renderToolFunc, renderJsonBlock?: renderJsonBlockFunc, index?: number, streaming?: boolean; message: ExtendedUIMessage }> = ({
+    renderTool, renderJsonBlock, index: messageIndex = 0, streaming = false, message
+  }) => {
   let renderParts: MessagePart[] = message.parts || [];
-  // if (renderParts.length === 0 && message.content) {
-  //   renderParts = [{ type: 'text', text: message.content }];
-  // }
-
   return (
     <div className="flex flex-col gap-1">
-      {renderParts.map((part, index) => {
+      {renderParts.map((part, partIndex) => {
         if (part.type === 'text') {
-          return <MarkdownRenderer key={index} text={part.text} />;
+          const _renderJsonBlock = (json) => renderJsonBlock?.(json, {message, part, streaming, messageIndex, partIndex });
+          return <MarkdownRenderer renderJsonBlock={_renderJsonBlock} key={partIndex} text={part.text} />;
         }
         if (part.type === 'reasoning') {
-          return <ReasoningBlock key={index} part={part} />;
+          return <ReasoningBlock key={messageIndex} part={part} />;
         }
-        // if (part.type === 'tool-call') {
-        //   return <ToolCallBlock key={index} part={part} />;
-        // }
         if (part.type.startsWith('tool-')) {
-          return <ToolResultBlock message={message} renderTool={renderTool} key={index} part={part as ToolUIPart} streaming={streaming} />;
+          return <ToolResultBlock message={message} renderTool={renderTool} key={messageIndex} part={part as ToolUIPart} streaming={streaming} />;
         }
         if (part.type === 'file' && part.mediaType?.includes?.('image/')) {
-          return <ImageBlock key={index} part={part} />;
+          return <ImageBlock key={messageIndex} part={part} />;
         } else if (part.type === 'file') {
-          return <FileAttachment key={index} part={part} />;
+          return <FileAttachment key={messageIndex} part={part} />;
         }
         if (part.type === 'step-start') return null;
         console.log('unknown part type', part);
@@ -164,12 +160,21 @@ const AssistantBubbleContent: React.FC<{ renderTool?: renderToolFunc, streaming?
 
 // --- Main Message Item Component ---
 
-export type renderToolFunc = (part: ToolUIPart, ctx: { message: ExtendedUIMessage; streaming: boolean }) => React.ReactNode;
+export type renderToolFunc = (part: ToolUIPart, ctx: {
+  message: ExtendedUIMessage; streaming: boolean
+}) => React.ReactNode;
+export type renderJsonBlockFunc = (json: any, ctx: {
+  message: ExtendedUIMessage; streaming: boolean, part: MessagePart,
+  index?: number, partIndex?: number, messageIndex?: number,
+}) => React.ReactNode;
+
 interface MessageItemProps {
   streaming?: boolean;
   status?: ChatStatus;
   message: ExtendedUIMessage;
+  index?: number;
   renderTool?: renderToolFunc;
+  renderJsonBlock?: renderJsonBlockFunc;
   onRegenerate?: (id: string) => void;
   onEditSubmit?: (id: string, newContent: string) => void;
 }
@@ -210,8 +215,8 @@ export const UserMessageItem: React.FC<UserMessageItemProps> = ({
 
 export const MessageItem: React.FC<MessageItemProps> = ({ 
   streaming,
-  message, 
-  renderTool,
+  message, index = 0,
+  renderTool, renderJsonBlock,
   status = 'ready',
   onRegenerate, 
   onEditSubmit 
@@ -287,7 +292,11 @@ export const MessageItem: React.FC<MessageItemProps> = ({
         </>
       }
     >
-      <AssistantBubbleContent renderTool={renderTool} streaming={streaming} message={message} />
+      <AssistantBubbleContent
+        renderTool={renderTool} renderJsonBlock={renderJsonBlock}
+        streaming={streaming}
+        message={message}
+      />
     </BaseTextMessageItem>
   );
 };

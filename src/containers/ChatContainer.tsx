@@ -5,8 +5,8 @@ import { DefaultChatTransport, type ImagePart, type UIMessage } from 'ai';
 // import MessageItem from '../components/MessageItem';
 import { ChatInput } from '../components/ChatInput';
 import { useLatest, useSetState } from 'react-use';
-import type { MessageMetadata } from '../types/chat';
-import { MessageItem, type renderToolFunc } from '../components/MessageItem';
+// import type { MessageMetadata } from '../types/chat';
+import { MessageItem, type renderJsonBlockFunc, type renderToolFunc } from '../components/MessageItem';
 import { getAppReqHeaders } from '../models/appAxios';
 import { createAiHttpTransport } from '../models/AiHttpTransport';
 import type { ExtendedUIMessage } from '@/components/message-types';
@@ -32,23 +32,23 @@ const useLatestFunction = <T extends (...args: any[]) => any>(fn: T): T => {
 interface ChatContainerProps {
   platform: string;
   model?: string;
+  system?: string;
   renderTool?: renderToolFunc;
+  renderJsonBlock?: renderJsonBlockFunc;
   defaultImages?: string[];
   fetch?: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
+  inputSlot?: React.ReactNode; // 用于在ChatInput上方渲染内容的slot
 }
 
 const EMPTYARR = [];
 const ChatContainer: React.FC<ChatContainerProps> = ({ 
-  platform, 
-  model,
-  renderTool,
-  defaultImages = EMPTYARR,
-  fetch: customFetch 
+  platform,  model, system, renderJsonBlock,
+  renderTool, defaultImages = EMPTYARR, fetch: customFetch, inputSlot 
 }) => {
   const [chatDataState, setDataState] = useSetState<any>({});
   const latestDataState = useLatest(chatDataState);
 
-  const latestTransportBody = useLatest({ platform, ...(model && { model }) });
+  const latestTransportBody = useLatest({ platform, ...(model && { model }), system });
   // 使用 useMemo 缓存 transport 对象，避免不必要的重新创建
   const transport = useMemo(() => {
 
@@ -169,15 +169,17 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
           </div>
         ) : (
           <>
-            {messages.map(message => {
+            {messages.map((message, index) => {
               const isLastMsg = message.id === messages[messages.length - 1].id;
               return (
                 <MessageItem 
                   renderTool={renderTool}
                   key={message.id} 
+                  index={index}
                   status={isLastMsg ? status: undefined}
                   streaming={isStreaming && isLastMsg}
                   message={message as any} 
+                  renderJsonBlock={renderJsonBlock}
                   onEditSubmit={handleEditSubmit} 
                   onRegenerate={handleRegenerate} 
                 />
@@ -192,6 +194,12 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
       
       {/* 输入区域 */}
       <div className='w-full p-4'>
+        {/* 渲染slot内容（如果有） */}
+        {inputSlot && (
+          <div className="mb-4">
+            {inputSlot}
+          </div>
+        )}
         <ChatInput 
           onSendMessage={sendMessage} 
           defaultImages={defaultImages}

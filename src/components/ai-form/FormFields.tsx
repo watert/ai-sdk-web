@@ -3,19 +3,14 @@ import { ChevronDown, Check, Plus, X } from 'lucide-react';
 import { twMerge } from 'tailwind-merge';
 
 export type FormFieldType = 'text' | 'select' | 'tags';
-
 export interface FormField {
   key: string;
   label?: string;
   type: FormFieldType;
   description?: string;
-  placeholder?: string;
-  // Suggestions or strict options provided by AI
-  options?: string[];
-  // Whether the user can create new values not in options (default true for text, false for select unless specified)
-  creatable?: boolean; 
-  // Validation (optional for this demo)
-  required?: boolean;
+  options?: string[]; // Suggestions or strict options provided by AI
+  creatable?: boolean; // Whether the user can create new values not in options (default true)
+  required?: boolean; // Validation (optional)
 }
 
 // --- Shared Components ---
@@ -85,7 +80,7 @@ export const TextField: React.FC<FieldProps> = ({ field, value, onChange }) => {
       <input
         type="text"
         className="block w-full rounded-lg border-slate-300 dark:border-slate-600 shadow-xs focus:border-indigo-500 dark:focus:border-indigo-400 sm:text-sm py-2 min-h-8 px-2 border bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 transition-all"
-        placeholder={field.placeholder || "Enter text..."}
+        // placeholder={field.placeholder || "Enter text..."}
         value={safeValue}
         onChange={(e) => onChange(e.target.value)}
       />
