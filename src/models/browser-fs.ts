@@ -22,9 +22,8 @@ const arrayFromAsyncIterator = async function<T = any>(iterator: AsyncIterable<T
   }
   return array;
 }
-async function _readdir(dirHandle: FileSystemDirectoryHandle, subpath?: string) {
+async function _readdir(dirHandle: FileSystemDirectoryHandle, subpath?: string): Promise<string[]> {
   const entry = !subpath ? dirHandle : await dirHandle.getFileHandle(subpath || '');
-  console.log('_readdir entry', entry);
   return await arrayFromAsyncIterator(getFilesRecursively(entry, dirHandle));
 }
 type PickDirParams = {
@@ -48,6 +47,11 @@ async function _writeFile(fileHandle: FileSystemFileHandle, contents: FileSystem
   await writable.write(contents);
   await writable.close();
 }
+export async function dataURIToFile(dataURI, filename) {
+  const response = await fetch(dataURI);
+  const blob = await response.blob();
+  return new File([blob], filename, { type: blob.type });
+}
 
 export class LocalDirFs {
   dirHandle: FileSystemDirectoryHandle;
@@ -70,8 +74,7 @@ export class LocalDirFs {
   }
   async readFile(subpath: string, options?: { encoding?: BufferEncoding | null }) {
     const fileHandle = await this.dirHandle.getFileHandle(subpath);
-    const file = await fileHandle.getFile();
-    return file;
+    return await fileHandle.getFile();
   }
   async writeFile(subpath: string, contents: FileSystemWriteChunkType) {
     const fileHandle = await this.dirHandle.getFileHandle(subpath, { create: true });
