@@ -13,6 +13,7 @@
     "paths": {
       "@/*": ["./src/*"]
     },
+    "types": ["@types/wicg-file-system-access"],
     "noUncheckedSideEffectImports": true
     
   }

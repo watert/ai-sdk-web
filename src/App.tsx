@@ -15,6 +15,7 @@ import NoteBlockDebugPage from './pages/NoteBlockDebugPage';
 import AIFormDemoPage from './pages/AIFormDemoPage';
 import ComponentsPage from './pages/ComponentsPage';
 import axios from 'axios';
+import { LocalDirFs } from './models/browser-fs';
 
 if (typeof window !== 'undefined') {
   Object.assign(window, { axios });
@@ -46,5 +47,7 @@ function App() {
     </BrowserRouter>
   );
 }
+
+Object.assign(window, { LocalDirFs });
 
 export default App
