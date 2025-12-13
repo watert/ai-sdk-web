@@ -57,9 +57,15 @@ export function isDataURI(str: string) { // 通过检查字符串是否 dataURI
 }
 
 export class LocalDirFs {
-  dirHandle: FileSystemDirectoryHandle;
-  constructor({ dirHandle }: { dirHandle: FileSystemDirectoryHandle }) {
+  dirHandle?: FileSystemDirectoryHandle;
+  constructor({ dirHandle }: { dirHandle?: FileSystemDirectoryHandle }) {
     this.dirHandle = dirHandle;
+  }
+  
+  async checkDirHandle(): Promise<void> {
+    if (!this.dirHandle) {
+      this.dirHandle = await pickDir({ id: 'default', mode: 'readwrite' });
+    }
   }
   static async fromPicker(_params?: {
     // By specifying an ID, the browser can remember different directories for different IDs. If the same ID is used for another picker, the picker opens in the same directory.  
@@ -73,27 +79,33 @@ export class LocalDirFs {
     return new LocalDirFs({ dirHandle: await pickDir(params) });
   }
   async readdir(subpath?: string) {
-    return await _readdir(this.dirHandle, subpath);
+    await this.checkDirHandle();
+    return await _readdir(this.dirHandle!, subpath);
   }
   async readFile(subpath: string, options?: { encoding?: BufferEncoding | null }) {
-    const fileHandle = await this.dirHandle.getFileHandle(subpath);
+    await this.checkDirHandle();
+    const fileHandle = await this.dirHandle!.getFileHandle(subpath);
     return await fileHandle.getFile();
   }
   async writeFile(subpath: string, contents: FileSystemWriteChunkType) {
-    const fileHandle = await this.dirHandle.getFileHandle(subpath, { create: true });
+    await this.checkDirHandle();
+    const fileHandle = await this.dirHandle!.getFileHandle(subpath, { create: true });
     if (typeof contents === 'string' && isDataURI(contents)) {
       contents = await dataURIToFile(contents, subpath);
     }
     return await _writeFile(fileHandle, contents);
   }
   async readJson<T = any>(subpath: string) {
+    await this.checkDirHandle();
     const file = await this.readFile(subpath);
     return JSON.parse(await file.text());
   }
   async writeJson(subpath: string, data: any) {
+    await this.checkDirHandle();
     return await this.writeFile(subpath, JSON.stringify(data, null, 2));
   }
   async getFileHandle(subpath: string, options?: { create?: boolean }) {
-    return await this.dirHandle.getFileHandle(subpath, options);
+    await this.checkDirHandle();
+    return await this.dirHandle!.getFileHandle(subpath, options);
   }
 }
