@@ -13,13 +13,15 @@ function getMongoUrl(url: string) {
 }
 export async function connectMongo(opts = {}) {
   const uri = getMongoUrl(process.env.MONGO_URL!);
+  console.log('MongoDB: Try connect URI: ', uri);
   // console.log('Connect MONGO_URL with is aws check', { isAws, shouldMongoTls }, uri);
   // const proxyConfig = getEnvProxyConfig() || {};
   const wait = promiseRetry(5, async () => {
     return mongoose.connect(uri, {
       // ...proxyConfig,
-      tls: !!(shouldMongoTls),
+      // tls: !!(shouldMongoTls),
       ...opts || {},
+      dbName: 'ext_data',
       // dbName: isProdEnv ? 'web3pass' : 'web3pass_dev' // better if can config in uri
       // maxConnecting: 5,
       // directConnection: true,
@@ -29,5 +31,5 @@ export async function connectMongo(opts = {}) {
   });
   // console.log('CONNECT MONGO', , mongoose.);
   await wait;
-  console.log('CONNECTED MONGO main');
+  console.log('MongoDB: CONNECTED MONGO main');
 }

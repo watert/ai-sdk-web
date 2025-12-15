@@ -7,6 +7,9 @@ import { aiGenTextStream, AiGenTextStreamResult } from "./ai-sdk/ai-gen-text";
 import { handleCalendarTask } from "./calendar-task";
 import _industryData from '../../data/industry-data.json';
 import _ from "lodash";
+
+import _industryResearchSample from './industry-research-sample.local.json';
+
 function getIndustryInfo(industryId: string): {
   id: string, name?: string, name_zh: string, name_en: string, prompt: string,
 } | undefined {
@@ -14,7 +17,7 @@ function getIndustryInfo(industryId: string): {
 }
 
 const IndustryResearchSchema = new mongoose.Schema({
-  id: { type: String, required: true, unique: true },
+  // id: { type: String, required: true, unique: true },
   title: { type: String, required: true },
   prompt: { type: String, required: true },
 }, { timestamps: true, strict: false });
@@ -68,7 +71,11 @@ async function arrayFromAsync(asyncIterator: AsyncIterable<any>) {
   return arr;
 }
 export const localIndustryModel = new LocalMongoModel('test_industry_research');
-export function handleIndustryResearchTask({ force, platform, model, thinking = true, industryId, config, local, dbModel }: {
+export function handleIndustryResearchTask({
+  force, platform, model, thinking = true, industryId, config, local, dbModel,
+  jsonData,
+  // jsonData = _industryResearchSample,
+}: {
   config: IndustryResearchConfig | string,
   dbModel?: mongoose.Model<any>,
   industryId: string,
@@ -77,6 +84,7 @@ export function handleIndustryResearchTask({ force, platform, model, thinking = 
   platform?: string,
   model?: string,
   thinking?: boolean,
+  jsonData?: any;
 }): AiGenTextStreamResult & {
   taskResult: Promise<any>,
 } {
@@ -103,11 +111,12 @@ export function handleIndustryResearchTask({ force, platform, model, thinking = 
   if (!force && !calendar.shouldTrigger()) {
     return { status: 'skip', message: 'not trigger' } as any;
   }
-  const genResult = aiGenTextStream({
+  let genResult = jsonData ? jsonData as any: aiGenTextStream({
     platform: platform || 'GEMINI', model: model || 'gemini-flash-latest',
     search: true, thinking, messages, context: { industryId, calendarId },
   });
   const task = async (info: { taskTime: Date, calendarId: string }) => {
+    if (jsonData) return jsonData;
     let msgs: any[] = [], error;
     const [content, json, reasoningText, totalUsage] = await Promise.all([
       genResult.content,
@@ -120,11 +129,13 @@ export function handleIndustryResearchTask({ force, platform, model, thinking = 
       return [];
     });
     // console.log('gen-result', await genResult.toPromise());
-    return { ...info, ...genResult.info, config: _.omit(config, 'repeatRule'),
+    const ret = { ...info, ...genResult.info, config: _.omit(config, 'repeatRule'),
       json, content, reasoningText,
       totalUsage, error, msgs, industryId,
       msg: `Executed: ${(new Date()).toISOString()}`,
     };
+    console.log('ret::', JSON.stringify(ret));
+    return ret;
   };
   const taskResult = handleCalendarTask({ calendar, task, model: dbModel as any, force });
   return { ...genResult, taskResult };

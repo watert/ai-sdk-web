@@ -8,6 +8,7 @@ import session from 'express-session';
 import MemoryStore from 'memorystore';
 import routerTest from './routers/router-test';
 import industryRouter from './routers/router-industry';
+import { connectMongo } from './models/mongo-index';
 
 
 const app = express();
@@ -72,6 +73,9 @@ app.use((err: Error, req: Request, res: Response, next) => {
   });
 });
 
+connectMongo().then(() => {
+  console.log('MongoDB: 连接成功');
+}, (err) => { console.log('MongoDB: 连接失败', err); });
 // 启动服务器
 app.listen(PORT, () => {
   console.log(`服务器正在运行于 http://localhost:${PORT}`);
@@ -88,22 +92,14 @@ app.listen(PORT, () => {
   console.log('  DELETE /industry/researches/:id - 删除行业研究');
 });
 
-// 进程级别的未捕获异常处理
+
+// 进程级别的未捕获异常处理, 在生产环境中不要退出进程，让它继续运行
 process.on('uncaughtException', (err: Error) => {
   console.error('未捕获的异常:', err);
-  // 在这里执行必要的清理操作
-  // 在生产环境中不要退出进程，让它继续运行
 });
-
-// 进程级别的未处理 Promise 拒绝处理
 process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
   console.error('未处理的 Promise 拒绝:', promise, '原因:', reason);
-  // 在这里执行必要的清理操作
-  // 在生产环境中不要退出进程，让它继续运行
 });
-
-// 进程级别的其他错误处理
 process.on('error', (err: Error) => {
   console.error('进程错误:', err);
-  // 在这里执行必要的清理操作
 });

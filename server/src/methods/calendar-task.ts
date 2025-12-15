@@ -31,7 +31,8 @@ export async function handleCalendarTask<T=any>({ calendar, task, model, force }
   taskInfo?: { status: 'skip' | 'success' | 'error'; duration?: number; message?: string; }
 }> {
   const calendarId = calendar.id;
-  const lastDoc = await model.findOne({ calendarId }).sort({ taskTime: -1 }).lean();
+  console.log('handleCalendarTask', { calendarId });
+  const lastDoc = await model.findOne({ calendarId }, undefined, { sort: { taskTime: -1 } }).lean();
   if (lastDoc?.taskTime) {
     calendar.trigger(lastDoc.taskTime);
   }
@@ -59,7 +60,7 @@ export async function handleCalendarTask<T=any>({ calendar, task, model, force }
   // 计算执行时长
   const duration = Date.now() - startTime;
   
-  console.log('assign?', await prevDocPromise || {}, data);
+  // console.log('assign?', await prevDocPromise || {}, data);
   Object.assign(data, await prevDocPromise || {}, data);
   Object.assign(body, { data, rule: calendar.repeatRule, updatedAt: new Date(), error });
   
@@ -67,6 +68,7 @@ export async function handleCalendarTask<T=any>({ calendar, task, model, force }
   const taskInfo = { status, duration, message: taskMessage };
   
   // 不将 taskInfo 写入 model，仅作为返回值
+  console.log('calendar: try write db result');
   const result = await model.findOneAndUpdate({ calendarId, taskTime }, body, { upsert: true }).lean();
   console.log('result', result);
   return { ...result, taskInfo };

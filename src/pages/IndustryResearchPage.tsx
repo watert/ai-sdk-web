@@ -74,6 +74,7 @@ const IndustryResearchPage: React.FC = () => {
       const docIdx = ret.data.findIndex(r => r.calendarId === metadata.calendarId);
       ret = _set(ret, `data[${docIdx}].data.json`, () => json);
     }
+    console.log('configDocs', configDocs);
 
     return _set(ret, 'data', (prev: IndustryResearchDoc[]) => {
       let data = _.uniqBy([...prev, ...configDocs], (r: IndustryResearchDoc) => r.calendarId)
@@ -119,7 +120,8 @@ const IndustryResearchPage: React.FC = () => {
             // throw 'stop';
 
             const body = {
-              thinking: true, industryId, local: true,
+              thinking: true, industryId,
+              // local: true,
               config,
               force: true,
             };

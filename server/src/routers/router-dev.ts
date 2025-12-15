@@ -4,6 +4,7 @@ import { createAiStreamMiddleware } from '../libs/stream-helper';
 import { handleIndustryResearchTask, baseIndustryResearchList } from '../methods/industry-research';
 import { getQuizForm, getWeather } from '../methods/ai-sdk/aisdk-tools-sample';
 import { stepCountIs } from 'ai';
+import { USE_LOCAL_MONGO } from '../config';
 
 const router = Router();
 
@@ -31,7 +32,7 @@ router.get('/industry-research/info', (req: Request, res: Response) => {
   res.json({ data: { defaultConfigs: baseIndustryResearchList } });
 });
 router.post('/industry-research', createAiStreamMiddleware((bodyWithSignal) => {
-  return handleIndustryResearchTask(bodyWithSignal);
+  return handleIndustryResearchTask({ local: USE_LOCAL_MONGO, ...bodyWithSignal });
 }));
 
 export default router;

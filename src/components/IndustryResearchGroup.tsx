@@ -117,9 +117,9 @@ const formatRecurrence = (rule?: RepeatRule | null) => {
   
 const ResearchGroup: React.FC<ResearchGroupProps> = ({ data, researchData, onGenerateContent, onGenerate }) => {
   const calendarEvent = useMemo(() => getCalendarFromResearchGroup(researchData), [researchData]);
-  console.log('calendarEvent', data, researchData, calendarEvent);
+  // console.log('calendarEvent', {data, researchData, calendarEvent});
   // Check if we're in generating state (no title or summary)
-  const isGenerating = !data.title || !data.summary;
+  const isGenerating = !data.title && !data.summary;
 
   return (
     <section className="mb-12 last:mb-0">

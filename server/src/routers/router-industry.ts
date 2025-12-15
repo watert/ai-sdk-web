@@ -3,6 +3,10 @@ import { localIndustryModel, IndustryResearchModel, IndustryResearchConfig } fro
 import { queryMongoDocsWithTotal, putMongoDoc } from '../models/mongo-utils';
 import _ from 'lodash';
 import { RepeatRule } from '../libs/CalendarEvent';
+import { USE_LOCAL_MONGO } from '../config';
+
+const industryModel = USE_LOCAL_MONGO ? localIndustryModel : IndustryResearchModel;
+
 
 // 定义行业研究组数据结构，用于IndustryResearchGroup组件
 export type IndustryResearchGroupData = {
@@ -50,7 +54,9 @@ const router = Router();
 // 通用查询函数 - 只关注业务逻辑，不依赖 Express 对象
 const handleQuery = async (queryParams: IndustryResearchQueryParams): Promise<IndustryResearchQueryResult> => {
   const params = { $sort: '-updatedAt', ...queryParams };
-  let { total, count, data } = await queryMongoDocsWithTotal(localIndustryModel as any, params);
+  let { total, count, data } = await queryMongoDocsWithTotal(
+    industryModel as any, params,
+  );
   // 移除不需要返回的敏感字段
   const processedData = data.map(doc => {
     return _.omit(doc, ['data.content', 'data.reasoningText']) as IndustryResearchDoc;
@@ -161,7 +167,7 @@ router.patch('/researches/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const body = req.body;
-    const data = await putMongoDoc(localIndustryModel, body, { _id: id });
+    const data = await putMongoDoc(industryModel, body, { _id: id });
     res.json({
       success: true,
       data,
