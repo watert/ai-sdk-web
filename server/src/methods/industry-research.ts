@@ -83,7 +83,9 @@ export function handleIndustryResearchTask({ force, platform, model, thinking = 
   if (!dbModel && local) {
     dbModel = localIndustryModel as any;
   }
-  if (!dbModel) dbModel = IndustryResearchModel;
+  if (!dbModel) {
+    dbModel = IndustryResearchModel;
+  }
   if (typeof config === 'string') {
     config = baseIndustryResearchList.find(item => item.id === config) as IndustryResearchConfig;
   }
@@ -103,7 +105,7 @@ export function handleIndustryResearchTask({ force, platform, model, thinking = 
   }
   const genResult = aiGenTextStream({
     platform: platform || 'GEMINI', model: model || 'gemini-flash-latest',
-    search: true, thinking, messages, metadata: { industryId, calendarId },
+    search: true, thinking, messages, context: { industryId, calendarId },
   });
   const task = async (info: { taskTime: Date, calendarId: string }) => {
     let msgs: any[] = [], error;
