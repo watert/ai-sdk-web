@@ -8,7 +8,7 @@ import { handleCalendarTask } from "./calendar-task";
 import _industryData from '../../data/industry-data.json';
 import _ from "lodash";
 
-import _industryResearchSample from './industry-research-sample.local.json';
+// import _industryResearchSample from './industry-research-sample.local.json';
 
 function getIndustryInfo(industryId: string): {
   id: string, name?: string, name_zh: string, name_en: string, prompt: string,

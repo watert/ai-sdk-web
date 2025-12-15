@@ -41,6 +41,7 @@ function createPromiseHandler(): PromiseHandlerResp {
 }
 
 const IndustryResearchPage: React.FC = () => {
+  const disableGenGroup = false;
   // 使用useAsyncFn获取行业研究列表数据
   const industryId = 'ai';
   const [{ loading, error, value: _researchesData }, fetchDocs] = useAsyncFn(async () => {
@@ -113,7 +114,7 @@ const IndustryResearchPage: React.FC = () => {
         return <IndustryResearchGroup 
           key={data._id} researchData={data}
           data={convertToGroupData([data])[0]}
-          onGenerate={async () => {
+          onGenerate={disableGenGroup ? undefined: async () => {
             let toastPromise: PromiseHandlerResp | undefined, fetch: any;
             const config: IndustryResearchConfig = { ...data.data.config, repeatRule: data.rule } as any;
             // console.log('config', config);

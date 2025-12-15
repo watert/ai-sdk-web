@@ -144,7 +144,7 @@ const ResearchGroup: React.FC<ResearchGroupProps> = ({ data, researchData, onGen
           )}
         </div>
 
-        <div className="task-info flex flex-col basis-1/3 gap-x-6 gap-y-2 text-sm text-slate-600">
+        {onGenerate && <div className="task-info flex flex-col basis-1/3 gap-x-6 gap-y-2 text-sm text-slate-600">
           <div className="flex items-center gap-1.5">
             <Clock className="w-4 h-4 text-slate-400" />
             <span className="text-slate-500 text-xs font-semibold tracking-wide">Last Trigger:</span>
@@ -174,7 +174,7 @@ const ResearchGroup: React.FC<ResearchGroupProps> = ({ data, researchData, onGen
             </AsyncButton>
           </div>
           
-        </div>
+        </div>}
       </div>
 
       <div className="flex flex-wrap gap-4">

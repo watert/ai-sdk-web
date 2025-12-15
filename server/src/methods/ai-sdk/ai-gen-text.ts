@@ -183,7 +183,7 @@ export type AiGenTextStreamResult = StreamTextResult<any,any> & {
 }
 export function aiGenTextStream(opts: AiGenTextStreamOpts, ctx?: any): AiGenTextStreamResult{
   const { params, info } = prepareAiSdkRequest(opts, ctx);
-  let context: any = { metadata: {}, ...opts.experimental_context || {}, ...opts.context };
+  let context: any = { metadata: {}, ...(opts.experimental_context as any) || {}, ...opts.context };
   const resp = streamText({
     experimental_context: context,
     ..._.omit(params, 'search', 'thinking') as any,
