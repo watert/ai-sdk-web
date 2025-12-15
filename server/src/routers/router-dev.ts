@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { aiGenTextStream } from '../methods/ai-sdk/ai-gen-text';
 import { createAiStreamMiddleware } from '../libs/stream-helper';
-import { handleIndustryResearchTask, baseIndustryResearchList } from '../methods/industry-research';
+import { handleIndustryResearchTask, baseIndustryResearchList, runAllIndustryResearches } from '../methods/industry-research';
 import { getQuizForm, getWeather } from '../methods/ai-sdk/aisdk-tools-sample';
 import { stepCountIs } from 'ai';
 import { USE_LOCAL_MONGO } from '../config';
@@ -33,6 +33,9 @@ router.get('/industry-research/info', (req: Request, res: Response) => {
 });
 router.post('/industry-research', createAiStreamMiddleware((bodyWithSignal) => {
   return handleIndustryResearchTask({ local: USE_LOCAL_MONGO, ...bodyWithSignal });
+}));
+router.get('/industry-research-all', createAiStreamMiddleware((bodyWithSignal) => {
+  return runAllIndustryResearches({ signal: bodyWithSignal.abortSignal });
 }));
 
 export default router;

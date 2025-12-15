@@ -455,7 +455,7 @@ export class CalendarEvent {
   // --- 附加功能 3: 根据上一次事件的时间，判定当前是否要触发 ---
   public shouldTrigger(
     now: Date = new Date(),
-    lookbackDays = 1 // 默认超时 1 天以上的不会触发
+    lookbackDays = 1 // 默认超时 1 天以上且非重复的不会触发
   ): boolean {
     const lookbackStart = dayjs(now).subtract(lookbackDays, 'day').toDate();
     
@@ -483,7 +483,7 @@ export class CalendarEvent {
 
     for (const occurrence of pastOccurrences) {
       const eventTime = occurrence.start.getTime();
-      if (eventTime < now.getTime() && eventTime >= lookbackStart.getTime()) {
+      if (eventTime < now.getTime()) {
         // 事件已发生且在检查窗口内
         if (this.lastTriggered === null || this.lastTriggered.getTime() < eventTime) {
           return true;

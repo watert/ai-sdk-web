@@ -1,10 +1,10 @@
 import { ModelMessage } from "ai";
 import mongoose from "mongoose";
-import { RepeatRule, CalendarEvent } from "../libs/CalendarEvent";
+import { RepeatRule, CalendarEvent, EventDetails } from "../libs/CalendarEvent";
 import { getErrorInfo } from "../libs/getErrorInfo";
 import { LocalMongoModel } from "../models/local-mongo-model";
 import { aiGenTextStream, AiGenTextStreamResult } from "./ai-sdk/ai-gen-text";
-import { handleCalendarTask } from "./calendar-task";
+import { calendarTaskResult, handleCalendarTask } from "./calendar-task";
 import _industryData from '../../data/industry-data.json';
 import _ from "lodash";
 import { makeAsyncIterable } from "../libs/makeAsyncIterable";
@@ -19,8 +19,10 @@ function getIndustryInfo(industryId: string): {
 
 const IndustryResearchSchema = new mongoose.Schema({
   // id: { type: String, required: true, unique: true },
-  title: { type: String, required: true },
-  prompt: { type: String, required: true },
+  taskTime: Date,
+  calendarId: { type: String, required: true },
+  triggeredAt: Date,
+  rule: { frequency: { type: String }, }
 }, { timestamps: true, strict: false });
 export const IndustryResearchModel = mongoose.model('industry_research', IndustryResearchSchema);
 
@@ -74,7 +76,7 @@ async function arrayFromAsync(asyncIterator: AsyncIterable<any>) {
   return arr;
 }
 export const localIndustryModel = new LocalMongoModel('test_industry_research');
-export function handleIndustryResearchTask({
+export async function handleIndustryResearchTask({
   force, platform, model, thinking = true, industryId, config, local, dbModel,
   jsonData,
   // jsonData = _industryResearchSample,
@@ -88,9 +90,9 @@ export function handleIndustryResearchTask({
   model?: string,
   thinking?: boolean,
   jsonData?: any;
-}): AiGenTextStreamResult & {
-  taskResult: Promise<any>,
-} {
+}): Promise<AiGenTextStreamResult & {
+  taskResult: Promise<calendarTaskResult<any>>,
+}> {
   if (!dbModel && local) {
     dbModel = localIndustryModel as any;
   }
@@ -102,9 +104,12 @@ export function handleIndustryResearchTask({
   }
   const { id, title, prompt, startDateTime = DEFAULT_START_DATE, repeatRule } = config;
   const calendarId = `${industryId}--${id}`;
-  const calendar = new CalendarEvent({
-    id: calendarId, title, description: prompt, startDateTime, repeatRule,
-  });
+  const lastDoc = await dbModel.findOne({ calendarId }).sort({ triggeredAt: -1 }).lean();
+  const lastTriggeredAt = lastDoc?.triggeredAt || lastDoc?.updatedAt;
+
+  const calendarParams: EventDetails = { id: calendarId, title, description: prompt, startDateTime, repeatRule, lastTriggeredTime: lastTriggeredAt };
+  console.log('calendarParams', calendarParams);
+  const calendar = new CalendarEvent(calendarParams);
   const industry = getIndustryInfo(industryId)
   if (!industry) throw new Error(`industry ${industryId} not found`);
   const messages = getIndustryResearchMsgs({
@@ -112,7 +117,8 @@ export function handleIndustryResearchTask({
     prompt,
   });
   if (!force && !calendar.shouldTrigger()) {
-    return { status: 'skip', message: 'not trigger' } as any;
+    const taskInfo = { status: 'skip', message: 'not trigger' };
+    return { taskResult: Promise.resolve({ taskInfo })} as any;
   }
   let genResult = jsonData ? jsonData as any: aiGenTextStream({
     platform: platform || 'GEMINI', model: model || 'gemini-flash-latest',
@@ -146,7 +152,7 @@ export function handleIndustryResearchTask({
 
 export async function runAllIndustryResearches(params: { signal: AbortSignal }) {
   const industries = await getIndustires(); // read from current config
-  await makeAsyncIterable(async yieldItem => {
+  return await makeAsyncIterable(async yieldItem => {
     yieldItem({ msg: `start ${industries.length} industry researches` });
     for (const industry of industries) {
       yieldItem({ industry: industry.id, msg: `industry ${industry.id}` });
@@ -156,8 +162,8 @@ export async function runAllIndustryResearches(params: { signal: AbortSignal }) 
           yieldItem({ msg: `aborted due to ${params.signal.reason}` });
           throw new Error('SignalAborted');
         }
-        await handleIndustryResearchTask({ industryId: industry.id, config });
-        yieldItem({ industry: industry.id, configId: config.id, msg: `industry ${industry.id} research ${config.id} done` });
+        const { taskResult } = await handleIndustryResearchTask({ industryId: industry.id, config });
+        yieldItem({ industry: industry.id, configId: config.id, msg: `industry ${industry.id} research ${config.id} done`, ...(await taskResult)?.taskInfo });
       }
       yieldItem({ industry: industry.id, msg: `industry ${industry.id} all researches done` });
     }

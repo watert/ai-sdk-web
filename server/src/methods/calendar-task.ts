@@ -14,13 +14,7 @@ import { CalendarEvent, RepeatRule } from "../libs/CalendarEvent";
 import { getErrorInfo } from "../libs/getErrorInfo";
 import { LocalMongoModel } from "../models/local-mongo-model";
 
-// will skip if task is not triggerable
-export async function handleCalendarTask<T=any>({ calendar, task, model, force }: {
-  calendar: CalendarEvent,
-  task: (info: { taskTime: Date, calendarId: string }) => Promise<any>,
-  model: LocalMongoModel, // mongoose like model
-  force?: boolean,
-}): Promise<{
+export type calendarTaskResult<T = any> = {
   _id: any;
   calendarId: string;
   taskTime: Date,
@@ -29,7 +23,14 @@ export async function handleCalendarTask<T=any>({ calendar, task, model, force }
   rule?: Partial<RepeatRule>,
   updatedAt: Date,
   taskInfo?: { status: 'skip' | 'success' | 'error'; duration?: number; message?: string; }
-}> {
+};
+// will skip if task is not triggerable
+export async function handleCalendarTask<T=any>({ calendar, task, model, force }: {
+  calendar: CalendarEvent,
+  task: (info: { taskTime: Date, calendarId: string }) => Promise<any>,
+  model: LocalMongoModel, // mongoose like model
+  force?: boolean,
+}): Promise<calendarTaskResult<T>> {
   const calendarId = calendar.id;
   console.log('handleCalendarTask', { calendarId });
   const lastDoc = await model.findOne({ calendarId }, undefined, { sort: { taskTime: -1 } }).lean();
@@ -62,7 +63,8 @@ export async function handleCalendarTask<T=any>({ calendar, task, model, force }
   
   // console.log('assign?', await prevDocPromise || {}, data);
   Object.assign(data, await prevDocPromise || {}, data);
-  Object.assign(body, { data, rule: calendar.repeatRule, updatedAt: new Date(), error });
+  const now = new Date();
+  Object.assign(body, { data, rule: calendar.repeatRule, triggeredAt: now, updatedAt: now, error });
   
   // 执行状态信息
   const taskInfo = { status, duration, message: taskMessage };

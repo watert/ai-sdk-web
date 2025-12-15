@@ -34,7 +34,7 @@ export function createAiStreamMiddleware(fn: (bodyWithSignal: any) => any) {
     
     // --- return part
     
-    if (aiStreamResult.pipeAiStreamResultToResponse) {
+    if (aiStreamResult?.pipeAiStreamResultToResponse) {
       console.log('call pipeAiStreamResultToResponse');
       res.setHeader('Content-Type', 'text/event-stream');
       aiStreamResult.pipeAiStreamResultToResponse(res);
