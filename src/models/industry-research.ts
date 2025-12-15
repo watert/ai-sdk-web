@@ -22,23 +22,10 @@ export type IndustryResearchGroupData = {
 };
 
 export type IndustryResearchDoc = {
-  _id?: string;
-  calendarId: string;
-  taskTime?: string;
-  updatedAt?: string;
-  rule: RepeatRule;
-  error?: string | null;
+  _id?: string; calendarId: string; taskTime?: string; updatedAt?: string; rule: RepeatRule; error?: string | null;
   data: Partial<{
-    date: string;
-    id: string;
-    platform: string;
-    model: string;
-    config: IndustryResearchConfig;
-    industryId: string;
-    msg: string;
-    content?: string;
-    json?: IndustryResearchGroupData;
-    reasoningText?: string;
+    date: string; id: string; platform: string; model: string; config: IndustryResearchConfig;
+    industryId: string; msg: string; content?: string; json?: IndustryResearchGroupData; reasoningText?: string;
     totalUsage?: { inputTokens: number; outputTokens: number; totalTokens: number; reasoningTokens: number; };
   }>;
 };

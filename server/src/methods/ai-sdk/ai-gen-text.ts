@@ -17,7 +17,7 @@ type AiGenTextOpts = Parameters<typeof generateText>[0] & {
   search?: boolean;
   thinking?: boolean;
 }
-type AiGenTextStreamOpts = Omit<Parameters<typeof streamText>[0], 'model'> & {
+export type AiGenTextStreamOpts = Omit<Parameters<typeof streamText>[0], 'model'> & {
   platform: string;
   model?: string; options?: any;
   search?: boolean;
@@ -85,7 +85,7 @@ export function getAISDKModel({ platform, model }: { platform?: string; model?: 
     return { model: googleProvider(model), info: { platform, model } };
   }
   if (!platform || typeof model !== 'string') return { model, info: { platform, model } };
-  
+  if (!config?.baseURL) throw new Error(`platform ${platform} baseURL not found`);
   const provider2 = createOpenAICompatible({
     name: platform,
     apiKey: resolveConfigItem(config.apiKey),

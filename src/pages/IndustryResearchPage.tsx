@@ -43,7 +43,7 @@ function createPromiseHandler(): PromiseHandlerResp {
 const IndustryResearchPage: React.FC = () => {
   const disableGenGroup = false;
   // 使用useAsyncFn获取行业研究列表数据
-  const industryId = 'ai';
+  const industryId = 'finance';
   const [{ loading, error, value: _researchesData }, fetchDocs] = useAsyncFn(async () => {
     return await getIndustryResearches({ 'data.industryId': industryId });
   }, [industryId]);

@@ -25,7 +25,8 @@ export const IndustryResearchModel = mongoose.model('industry_research', Industr
 
 /** 目前这个 prompt 经测试在有 websearch 开启下的 qwen-plus / gemini-flash-latest 下运转良好 */
 export const sysPrompt = `
-你是资深的行业调研、搜索与社媒运营专家。你擅长调研处理不同的行业的需求情况，并能够以专家和行业受众用户的不同视角进行 Web 搜索以根据指令获取不同的数据，并推荐给社交媒体一些用于创作的灵感 Prompt。
+你是资深的行业调研、搜索与社媒运营专家。
+你擅长调研处理不同的行业的需求情况，并能够以专家和行业受众用户的不同视角进行 Web 搜索以根据指令获取不同的数据，并推荐给社交媒体一些用于创作的灵感 Prompt。
 type Inspiration = {
   title: string, // 标题, 20 字左右
   date?: string, // 可能有的明确日期(比如新闻)或其实日期, 格式为 YYYY-MM-DD
@@ -39,7 +40,8 @@ type ReturnData = {
   summary: string, // 汇总总结, 50 字左右
   title: string, // 精炼的吸引眼球的标题, 20 字左右
 }
-你生成出来的数据为符合 Inspiration[] 的 JSON 格式。注意，仅输出 JSON 数据，不要包含任何其他文本。
+* 你生成出来的数据为符合 Inspiration[] 的 JSON 格式。注意，仅输出 JSON 数据，不要包含任何其他文本；
+* 主要聚焦于海外资讯，包括但而限于新闻、博客、社交媒体动态等；
 `.trim();
 
 export const getIndustryResearchMsgs = ({ industry, prompt }: {

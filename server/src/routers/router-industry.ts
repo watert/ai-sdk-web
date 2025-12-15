@@ -10,14 +10,10 @@ const industryModel = USE_LOCAL_MONGO ? localIndustryModel : IndustryResearchMod
 
 // 定义行业研究组数据结构，用于IndustryResearchGroup组件
 export type IndustryResearchGroupData = {
-  title: string;
-  summary: string;
+  title: string; summary: string;
   inspirations: Array<{
-    title: string;
-    date: string;
-    content: string;
-    tags: string[];
-    postIdeas: string[];
+    title: string; date: string; content: string;
+    tags: string[]; postIdeas: string[];
   }>;
 };
 
@@ -35,24 +31,19 @@ export type IndustryResearchDoc = {
 
 // 定义查询参数类型
 export type IndustryResearchQueryParams = {
+  page?: number; limit?: number; sort?: string; order?: 'asc' | 'desc';
   [key: string]: any;
-  page?: number;
-  limit?: number;
-  sort?: string;
-  order?: 'asc' | 'desc';
 };
 
 // 定义查询结果类型
 export type IndustryResearchQueryResult = {
-  total: number;
-  count: number;
-  data: IndustryResearchDoc[];
+  total: number; count: number; data: IndustryResearchDoc[];
 };
 
 const router = Router();
 
 // 通用查询函数 - 只关注业务逻辑，不依赖 Express 对象
-const handleQuery = async (queryParams: IndustryResearchQueryParams): Promise<IndustryResearchQueryResult> => {
+const handleQueryResearches = async (queryParams: IndustryResearchQueryParams): Promise<IndustryResearchQueryResult> => {
   const params = { $sort: '-updatedAt', ...queryParams };
   let { total, count, data } = await queryMongoDocsWithTotal(
     industryModel as any, params,
@@ -67,7 +58,7 @@ const handleQuery = async (queryParams: IndustryResearchQueryParams): Promise<In
 // 获取行业研究列表，支持分页、排序和筛选（使用查询字符串）
 router.get('/researches/', async (req: Request, res: Response) => {
   try {
-    const result = await handleQuery(req.query as any);
+    const result = await handleQueryResearches({ "data.industryId": 'ai', ...req.query as any });
     res.json({
       success: true, ...result,
       message: '查询行业研究成功'
@@ -84,7 +75,7 @@ router.get('/researches/', async (req: Request, res: Response) => {
 // 获取行业研究列表，支持复杂查询条件（使用请求体）
 router.post('/researches/query', async (req: Request, res: Response) => {
   try {
-    const result = await handleQuery(req.body);
+    const result = await handleQueryResearches(req.body);
     res.json({
       success: true, ...result,
       message: '查询行业研究成功'
@@ -102,7 +93,7 @@ router.post('/researches/query', async (req: Request, res: Response) => {
 router.get('/researches/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const data = await localIndustryModel.findOne({ id });
+    const data = await industryModel.findOne({ _id: id });
     if (!data) {
       return res.status(404).json({
         success: false,
