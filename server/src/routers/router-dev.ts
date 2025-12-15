@@ -5,6 +5,7 @@ import { handleIndustryResearchTask, baseIndustryResearchList } from '../methods
 import { getQuizForm, getWeather } from '../methods/ai-sdk/aisdk-tools-sample';
 import { stepCountIs } from 'ai';
 import { USE_LOCAL_MONGO } from '../config';
+import asyncWait from '../libs/asyncWait';
 
 const router = Router();
 
@@ -26,7 +27,6 @@ router.post('/ai-gen-stream-tools', createAiStreamMiddleware((bodyWithSignal) =>
     stopWhen: stepCountIs(5), tools: { getWeather, getQuizForm },
   });
 }));
-
 
 router.get('/industry-research/info', (req: Request, res: Response) => {
   res.json({ data: { defaultConfigs: baseIndustryResearchList } });

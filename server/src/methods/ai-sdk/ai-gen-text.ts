@@ -79,10 +79,10 @@ export function getAISDKModel({ platform, model }: { platform?: string; model?: 
     apiKey: resolveConfigItem(config?.apiKey),
     baseURL: resolveConfigItem(config?.baseURL),
   };
+  if (!model && config?.defaultModel) model = config?.defaultModel;
   if (platform === 'GEMINI') {
     const googleProvider = createGoogleGenerativeAI({ apiKey: opts.apiKey, fetch: proxyFetch as any })
-    if (!model) model = 'gemini-2.5-flash-lite';
-    return { model: googleProvider(model), info: { platform, model } };
+    return { model: googleProvider(model || 'gemini-2.5-flash-lite'), info: { platform, model } };
   }
   if (!platform || typeof model !== 'string') return { model, info: { platform, model } };
   if (!config?.baseURL) throw new Error(`platform ${platform} baseURL not found`);

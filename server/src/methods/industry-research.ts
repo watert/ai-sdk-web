@@ -7,9 +7,10 @@ import { aiGenTextStream, AiGenTextStreamResult } from "./ai-sdk/ai-gen-text";
 import { handleCalendarTask } from "./calendar-task";
 import _industryData from '../../data/industry-data.json';
 import _ from "lodash";
+import { makeAsyncIterable } from "../libs/makeAsyncIterable";
 
 // import _industryResearchSample from './industry-research-sample.local.json';
-
+async function getIndustires() { return ['ai', 'finance'].map(id => ({ id })) }
 function getIndustryInfo(industryId: string): {
   id: string, name?: string, name_zh: string, name_en: string, prompt: string,
 } | undefined {
@@ -141,4 +142,25 @@ export function handleIndustryResearchTask({
   };
   const taskResult = handleCalendarTask({ calendar, task, model: dbModel as any, force });
   return { ...genResult, taskResult };
+}
+
+export async function runAllIndustryResearches(params: { signal: AbortSignal }) {
+  const industries = await getIndustires(); // read from current config
+  await makeAsyncIterable(async yieldItem => {
+    yieldItem({ msg: `start ${industries.length} industry researches` });
+    for (const industry of industries) {
+      yieldItem({ industry: industry.id, msg: `industry ${industry.id}` });
+      for (const config of baseIndustryResearchList) {
+        yieldItem({ industry: industry.id, configId: config.id, msg: `industry ${industry.id} research ${config.id}` });
+        if (params.signal.aborted) {
+          yieldItem({ msg: `aborted due to ${params.signal.reason}` });
+          throw new Error('SignalAborted');
+        }
+        await handleIndustryResearchTask({ industryId: industry.id, config });
+        yieldItem({ industry: industry.id, configId: config.id, msg: `industry ${industry.id} research ${config.id} done` });
+      }
+      yieldItem({ industry: industry.id, msg: `industry ${industry.id} all researches done` });
+    }
+    yieldItem({ msg: `all ${industries.length} industry researches done` });
+  });
 }

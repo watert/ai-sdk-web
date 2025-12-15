@@ -1,9 +1,24 @@
 import { Request, Response } from 'express';
+import { isAsyncIterable } from './type-utils';
+import _ from 'lodash';
+import { sendEventStream } from './sendEventStream';
 
 function isReadableStream(stream?: any) {
   return stream?.pipe && typeof stream.pipe === 'function';
 }
-
+async function pipeAsyncIterableToResponse(iterable: AsyncIterable<any>, res: Response) {
+  // res.setHeader('Content-Type', 'text/event-stream');
+  await sendEventStream(res, async (send) => {
+    for await (const _item of iterable) { 
+      let item = _item;
+      console.log('_item', _item);
+      if (!item && typeof item !== 'number') continue;
+      console.log('sendItem', item);
+      send(item);
+    }
+  });
+  res.end();
+}
 export function createAiStreamMiddleware(fn: (bodyWithSignal: any) => any) {
   return async (req: Request, res: Response) => {
     const controller = new AbortController();
@@ -26,6 +41,12 @@ export function createAiStreamMiddleware(fn: (bodyWithSignal: any) => any) {
       await aiStreamResult.toPromise().catch(err => {
         console.log('pipeAiStreamResultToResponse error', err);
       });
+      return;
+    }
+    if (isAsyncIterable(aiStreamResult)) {
+      console.log('isAsyncIterable', aiStreamResult);
+      res.setHeader('Content-Type', 'text/event-stream');
+      await pipeAsyncIterableToResponse(aiStreamResult, res);
       return;
     }
     if (!isReadableStream(aiStreamResult)) {

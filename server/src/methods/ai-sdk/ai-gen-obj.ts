@@ -1,9 +1,9 @@
-import { streamObject } from "ai";
+import { streamObject, StreamObjectResult } from "ai";
 import { AiGenTextStreamOpts, prepareAiSdkRequest } from "./ai-gen-text";
 import _ from "lodash";
 
 export type AiGenObjStreamOpts = AiGenTextStreamOpts & {}
-export async function aiGenObjStream(opts: AiGenObjStreamOpts, ctx?: any) {
+export function aiGenObjStream<T=any>(opts: AiGenObjStreamOpts, ctx?: any): StreamObjectResult<any, T, any> {
   const { params, info } = prepareAiSdkRequest(opts, ctx);
   let context: any = {
     metadata: {},
@@ -14,4 +14,5 @@ export async function aiGenObjStream(opts: AiGenObjStreamOpts, ctx?: any) {
     experimental_context: context,
     ..._.omit(params, 'search', 'thinking') as any,
   });
+  return resp as any;
 }

@@ -1,7 +1,19 @@
 import { Router, Request, Response } from 'express';
+import asyncWait from '../libs/asyncWait';
+import { createAiStreamMiddleware } from '../libs/stream-helper';
 
 const router = Router();
 
+router.get('/test-async-iterable', createAiStreamMiddleware(async (bodyWithSignal) => {
+  const testIterable2 = async function* () {
+    for (let i = 0; i < 5; i++) {
+      console.log('yield i',i );
+      yield i; await asyncWait(200);
+    }
+    return 'Done';
+  }
+  return testIterable2();
+}));
 // 测试 session 设置
 router.get('/set-session', (req: Request, res: Response) => {
   // 直接在 session 中设置一个测试用户
