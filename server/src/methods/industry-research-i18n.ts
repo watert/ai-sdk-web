@@ -66,21 +66,15 @@ export async function translateLatestResearchDocs({
   }
   
   return makeAsyncIterable(async function(yieldItem) {
-    yieldItem({ msg: "translate task started:", count: Math.min(docs.length, maxDocs) });
+    if (!docs.length) { yieldItem({ msg: "[i18n:FIN] no docs to translate" }); return; }
+    const count = Math.min(docs.length, maxDocs);
+    yieldItem({ msg: "[i18n:PND] translate task started:", count });
     for (const doc of docs.slice(0, maxDocs)) { // max times
       const idx = docs.indexOf(doc);
-      yieldItem({ msg: "translate started:", idx, taskTime: doc.taskTime, calendarId: doc.calendarId });
-      // const { json, locales = {} } = doc.data;
+      yieldItem({ msg: "[i18n:ACT] translate started:", idx, taskTime: doc.taskTime, calendarId: doc.calendarId });
       const result = await translateResearchDBDoc({ doc, dbModel, targetLanguages });
-      // const result = await translateResearchDoc({ doc: json });
-      // await dbModel.updateOne({ _id: doc._id }, {
-      //   $set: {
-      //     'data.locales': result.object,
-      //     'data.i18nUsage': result.usage,
-      //   },
-      // });
-      // console.log('doc item', doc.calendarId, json, locales);
-      yieldItem({ msg: "translate done", idx, taskTime: doc.taskTime, calendarId: doc.calendarId, usage: result?.data?.i18nUsage });
+      yieldItem({ msg: "[i18n:FIN] translate doc item done", idx, taskTime: doc.taskTime, calendarId: doc.calendarId, usage: result?.data?.i18nUsage });
     }
+    yieldItem({ msg: "[i18n:FIN] translate task done", count });
   });
 }

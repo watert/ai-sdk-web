@@ -12,7 +12,7 @@ describe('industry-research-i18n', () => {
     researchDocSchema.parse(result.object);
   }, 30e3);
   it('get latest need translate docs', async () => {
-    const result = await translateLatestResearchDocs();
+    const result = await translateLatestResearchDocs({ maxDocs: 1 });
     for await (const item of result) {
       console.log('yield item', item);
     }
