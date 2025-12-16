@@ -1,11 +1,12 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { aiGenTextStream } from '../methods/ai-sdk/ai-gen-text';
 import { createAiStreamMiddleware } from '../libs/stream-helper';
-import { handleIndustryResearchTask, baseIndustryResearchList, runAllIndustryResearches } from '../methods/industry-research';
+import { handleIndustryResearchTask, baseIndustryResearchList } from '../methods/industry-research';
 import { getQuizForm, getWeather } from '../methods/ai-sdk/aisdk-tools-sample';
 import { stepCountIs } from 'ai';
 import { USE_LOCAL_MONGO } from '../config';
 import asyncWait from '../libs/asyncWait';
+import { runAllIndustryResearches } from '../methods/industry-research-run';
 
 const router = Router();
 

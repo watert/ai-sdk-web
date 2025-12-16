@@ -7,9 +7,10 @@ describe('industry-research', () => {
   });
   test.only('should handleIndustryResearchTask', async () => {
     const res = await handleIndustryResearchTask({
-      platform: 'GEMINI', model: 'gemini-flash-latest',
+      // platform: 'GEMINI', model: 'gemini-flash-latest',
       // thinking: true,
-      industryId: 'ai', config: 'HOT_TOPICS',
+      industryId: 'finance', config: 'DAILY_NEWS',
+      // industryId: 'ai', config: 'HOT_TOPICS',
       // local: true,
     });
     console.log('res', await res.taskResult);

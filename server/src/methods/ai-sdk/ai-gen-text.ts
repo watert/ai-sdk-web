@@ -153,7 +153,7 @@ export function prepareAiSdkRequest(opts: AiGenTextOpts | AiGenTextStreamOpts, c
     providerOptions = { google: providerOptions.GEMINI };
   }
   const params: any = { model: modelData.model, providerOptions, abortSignal: ctx?.abortSignal, messages, ...rest };
-  console.log('platformOpts', platformOpts, '\nparams', params, 'provOpts', providerOptions);
+  // console.log('platformOpts', platformOpts, '\nparams', params, 'provOpts', providerOptions);
   return { ...modelData, params };
 }
 export async function aiGenText(this: any, opts: AiGenTextOpts): Promise<GenerateTextResult<any, any> & {
@@ -194,7 +194,7 @@ export function aiGenTextStream(opts: AiGenTextStreamOpts, ctx?: any): AiGenText
       messageMetadata: aiHandleUIMsgMetadata
     })) {
       if (chunk.type === 'message-metadata') {
-        console.log('message-metadata', chunk);
+        // console.log('message-metadata', chunk);
         Object.assign(context.metadata, chunk.messageMetadata || {});
       }
     }
@@ -224,7 +224,7 @@ export function aiGenTextStream(opts: AiGenTextStreamOpts, ctx?: any): AiGenText
 
 export function aiHandleUIMsgMetadata({ part }: { part: any }) {
   if (part.type === 'start') {
-    console.log('msg metadata: type start')
+    // console.log('msg metadata: type start')
     return { createdAt: Date.now() };
   } else if (part.type === 'start-step') {
     return { startedAt: Date.now() };

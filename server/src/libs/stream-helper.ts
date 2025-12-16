@@ -11,9 +11,9 @@ async function pipeAsyncIterableToResponse(iterable: AsyncIterable<any>, res: Re
   await sendEventStream(res, async (send) => {
     for await (const _item of iterable) { 
       let item = _item;
-      console.log('_item', _item);
+      // console.log('_item', _item);
       if (!item && typeof item !== 'number') continue;
-      console.log('sendItem', item);
+      // console.log('sendItem', item);
       send(item);
     }
   });

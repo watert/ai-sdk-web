@@ -8,9 +8,9 @@ import { calendarTaskResult, handleCalendarTask } from "./calendar-task";
 import _industryData from '../../data/industry-data.json';
 import _ from "lodash";
 import { makeAsyncIterable } from "../libs/makeAsyncIterable";
+import { z } from "zod";
 
 // import _industryResearchSample from './industry-research-sample.local.json';
-async function getIndustires() { return ['ai', 'finance'].map(id => ({ id })) }
 function getIndustryInfo(industryId: string): {
   id: string, name?: string, name_zh: string, name_en: string, prompt: string,
 } | undefined {
@@ -20,6 +20,12 @@ function getIndustryInfo(industryId: string): {
 const IndustryResearchSchema = new mongoose.Schema({
   // id: { type: String, required: true, unique: true },
   taskTime: Date,
+  data: {
+    json: Object,
+    locales: Object,
+    i18nUsage: Object,
+    config: Object,
+  },
   calendarId: { type: String, required: true },
   triggeredAt: Date,
   rule: { frequency: { type: String }, }
@@ -44,8 +50,26 @@ type ReturnData = {
   title: string, // 精炼的吸引眼球的标题, 20 字左右
 }
 * 你生成出来的数据为符合 Inspiration[] 的 JSON 格式。注意，仅输出 JSON 数据，不要包含任何其他文本；
-* 主要聚焦于海外资讯，包括但而限于新闻、博客、社交媒体动态等；
+* 主要聚焦于欧美资讯，包括但而限于新闻、博客、社交媒体动态等；
 `.trim();
+
+// Zod schema based on ReturnData type in sysPrompt
+export const researchDocSchema = z.object({
+  inspirations: z.array(z.object({
+    title: z.string().describe("标题, 20 字左右"),
+    date: z.string().optional().describe("可能有的明确日期(比如新闻)或其实日期, 格式为 YYYY-MM-DD"),
+    dateEnd: z.string().optional().describe("可能有的明确的终止日期, 格式为 YYYY-MM-DD"),
+    content: z.string().describe("内容主体, 200 字左右, 格式为 markdown 仅纯文本与加粗标记重点"),
+    tags: z.array(z.string()).min(2).max(8).describe("标签, 3~5 个"),
+    postIdeas: z.array(z.string()).min(2).max(6).describe("3 条相关联的社媒灵感 Prompt")
+  })).min(1),
+  summary: z.string().describe("汇总总结, 50 字左右"),
+  title: z.string().describe("精炼的吸引眼球的标题, 20 字左右"),
+  locales: z.object().optional(),
+});
+
+// Type inferred from the schema
+export type ResearchDoc = z.infer<typeof researchDocSchema>;
 
 export const getIndustryResearchMsgs = ({ industry, prompt }: {
   industry: string,
@@ -104,11 +128,13 @@ export async function handleIndustryResearchTask({
   }
   const { id, title, prompt, startDateTime = DEFAULT_START_DATE, repeatRule } = config;
   const calendarId = `${industryId}--${id}`;
-  const lastDoc = await dbModel.findOne({ calendarId }).sort({ triggeredAt: -1 }).lean();
+  const lastDoc: any = await dbModel.findOne({ calendarId }).sort({ triggeredAt: -1 }).lean();
+  const isLastDocValid = researchDocSchema.safeParse(lastDoc?.data?.json);
+  console.log('isLastDocValid', isLastDocValid);
   const lastTriggeredAt = lastDoc?.triggeredAt || lastDoc?.updatedAt;
 
   const calendarParams: EventDetails = { id: calendarId, title, description: prompt, startDateTime, repeatRule, lastTriggeredTime: lastTriggeredAt };
-  console.log('calendarParams', calendarParams);
+  // console.log('calendarParams', calendarParams);
   const calendar = new CalendarEvent(calendarParams);
   const industry = getIndustryInfo(industryId)
   if (!industry) throw new Error(`industry ${industryId} not found`);
@@ -116,7 +142,7 @@ export async function handleIndustryResearchTask({
     industry: (industry as any).name || industry.name_zh || industry.name_en,
     prompt,
   });
-  if (!force && !calendar.shouldTrigger()) {
+  if (!force && isLastDocValid.success && !calendar.shouldTrigger()) {
     const taskInfo = { status: 'skip', message: 'not trigger' };
     return { taskResult: Promise.resolve({ taskInfo })} as any;
   }
@@ -146,27 +172,20 @@ export async function handleIndustryResearchTask({
     console.log('ret::', JSON.stringify(ret));
     return ret;
   };
-  const taskResult = handleCalendarTask({ calendar, task, model: dbModel as any, force });
+  const taskResult = handleCalendarTask({ calendar, task, model: dbModel as any, force: true });
   return { ...genResult, taskResult };
 }
 
-export async function runAllIndustryResearches(params: { signal: AbortSignal }) {
-  const industries = await getIndustires(); // read from current config
-  return await makeAsyncIterable(async yieldItem => {
-    yieldItem({ msg: `start ${industries.length} industry researches` });
-    for (const industry of industries) {
-      yieldItem({ industry: industry.id, msg: `industry ${industry.id}` });
-      for (const config of baseIndustryResearchList) {
-        yieldItem({ industry: industry.id, configId: config.id, msg: `industry ${industry.id} research ${config.id}` });
-        if (params.signal.aborted) {
-          yieldItem({ msg: `aborted due to ${params.signal.reason}` });
-          throw new Error('SignalAborted');
-        }
-        const { taskResult } = await handleIndustryResearchTask({ industryId: industry.id, config });
-        yieldItem({ industry: industry.id, configId: config.id, msg: `industry ${industry.id} research ${config.id} done`, ...(await taskResult)?.taskInfo });
-      }
-      yieldItem({ industry: industry.id, msg: `industry ${industry.id} all researches done` });
-    }
-    yieldItem({ msg: `all ${industries.length} industry researches done` });
-  });
+export async function getLatestResearchDocs({
+  $match = {}, dbModel = IndustryResearchModel
+}: {
+  $match?: Record<string, any>, dbModel?: mongoose.Model<any>
+}) {
+  return await dbModel.aggregate([
+    $match && { $match },
+    { $group: { _id: "$calendarId",
+      latestDoc: { $top: { sortBy: { taskTime: -1 }, output: "$$ROOT" } }
+    }},
+    { $replaceRoot: { newRoot: "$latestDoc" } },
+  ].filter(r => r));
 }
