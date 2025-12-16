@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose, { Connection, Mongoose } from "mongoose";
 import { promiseRetry } from "../libs/promise-retry";
 
 const shouldMongoTls = true;
@@ -11,12 +11,15 @@ function getMongoUrl(url: string) {
   }
   return url;
 }
+
+let _connPromise: Promise<Mongoose> | null = null;
 export async function connectMongo(opts = {}) {
+  if (_connPromise) return _connPromise;
   const uri = getMongoUrl(process.env.MONGO_URL!);
   console.log('MongoDB: Try connect URI: ', uri);
   // console.log('Connect MONGO_URL with is aws check', { isAws, shouldMongoTls }, uri);
   // const proxyConfig = getEnvProxyConfig() || {};
-  const wait = promiseRetry(5, async () => {
+  _connPromise = promiseRetry(5, async () => {
     return mongoose.connect(uri, {
       // ...proxyConfig,
       // tls: !!(shouldMongoTls),
@@ -29,7 +32,11 @@ export async function connectMongo(opts = {}) {
       // minPoolSize: 1,
     })
   });
+  _connPromise.catch(err => {
+    console.log('MongoDB: CONNECT MONGO error', err);
+    _connPromise = null;
+  });
   // console.log('CONNECT MONGO', , mongoose.);
-  await wait;
   console.log('MongoDB: CONNECTED MONGO main');
+  return await _connPromise;
 }

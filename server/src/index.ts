@@ -9,6 +9,8 @@ import MemoryStore from 'memorystore';
 import routerTest from './routers/router-test';
 import industryRouter from './routers/router-industry';
 import { connectMongo } from './models/mongo-index';
+import { startCronJobs } from './models/cron-jobs';
+// import Agenda from 'agenda';
 
 
 const app = express();
@@ -73,8 +75,15 @@ app.use((err: Error, req: Request, res: Response, next) => {
   });
 });
 
-connectMongo().then(() => {
-  console.log('MongoDB: 连接成功');
+// let agenda: Agenda;
+connectMongo().then(async (conn) => {
+  // console.log('MongoDB: 连接成功', );
+  if (!conn.connection.db) {
+    console.log('no conn.connection.db', conn);
+    return;
+  }
+  // 启动定时任务
+  await startCronJobs();
 }, (err) => { console.log('MongoDB: 连接失败', err); });
 // 启动服务器
 app.listen(PORT, () => {
