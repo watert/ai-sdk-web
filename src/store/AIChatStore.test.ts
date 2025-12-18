@@ -16,7 +16,6 @@ describe('AIChatStore', () => {
   }, 60e3);
   it.only('should send message with search', async () => {
     const store = new AIChatStore({
-      // platform: 'OLLAMA',
       platform: 'GEMINI', apiKey: process.env.GPT_GEMINI as string, enableSearch: true,
     });
     await store.sendMessage('最近的新闻摘要, 带日期');

@@ -1,14 +1,14 @@
+import _ from 'lodash';
 import type { ChatStatus, Tool, ToolSet, UIMessage } from 'ai';
 import { readUIMessageStream, streamText, convertToModelMessages, type StreamTextResult } from 'ai';
 import { google, createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
-import _ from 'lodash';
 
-// const isNodeEnv = typeof window === 'undefined';
+const env = typeof process !== 'undefined' ? process.env : {};
 const defaultConfig = {
   platform: 'GEMINI' as const,
   fetch: globalThis.fetch,
-  apiKey: typeof process !== 'undefined' ? process.env.API_KEY : '', // compatible with aistudio build mode
+  apiKey: typeof process !== 'undefined' ? (env.GPT_GEMINI || env.API_KEY) : '', // compatible with aistudio build mode
 }
 export interface AIChatStateConfig {
   fetch?: typeof fetch;
@@ -51,16 +51,13 @@ export class AIChatStore {
   }
 
   private initializeModel() {
-    let { model, platform, apiKey, fetch } = this.config;
+    let { model, platform, tools, apiKey, fetch, enableSearch } = this.config;
     if (platform === 'GEMINI') {
       const googleProvider = createGoogleGenerativeAI({ apiKey, fetch });
       this.config.model = googleProvider(model || 'gemini-3-flash-preview');
-      if (this.config.enableSearch) {
+      if (enableSearch) {
         const google_search = google.tools.googleSearch({});
-        this.config.tools = {
-          ...this.config.tools || {},
-          google_search: google_search as any,
-        };
+        this.config.tools = { ...tools || {}, google_search: google_search as any, };
       }
     } else if (platform === 'OLLAMA') {
       const ollamaProvider = createOpenAICompatible({ name: platform, baseURL: 'http://localhost:11434/v1', apiKey: apiKey || '_', fetch });
@@ -72,14 +69,9 @@ export class AIChatStore {
   }
 
   public getState(): AIChatStoreState {
-    return {
-      config: this.config,
-      messages: this.messages,
-      error: this.error,
-      status: this.status,
-    };
+    const { config, messages, error, status } = this;
+    return { config, messages, error, status };
   }
-
   private updateState(updates: Partial<AIChatStoreState>) {
     Object.assign(this, updates);
     this.throttledEmit(this.getState());
@@ -106,7 +98,6 @@ export class AIChatStore {
       this.updateState({ messages: this.messages, status: 'streaming' });
 
       const providerKey = this.config.platform === 'GEMINI' ? 'google': this.config.platform;
-      // 参考 ai-gen-text.ts 使用 streamText 调用模型
       const streamResult: StreamTextResult<any, any> = await streamText({
         model: this.config.model,
         messages: convertToModelMessages(this.messages as any),
@@ -130,7 +121,6 @@ export class AIChatStore {
         this.updateState({ messages: this.messages });
       }
 
-      // 流处理完成
       this.updateState({ status: 'ready' });
     } catch (error) {
       if ((error as Error).name !== 'AbortError') {
@@ -140,26 +130,19 @@ export class AIChatStore {
   };
 
   regenerate = async (messageId: string) => {
-    // 实现重新生成消息的逻辑
     const messageIndex = this.messages.findIndex(m => m.id === messageId);
-    if (messageIndex === -1 || messageIndex === 0) {
-      return;
-    }
+    if (messageIndex === -1 || messageIndex === 0) { return; }
 
-    // 保留到要重新生成的消息之前的所有消息
     this.messages = this.messages.slice(0, messageIndex);
     this.updateState({ messages: this.messages, status: 'ready' });
 
-    // 重新发送最后一条用户消息
     const lastUserMessage = _.findLast(this.messages, m => m.role === 'user');
     if (lastUserMessage?.parts[0]?.type === 'text') {
       await this.sendMessage(lastUserMessage.parts[0].text);
     }
   };
   lastMessage = () => _.last(this.messages);
-  setMessages = (messages: UIMessage<any>[]) => {
-    this.updateState({ messages });
-  };
+  setMessages = (messages: UIMessage<any>[]) => { this.updateState({ messages }); };
 
   stop = () => {
     if (this.controller) {
@@ -171,15 +154,11 @@ export class AIChatStore {
 
   subscribe = (fn: (state: AIChatStoreState) => void) => {
     const unsub = this.emitter.subscribe(fn);
-    // 立即发送当前状态
     fn(this.getState());
     return unsub;
   };
 
-  // 获取当前状态
-  getStatePublic = (): AIChatStoreState => {
-    return this.getState();
-  };
+  getStatePublic = () => this.getState();
 }
 
 class EventEmitter<T> {
