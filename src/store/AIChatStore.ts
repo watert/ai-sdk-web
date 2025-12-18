@@ -1,13 +1,12 @@
 import _ from 'lodash';
-import type { ChatStatus, Tool, ToolSet, UIMessage } from 'ai';
-import { readUIMessageStream, streamText, convertToModelMessages, type StreamTextResult } from 'ai';
+import type { ChatStatus, ToolSet, UIMessage } from 'ai';
+import { convertFileListToFileUIParts, readUIMessageStream, streamText, convertToModelMessages, type StreamTextResult } from 'ai';
 import { google, createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 
 const env = typeof process !== 'undefined' ? process.env : {};
 const defaultConfig = {
-  platform: 'GEMINI' as const,
-  fetch: globalThis.fetch,
+  platform: 'GEMINI' as const, fetch: globalThis.fetch,
   apiKey: typeof process !== 'undefined' ? (env.GPT_GEMINI || env.API_KEY) : '', // compatible with aistudio build mode
 }
 export interface AIChatStateConfig {
@@ -27,6 +26,20 @@ export interface AIChatStoreState {
   status: ChatStatus;
 }
 
+/**
+AI 聊天状态存储类, 用于管理 AI 聊天会话的状态和配置. usage:
+
+```ts
+const store = new AIChatStore({ platform: 'GEMINI', model: 'gemini-3-flash-preview', apiKey: 'your-api-key', enableSearch: false });
+store.sendMessage({ text: '你好' }).then(() => {
+  console.log('send message done', store.getState());
+});
+store.subscribe(() => { // can be used with React.useSyncExternalStore
+  console.log('state', store.getState());
+});
+```
+
+ */
 export class AIChatStore {
   private config: AIChatStateConfig;
   private messages: UIMessage<any>[] = [];
@@ -76,11 +89,39 @@ export class AIChatStore {
     Object.assign(this, updates);
     this.throttledEmit(this.getState());
   }
+  static async createUIMessage(msg: UIMessage | string | {
+    role?: 'user' | 'assistant';
+    text?: string;
+    files?: File[];
+  }): Promise<UIMessage> {
+    if (typeof msg === 'string') {
+      return {
+        id: Date.now().toString(16),
+        role: 'user',
+        parts: [{ type: 'text', text: msg }],
+      };
+    } else if (typeof msg !== 'string' && ('text' in msg || 'files' in msg)) {
 
-  sendMessage = async (message: string) => {
-    if (this.status === 'streaming') {
-      return;
+      const fileParts = Array.isArray(msg.files)
+        ? msg.files
+        : await convertFileListToFileUIParts(msg.files);
+      return {
+        id: Date.now().toString(16),
+        role: msg.role || 'user',
+        parts: [
+          ...fileParts as any,
+          ...(msg.text ? [{ type: 'text', text: msg.text || '' }] : []),
+        ],
+      };
     }
+    return msg as UIMessage;
+  }
+  sendMessage = async (message: UIMessage | string | {
+    role?: 'user' | 'assistant';
+    text?: string;
+    files?: File[];
+  }) => {
+    if (this.status === 'streaming') { return; }
 
     try {
       this.updateState({ status: 'submitted' });
@@ -88,11 +129,12 @@ export class AIChatStore {
       const { signal } = this.controller;
 
       // 创建用户消息
-      const userMessage: UIMessage = {
-        id: Date.now().toString(16),
-        role: 'user',
-        parts: [{ type: 'text', text: message }],
-      };
+      const userMessage = await AIChatStore.createUIMessage(message);
+      // const userMessage: UIMessage = typeof message === 'string' ? {
+      //   id: Date.now().toString(16),
+      //   role: 'user',
+      //   parts: [{ type: 'text', text: message }],
+      // } : message;
 
       this.messages.push(userMessage);
       this.updateState({ messages: this.messages, status: 'streaming' });
