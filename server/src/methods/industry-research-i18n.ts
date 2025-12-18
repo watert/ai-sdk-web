@@ -5,6 +5,7 @@ import { prepareAiSdkRequest } from "./ai-sdk/ai-gen-text";
 import { generateObject } from "ai";
 // import mongoose, { InferSchemaType } from "mongoose";
 import { makeAsyncIterable } from "../libs/makeAsyncIterable";
+
 const systemPrompt = `
 你是一个专业的翻译，擅长将 JSON 格式的数据翻译按照用户的指令翻译为其他语言。JSON 的 schema 结构及其 key names 等保持不变。
 `.trim();

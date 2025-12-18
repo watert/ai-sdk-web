@@ -71,7 +71,7 @@ export async function handleCalendarTask<T=any>({ calendar, task, model, force }
   
   // 不将 taskInfo 写入 model，仅作为返回值
   console.log('calendar: try write db result');
-  const result = await model.findOneAndUpdate({ calendarId, taskTime }, body, { upsert: true }).lean();
-  console.log('result', result);
+  const result = await model.findOneAndUpdate({ calendarId, taskTime }, body, { upsert: true, new: true }).lean();
+  // console.log('result', result);
   return { ...result, taskInfo };
 }

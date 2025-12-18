@@ -82,8 +82,8 @@ connectMongo().then(async (conn) => {
     console.log('no conn.connection.db', conn);
     return;
   }
-  // 启动定时任务
-  await startCronJobs();
+  // await startCronJobs(); // 启动定时任务
+
 }, (err) => { console.log('MongoDB: 连接失败', err); });
 // 启动服务器
 app.listen(PORT, () => {

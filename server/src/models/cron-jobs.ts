@@ -1,8 +1,6 @@
-import * as path from 'path';
-import * as schedule from 'node-schedule'
 import { getMongoLock } from './MongoLock';
 import asyncWait from '../libs/asyncWait';
-import { JobCallback } from 'node-schedule';
+import { JobCallback, scheduleJob } from 'node-schedule';
 
 export async function runJobWithLock(lockKey: string, lockDurationMs: number, fn: () => any) {
   await getMongoLock(`CRON__${lockKey}`, lockDurationMs).then(async (lockDoc) => {
@@ -32,12 +30,12 @@ export async function startScheduleJob({
   lockDurationMs?: number,
   execute: JobCallback,
 }) {
-  schedule.scheduleJob(cron, createJobWithLock(key, lockDurationMs, execute));  
+  scheduleJob(cron, createJobWithLock(key, lockDurationMs, execute));  
 }
 
 export async function startCronJobs() {
   await startScheduleJob({
-    cron: '*/5 * * * * *', /* 5 seconds */ key: 'test_agenda', lockDurationMs: 30e3,
+    key: 'test_agenda', cron: '*/5 * * * * *', /* 5 seconds */ lockDurationMs: 30e3,
     execute: async (fireDate: Date) => {
       const datestr = (new Date).toISOString();
       console.log('test_agenda called', datestr, {fireDate});
@@ -45,10 +43,4 @@ export async function startCronJobs() {
       return datestr;
     },
   });
-  // schedule.scheduleJob('*/5 * * * * *', createJobWithLock('test_agenda', 10e3, async (fireDate: Date) => {
-  //   const datestr = (new Date).toISOString();
-  //   console.log('test_agenda called', datestr, {fireDate});
-  //   await asyncWait(5000);
-  //   return datestr;
-  // }));
 }
