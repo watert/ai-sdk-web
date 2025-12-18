@@ -8,13 +8,10 @@
     "strict": true,
     "noImplicitAny": false,
     "noUnusedLocals": false,
-    "erasableSyntaxOnly": false,
     "noFallthroughCasesInSwitch": true,
     "paths": {
       "@/*": ["./src/*"]
     },
-    "types": ["@types/wicg-file-system-access"],
-    "noUncheckedSideEffectImports": true
-    
+    "types": ["@types/wicg-file-system-access"]
   }
 }

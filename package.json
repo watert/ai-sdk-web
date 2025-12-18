@@ -13,6 +13,7 @@
     "test:watch": "jest --watch"
   },
   "dependencies": {
+    "@ai-sdk/google": "^2.0.49",
     "@ai-sdk/react": "^2.0.102",
     "@supabase/supabase-js": "^2.86.0",
     "@types/lodash": "^4.17.21",
