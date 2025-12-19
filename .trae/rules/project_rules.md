@@ -5,7 +5,7 @@
 
 ## 技术栈
 
-- 基础框架: yarn, typescript, react, tsx, vite
+- 基础框架: yarn, typescript, react, tsx, vite, jest (for testing)
 - 路由框架: react-router-dom (hashRouter)
 - 样式框架: clsx, tailwindcss v4, tailwind-merge
 - query string: qs 6.14.0
