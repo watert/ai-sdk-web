@@ -1,8 +1,9 @@
 import { readUIMessageStream, stepCountIs, tool } from 'ai';
 import { z } from 'zod';
-import { aiGenText, aiGenTextStream, aiHandleUIMsgMetadata, parseJsonFromText, prepareAiSdkRequest } from "./ai-gen-text";
+import { aiGenText, aiGenTextStream } from "./ai-gen-text";
 import { getQuizForm, quizFormSysPrompt } from "./aisdk-tools-sample";
 import _ from 'lodash';
+import { parseJsonFromText, aiHandleUIMsgMetadata, prepareAiSdkRequest } from './ai-sdk-utils';
 
 const weatherTool = tool({
   description: 'Get the current weather for a location',

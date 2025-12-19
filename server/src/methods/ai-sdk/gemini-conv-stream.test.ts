@@ -1,8 +1,8 @@
 import { GeminiConvStream } from './gemini-conv-stream';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { streamText, UIMessage } from 'ai';
-import { proxyFetch } from './ai-gen-text';
 import _ from 'lodash';
+import { proxyFetch } from './ai-sdk-utils';
 
 // Mock external dependencies
 // jest.mock('@ai-sdk/google');

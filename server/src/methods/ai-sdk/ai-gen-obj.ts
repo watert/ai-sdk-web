@@ -1,6 +1,6 @@
 import { streamObject, StreamObjectResult } from "ai";
-import { AiGenTextStreamOpts, prepareAiSdkRequest } from "./ai-gen-text";
 import _ from "lodash";
+import { type AiGenTextStreamOpts, prepareAiSdkRequest } from "./ai-sdk-utils";
 
 export type AiGenObjStreamOpts = AiGenTextStreamOpts & {}
 export function aiGenObjStream<T=any>(opts: AiGenObjStreamOpts, ctx?: any): StreamObjectResult<any, T, any> {
