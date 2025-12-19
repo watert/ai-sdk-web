@@ -31,12 +31,9 @@ export function parseLlmXml(input: string): ParsedPart[] {
 
     // 处理标签前的文本
     if (startIndex > lastIndex) {
-      const textContent = input.slice(lastIndex, startIndex);
-      const jsonContent = tryParseJsonOrJsonl(textContent);
       parts.push({
         type: 'text', 
-        text: textContent,
-        ...(jsonContent !== null ? { json: jsonContent } : {})
+        text: input.slice(lastIndex, startIndex)
       });
     }
 
@@ -61,12 +58,9 @@ export function parseLlmXml(input: string): ParsedPart[] {
 
   // 处理剩余文本
   if (lastIndex < input.length) {
-    const textContent = input.slice(lastIndex);
-    const jsonContent = tryParseJsonOrJsonl(textContent);
     parts.push({
       type: 'text', 
-      text: textContent,
-      ...(jsonContent !== null ? { json: jsonContent } : {})
+      text: input.slice(lastIndex)
     });
   }
 
@@ -129,17 +123,19 @@ function tryParseJsonOrJsonl(input: string): any | null {
   // 首先尝试解析为完整 JSON
   try {
     return JSON.parse(trimmedInput);
-  } catch (jsonError) {
-    // JSON 解析失败，尝试解析为 JSONL
+  } catch (jsonError) { // JSON 解析失败，尝试解析为 JSONL
+    
     try {
-      const lines = trimmedInput.split('\n')
-        .map(line => line.trim())
-        .filter(line => line);
-      
+      const lines = trimmedInput.split('\n').map(line => line.trim()).filter(line => line);
       if (lines.length === 0) return null;
-      
-      // 尝试解析每一行作为 JSON 对象
-      const jsonlResult = lines.map(line => JSON.parse(line));
+      const jsonlResult = lines.map(line => { // 尝试解析每一行作为 JSON 对象
+        try {
+          return JSON.parse(line);
+        } catch (lineJsonError) { // 解析失败，返回 null 或其他默认值
+          return null;
+        }
+      }).filter(item => item !== null);
+      if (!jsonlResult.length) throw new Error('No valid JSON objects found in JSONL');
       return jsonlResult;
     } catch (jsonlError) {
       // JSONL 解析也失败，返回 null

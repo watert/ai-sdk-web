@@ -74,15 +74,14 @@ describe("parseLlmXml with attributes", () => {
 });
 
 describe("parseLlmXml with JSON/JSONL", () => {
-  it("应该解析纯 JSON 字符串并添加到 json 字段", () => {
+  it("应该解析纯 JSON 字符串但作为文本返回（不添加json字段）", () => {
     const input = '{"name": "test", "value": 123}';
     const result = parseLlmXml(input);
 
     expect(result).toEqual([
       {
         type: "text", 
-        text: '{"name": "test", "value": 123}',
-        json: { name: "test", value: 123 }
+        text: '{"name": "test", "value": 123}'
       }
     ]);
   });
@@ -101,15 +100,14 @@ describe("parseLlmXml with JSON/JSONL", () => {
     ]);
   });
 
-  it("应该解析 JSONL 格式并添加到 json 字段", () => {
+  it("应该解析 JSONL 格式但作为文本返回（不添加json字段）", () => {
     const input = '{"name": "test1", "value": 123}\n{"name": "test2", "value": 456}';
     const result = parseLlmXml(input);
 
     expect(result).toEqual([
       {
         type: "text", 
-        text: '{"name": "test1", "value": 123}\n{"name": "test2", "value": 456}',
-        json: [{ name: "test1", value: 123 }, { name: "test2", value: 456 }]
+        text: '{"name": "test1", "value": 123}\n{"name": "test2", "value": 456}'
       }
     ]);
   });
@@ -128,15 +126,14 @@ describe("parseLlmXml with JSON/JSONL", () => {
     ]);
   });
 
-  it("应该处理混合内容（文本 + JSON）", () => {
+  it("应该处理混合内容（文本 + JSON）但作为文本返回（不添加json字段）", () => {
     const input = '结果是：{"success": true, "data": [1, 2, 3]}';
     const result = parseLlmXml(input);
 
     expect(result).toEqual([
       {
         type: "text", 
-        text: '结果是：{"success": true, "data": [1, 2, 3]}',
-        json: { success: true, data: [1, 2, 3] }
+        text: '结果是：{"success": true, "data": [1, 2, 3]}'
       }
     ]);
   });
