@@ -8,22 +8,16 @@ import { Response } from 'express';
 import { gptConfigs } from './gptConfigs';
 
 const configByPlatform = _.keyBy(gptConfigs, 'platform');
-// console.log('configByPlatform', configByPlatform);
 
-// opts 应该是 generateText 的参数，但有一些扩展
-type AiGenTextOpts = Parameters<typeof generateText>[0] & {
-  platform: string;
-  model: string; options?: any;
-  search?: boolean;
-  thinking?: boolean;
-}
-export type AiGenTextStreamOpts = Omit<Parameters<typeof streamText>[0], 'model'> & {
-  platform: string;
-  model?: string; options?: any;
-  search?: boolean;
-  thinking?: boolean;
+type ThinkingTypes = boolean | 'low' | 'minimal' | 'medium' | 'high';
+type CommonGenOpts = {
+  platform: string; model?: string; options?: any;
+  search?: boolean; thinking?: ThinkingTypes;
   context?: Record<string, any>;
 }
+// opts 应该是 generateText 的参数，但有一些扩展
+export type AiGenTextOpts = Parameters<typeof generateText>[0] & CommonGenOpts
+export type AiGenTextStreamOpts = Omit<Parameters<typeof streamText>[0], 'model'> & CommonGenOpts;
 
 export function parseJsonFromText(text: string) {
   text = text.trim()
@@ -119,8 +113,12 @@ const prepareOptionsForPlatform: {
     const isGemini3 = opts.model?.includes?.('gemini-3');
     if (isGemini3 && opts.thinking) {
       _.noop();
-    } else if (isGemini3 && !opts.thinking) { // can't disable, so set to low
-      _.set(extraOpts, 'options.thinkingConfig', { thinkingLevel: "low" });
+    } else if (isGemini3 && !opts.thinking) { // 无法禁用, 设为可能的最低
+      const thinkingLevel = opts.model?.includes('-pro') ? 'low' : 'minimal';
+      _.set(extraOpts, 'options.thinkingConfig', { thinkingLevel, includeThoughts: false });
+    } else if (isGemini3 && opts.thinking) { // 注意: model 可能不支持相应的 level，但这里不做判断
+      const thinkingLevel = opts.thinking === true ? 'low' : opts.thinking;
+      _.set(extraOpts, 'options.thinkingConfig', { thinkingLevel, includeThoughts: true });
     } else if (opts.thinking) {
       _.set(extraOpts, 'options.thinkingConfig', { thinkingBudget: -1, includeThoughts: true });
     } else {
@@ -130,9 +128,7 @@ const prepareOptionsForPlatform: {
   },
 }
 export function prepareAiSdkRequest(opts: AiGenTextOpts | AiGenTextStreamOpts, ctx: any = {}) {
-  // console.log('ctx', ctx, ctx?.abortSignal);
   const platformOpts = prepareOptionsForPlatform[opts.platform]?.(opts) || {};
-  // throw 'stop';
   if (platformOpts) {
     opts = _.merge({}, platformOpts, opts);
   }
@@ -153,7 +149,6 @@ export function prepareAiSdkRequest(opts: AiGenTextOpts | AiGenTextStreamOpts, c
     providerOptions = { google: providerOptions.GEMINI };
   }
   const params: any = { model: modelData.model, providerOptions, abortSignal: ctx?.abortSignal, messages, ...rest };
-  // console.log('platformOpts', platformOpts, '\nparams', params, 'provOpts', providerOptions);
   return { ...modelData, params };
 }
 export async function aiGenText(this: any, opts: AiGenTextOpts): Promise<GenerateTextResult<any, any> & {
