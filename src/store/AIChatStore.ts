@@ -96,24 +96,22 @@ export class AIChatStore {
   }): Promise<UIMessage> {
     if (typeof msg === 'string') {
       return {
-        id: Date.now().toString(16),
-        role: 'user',
+        id: genId(), role: 'user',
         parts: [{ type: 'text', text: msg }],
       };
     } else if (typeof msg !== 'string' && ('text' in msg || 'files' in msg)) {
-
       const fileParts = Array.isArray(msg.files)
         ? msg.files
         : await convertFileListToFileUIParts(msg.files);
       return {
-        id: Date.now().toString(16),
-        role: msg.role || 'user',
+        id: genId(), role: msg.role || 'user',
         parts: [
           ...fileParts as any,
           ...(msg.text ? [{ type: 'text', text: msg.text || '' }] : []),
         ],
       };
     }
+    if (!(msg as UIMessage).id) { (msg as any).id = genId(); }
     return msg as UIMessage;
   }
   sendMessage = async (message: UIMessage | string | {
@@ -128,13 +126,7 @@ export class AIChatStore {
       this.controller = new AbortController();
       const { signal } = this.controller;
 
-      // 创建用户消息
       const userMessage = await AIChatStore.createUIMessage(message);
-      // const userMessage: UIMessage = typeof message === 'string' ? {
-      //   id: Date.now().toString(16),
-      //   role: 'user',
-      //   parts: [{ type: 'text', text: message }],
-      // } : message;
 
       this.messages.push(userMessage);
       this.updateState({ messages: this.messages, status: 'streaming' });
@@ -202,7 +194,7 @@ export class AIChatStore {
 
   getStatePublic = () => this.getState();
 }
-
+function genId() { return Math.random().toString(36).substring(2) + Date.now().toString(16); }
 class EventEmitter<T> {
   private subscribes: ((state: T) => void)[] = [];
   subscribe(fn: (state: T) => void) {
