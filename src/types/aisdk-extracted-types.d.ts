@@ -11,15 +11,15 @@ export type AISDKUIMessagePart<
   DATA_PARTS extends UIDataTypes = UIDataTypes,
   TOOLS extends UITools = UITools,
 > =
-  | TextUIPart | ReasoningUIPart | ToolUIPart<TOOLS>
-  | SourceUrlUIPart | SourceDocumentUIPart | FileUIPart
-  | DataUIPart<DATA_PARTS> | StepStartUIPart;
+  | AISDKTextUIPart | AISDKReasoningUIPart | AISDKToolUIPart<TOOLS>
+  | AISDKSourceUrlUIPart | AISDKSourceDocumentUIPart | AISDKFileUIPart
+  | AISDKDataUIPart<DATA_PARTS> | AISDKStepStartUIPart;
 
 /** 文本部分 */
-export type TextUIPart = { type: 'text'; text: string; state?: 'streaming' | 'done'; };
+export type AISDKTextUIPart = { type: 'text'; text: string; state?: 'streaming' | 'done'; };
 
 /** 推理过程部分 */
-export type ReasoningUIPart = {
+export type AISDKReasoningUIPart = {
   type: 'reasoning'; text: string; state?: 'streaming' | 'done';
   providerMetadata?: Record<string, any>;
 };
@@ -27,7 +27,7 @@ export type ReasoningUIPart = {
 /** 工具调用部分 (基于工具名称生成的映射类型) */
 type UITool = { input: unknown; output: unknown | undefined; };
 type UITools = Record<string, UITool>;
-export type ToolUIPart<TOOLS extends UITools = UITools> = ValueOf<{
+export type AISDKToolUIPart<TOOLS extends UITools = UITools> = ValueOf<{
   [NAME in keyof TOOLS & string]: {
     type: `tool-${NAME}`;
     toolCallId: string;
@@ -40,7 +40,7 @@ export type ToolUIPart<TOOLS extends UITools = UITools> = ValueOf<{
 }>;
 
 /** 来源 URL 部分 */
-export type SourceUrlUIPart = {
+export type AISDKSourceUrlUIPart = {
   type: 'source-url';
   sourceId: string;
   url: string;
@@ -49,27 +49,27 @@ export type SourceUrlUIPart = {
 };
 
 /** 文档来源部分 */
-export type SourceDocumentUIPart = {
+export type AISDKSourceDocumentUIPart = {
   type: 'source-document'; sourceId: string; mediaType: string;
   title: string; filename?: string;
   providerMetadata?: Record<string, any>;
 };
 
 /** 文件上传/展示部分 */
-export type FileUIPart = {
+export type AISDKFileUIPart = {
   type: 'file'; mediaType: string;
   filename?: string; url: string; // 托管 URL 或 Data URL
 };
 
 /** 自定义数据部分 (基于名称的映射类型) */
 type UIDataTypes = Record<string, unknown>;
-export type DataUIPart<DATA_TYPES extends UIDataTypes> = ValueOf<{
+export type AISDKDataUIPart<DATA_TYPES extends UIDataTypes> = ValueOf<{
   [NAME in keyof DATA_TYPES & string]: {
     type: `data-${NAME}`; id?: string; data: DATA_TYPES[NAME];
   };
 }>;
 
 /** 步骤开始标识 */
-export type StepStartUIPart = { type: 'step-start'; };
+export type AISDKStepStartUIPart = { type: 'step-start'; };
 
 type ValueOf<ObjectType, ValueType extends keyof ObjectType = keyof ObjectType> = ObjectType[ValueType];
