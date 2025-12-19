@@ -2,8 +2,10 @@ export type ParsedPart = {
   type: 'tag'; tagName: string; text: string;
     params?: Record<string, any>; // 子标签的文本内容
     attrs?: Record<string, string>; // 标签的属性
+    json?: any; // 解析后的 JSON/JSONL 数据
   } | {
     type: 'text'; text: string, params?: any; attrs?: any,
+    json?: any; // 解析后的 JSON/JSONL 数据
   };
 
 /**
@@ -29,7 +31,13 @@ export function parseLlmXml(input: string): ParsedPart[] {
 
     // 处理标签前的文本
     if (startIndex > lastIndex) {
-      parts.push({ type: 'text', text: input.slice(lastIndex, startIndex) });
+      const textContent = input.slice(lastIndex, startIndex);
+      const jsonContent = tryParseJsonOrJsonl(textContent);
+      parts.push({
+        type: 'text', 
+        text: textContent,
+        ...(jsonContent !== null ? { json: jsonContent } : {})
+      });
     }
 
     // 解析属性字符串
@@ -38,11 +46,14 @@ export function parseLlmXml(input: string): ParsedPart[] {
     if (content.includes('<')) {
       params = parseSubXmlParams(content);
     }
-    console.log('parsed params', {params, attrs, content})
+    // 尝试解析 JSON/JSONL 数据
+    const jsonContent = tryParseJsonOrJsonl(content);
+    console.log('parsed params', {params, attrs, content, jsonContent})
     parts.push({
       type: 'tag', tagName: tagName, text: content,
       ...(Object.keys(attrs).length > 0 ? { attrs } : {}),
       ...(Object.keys(params).length > 0 ? { params } : {}),
+      ...(jsonContent !== null ? { json: jsonContent } : {})
     });
 
     lastIndex = tagRegex.lastIndex;
@@ -50,7 +61,13 @@ export function parseLlmXml(input: string): ParsedPart[] {
 
   // 处理剩余文本
   if (lastIndex < input.length) {
-    parts.push({ type: 'text', text: input.slice(lastIndex) });
+    const textContent = input.slice(lastIndex);
+    const jsonContent = tryParseJsonOrJsonl(textContent);
+    parts.push({
+      type: 'text', 
+      text: textContent,
+      ...(jsonContent !== null ? { json: jsonContent } : {})
+    });
   }
 
   return parts;
@@ -80,4 +97,53 @@ function parseSubXmlParams(content: string) {
     }
     return obj;
   }, {} as Record<string, any>);
+}
+
+/**
+ * 尝试解析 JSON/JSONL 数据
+ * @param input 要解析的字符串
+ * @returns 解析后的 JSON/JSONL 数据或 null（如果解析失败）
+ */
+function tryParseJsonOrJsonl(input: string): any | null {
+  // 清理输入字符串
+  const trimmedInput = input.trim();
+  if (!trimmedInput) return null;
+
+  // 尝试找到 JSON 的开始和结束位置
+  const jsonStart = trimmedInput.indexOf('{');
+  const jsonEnd = trimmedInput.lastIndexOf('}');
+  
+  // 如果找到完整的 JSON 结构
+  if (jsonStart !== -1 && jsonEnd !== -1 && jsonStart < jsonEnd) {
+    // 提取可能的 JSON 部分
+    const potentialJson = trimmedInput.substring(jsonStart, jsonEnd + 1);
+    
+    // 尝试解析提取的 JSON
+    try {
+      return JSON.parse(potentialJson);
+    } catch (jsonError) {
+      // 解析失败，继续尝试其他方法
+    }
+  }
+
+  // 首先尝试解析为完整 JSON
+  try {
+    return JSON.parse(trimmedInput);
+  } catch (jsonError) {
+    // JSON 解析失败，尝试解析为 JSONL
+    try {
+      const lines = trimmedInput.split('\n')
+        .map(line => line.trim())
+        .filter(line => line);
+      
+      if (lines.length === 0) return null;
+      
+      // 尝试解析每一行作为 JSON 对象
+      const jsonlResult = lines.map(line => JSON.parse(line));
+      return jsonlResult;
+    } catch (jsonlError) {
+      // JSONL 解析也失败，返回 null
+      return null;
+    }
+  }
 }
