@@ -13,6 +13,37 @@ describe("parseLlmXml with attributes", () => {
       }
     ]);
   });
+  it("应该解析带嵌套的xml标签", () => {
+    const input = `请查看文件：<read_file><path>config.json</path><content>{"debug": true}</content></read_file>`;
+    const result = parseLlmXml(input);
+
+    expect(result).toEqual([
+      { type: "text", text: "请查看文件：" },
+      {
+        type: "tag", tagName: "read_file", text: '<path>config.json</path><content>{"debug": true}</content>',
+        params: { path: "config.json", content: '{"debug": true}' }
+      }
+    ]);
+  });
+  it("应该解析带深层嵌套的xml标签", () => {
+    const input = `请查看文件：<read_file><path>config.json</path><content><debug>true</debug></content></read_file>`;
+    const result = parseLlmXml(input);
+
+    expect(result.find((p: any) => p.tagName === "read_file")?.params).toEqual({ path: "config.json", content: { debug: "true" } });
+  });
+  it("尝试处理截断的 xml 标签", () => {
+    const input = "请查看文件：<read_file><path>config.json</path><content>{";
+    const result = parseLlmXml(input);
+
+    expect(result).toEqual([
+      { type: "text", text: "请查看文件：" },
+      {
+        type: "tag", tagName: "read_file", text: '<path>config.json</path><content>{',
+        params: { path: "config.json", content: "{" }
+      }
+    ]);
+  });
+
 
   it("当没有属性时，attrs 字段不应该存在或为空", () => {
     const input = "<note>这是一个笔记</note>";

@@ -1,6 +1,10 @@
-export type ParsedPart = 
-  | { type: 'tag'; tagName: string; text: string; params?: Record<string, string>; attrs?: Record<string, string> }
-  | { type: 'text'; text: string, params?: any; attrs?: any };
+export type ParsedPart = {
+  type: 'tag'; tagName: string; text: string;
+    params?: Record<string, any>; // 子标签的文本内容
+    attrs?: Record<string, string>; // 标签的属性
+  } | {
+    type: 'text'; text: string, params?: any; attrs?: any,
+  };
 
 /**
  * 解析消息并提取标签属性 (attributes)
@@ -29,11 +33,12 @@ export function parseLlmXml(input: string): ParsedPart[] {
     }
 
     // 解析属性字符串
-    const attrs = parseAttributes(attrString);
+    const attrs: Record<string, string> = parseAttributes(attrString);
     let params: Record<string, string> = {};
-    if (tagRegex.test(content)) {
-      params = parseAttributes(content);
+    if (content.includes('<')) {
+      params = parseSubXmlParams(content);
     }
+    console.log('parsed params', {params, attrs, content})
     parts.push({
       type: 'tag', tagName: tagName, text: content,
       ...(Object.keys(attrs).length > 0 ? { attrs } : {}),
@@ -65,4 +70,14 @@ function parseAttributes(attrString: string): Record<string, string> {
   }
   
   return attrs;
+}
+
+function parseSubXmlParams(content: string) {
+  return parseLlmXml(content).reduce((obj, part) => {
+    if (part.type === 'tag') {
+      let value = part.text.includes('<') ? parseSubXmlParams(part.text) : part.text;
+      obj[part.tagName] = value;
+    }
+    return obj;
+  }, {} as Record<string, any>);
 }
