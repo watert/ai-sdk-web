@@ -27,49 +27,63 @@ interface SearchResult {
   score: number;
 }
 
-// --- 数据库初始化 ---
-const db = new Database(DB_PATH);
-sqliteVec.load(db);
-
-// 1. 文件追踪表：记录文件路径和 Hash，用于增量更新
-db.exec(`
-  CREATE TABLE IF NOT EXISTS file_tracker (
-    file_path TEXT PRIMARY KEY,
-    file_hash TEXT NOT NULL,
-    last_updated INTEGER
-  );
-`);
-
-// 2. 文本块表：存储实际的文本内容
-db.exec(`
-  CREATE TABLE IF NOT EXISTS chunks (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    file_path TEXT NOT NULL,
-    content TEXT NOT NULL
-  );
-`);
-
-// 3. 向量虚拟表：存储 Embedding (sqlite-vec)
-// nomic-embed-text 模型的向量维度是 768
-// 注意：vec0 的 rowid 必须与 chunks 表的 id 对应
-db.exec(`
-  CREATE VIRTUAL TABLE IF NOT EXISTS vec_chunks USING vec0(
-    embedding float[768]
-  );
-`);
-
 // --- 核心类 ---
 
 export class SQLiteVectorDB {
   private static instance: SQLiteVectorDB;
+  private db: Database.Database | null = null;
+  private dbPath: string;
 
-  private constructor() {}
+  constructor(dbPath: string = DB_PATH) {
+    this.dbPath = dbPath;
+  }
 
-  public static async getInstance(): Promise<SQLiteVectorDB> {
+  public static async getInstance(dbPath: string = DB_PATH): Promise<SQLiteVectorDB> {
     if (!SQLiteVectorDB.instance) {
-      SQLiteVectorDB.instance = new SQLiteVectorDB();
+     SQLiteVectorDB.instance = new SQLiteVectorDB(dbPath);
     }
     return SQLiteVectorDB.instance;
+      // return SQLiteVectorDB.instance = new SQLiteVectorDB(dbPath);
+  }
+
+  /**
+   * 连接数据库并初始化表结构
+   */
+  public connect(): void {
+    if (this.db) {
+      return; // 已经连接
+    }
+
+    // 创建数据库连接
+    this.db = new Database(this.dbPath);
+    sqliteVec.load(this.db);
+
+    // 1. 文件追踪表：记录文件路径和 Hash，用于增量更新
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS file_tracker (
+        file_path TEXT PRIMARY KEY,
+        file_hash TEXT NOT NULL,
+        last_updated INTEGER
+      );
+    `);
+
+    // 2. 文本块表：存储实际的文本内容
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS chunks (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        file_path TEXT NOT NULL,
+        content TEXT NOT NULL
+      );
+    `);
+
+    // 3. 向量虚拟表：存储 Embedding (sqlite-vec)
+    // nomic-embed-text 模型的向量维度是 768
+    // 注意：vec0 的 rowid 必须与 chunks 表的 id 对应
+    this.db.exec(`
+      CREATE VIRTUAL TABLE IF NOT EXISTS vec_chunks USING vec0(
+        embedding float[768]
+      );
+    `);
   }
 
   // 生成向量（调用 Ollama API）
@@ -125,6 +139,9 @@ export class SQLiteVectorDB {
   // 核心功能：基于 Glob 的增量同步
   // @param pattern Glob 模式，例如 "**/*.md"
   public async syncFiles(pattern: string = '**/*.md') {
+    if (!this.db) {
+      throw new Error('Database not connected. Call connect() first.');
+    }
     const files = await glob(pattern, { cwd: PROJECT_ROOT, nodir: true });
     
     console.log(`🔍 Found ${files.length} files matching "${pattern}". Checking for updates...`);
@@ -137,7 +154,7 @@ export class SQLiteVectorDB {
       const currentHash = this.computeHash(content);
 
       // 检查 DB 中是否已存在且 Hash 一致
-      const record = db.prepare('SELECT file_hash FROM file_tracker WHERE file_path = ?').get(file) as { file_hash: string } | undefined;
+      const record = this.db!.prepare('SELECT file_hash FROM file_tracker WHERE file_path = ?').get(file) as { file_hash: string } | undefined;
 
       if (record && record.file_hash === currentHash) {
         // console.log(`⏩ Skipped (No Change): ${file}`);
@@ -162,25 +179,28 @@ export class SQLiteVectorDB {
    * 事务性更新单个文件的 Embedding
    */
   private async updateFileEmbeddings(filePath: string, newHash: string, textChunks: string[]) {
+    if (!this.db) {
+      throw new Error('Database not connected. Call connect() first.');
+    }
     // 生成所有 chunks 的向量 (并行处理以加速)
     const vectors = await Promise.all(textChunks.map(chunk => this.generateEmbedding(chunk)));
 
-    const updateTransaction = db.transaction(() => {
+    const updateTransaction = this.db!.transaction(() => {
       // 1. 删除旧数据
       // 先查出该文件对应的所有 chunk ID
-      const oldChunks = db.prepare('SELECT id FROM chunks WHERE file_path = ?').all(filePath) as { id: number }[];
+      const oldChunks = this.db!.prepare('SELECT id FROM chunks WHERE file_path = ?').all(filePath) as { id: number }[];
       
       if (oldChunks.length > 0) {
         const ids = oldChunks.map(c => c.id);
         // 删除 vec_chunks (虚拟表用 rowid 删除)
         // 注意：better-sqlite3 不支持数组参数绑定到 IN (?)，需手动构建占位符
         const placeholders = ids.map(() => '?').join(',');
-        db.prepare(`DELETE FROM vec_chunks WHERE rowid IN (${placeholders})`).run(...ids);
-        db.prepare(`DELETE FROM chunks WHERE id IN (${placeholders})`).run(...ids);
+        this.db!.prepare(`DELETE FROM vec_chunks WHERE rowid IN (${placeholders})`).run(...ids);
+        this.db!.prepare(`DELETE FROM chunks WHERE id IN (${placeholders})`).run(...ids);
       }
 
       // 2. 更新 file_tracker
-      db.prepare(`
+      this.db!.prepare(`
         INSERT INTO file_tracker (file_path, file_hash, last_updated)
         VALUES (?, ?, ?)
         ON CONFLICT(file_path) DO UPDATE SET
@@ -189,8 +209,8 @@ export class SQLiteVectorDB {
       `).run(filePath, newHash, Date.now());
 
       // 3. 插入新 Chunks 和 Vectors
-      const insertChunk = db.prepare('INSERT INTO chunks (file_path, content) VALUES (?, ?)');
-      const insertVec = db.prepare('INSERT INTO vec_chunks (rowid, embedding) VALUES (?, ?)');
+      const insertChunk = this.db!.prepare('INSERT INTO chunks (file_path, content) VALUES (?, ?)');
+      const insertVec = this.db!.prepare('INSERT INTO vec_chunks (rowid, embedding) VALUES (?, ?)');
 
       for (let i = 0; i < textChunks.length; i++) {
         // 先插普通表获取 ID
@@ -209,6 +229,9 @@ export class SQLiteVectorDB {
    * 向量搜索
    */
   public async search(query: string, limit: number = 5, globFilter?: string): Promise<SearchResult[]> {
+    if (!this.db) {
+      throw new Error('Database not connected. Call connect() first.');
+    }
     const queryVector = await this.generateEmbedding(query);
 
     // 构造 SQL。如果有 globFilter，稍微复杂一点
@@ -235,7 +258,7 @@ export class SQLiteVectorDB {
     sql += ` ORDER BY distance ASC LIMIT ?`;
     params.push(limit);
 
-    const results = db.prepare(sql).all(...params) as any[];
+    const results = this.db!.prepare(sql).all(...params) as any[];
 
     return results.map(r => ({
       filePath: r.file_path,

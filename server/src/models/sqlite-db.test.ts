@@ -55,7 +55,7 @@ import betterSqlite3 from 'better-sqlite3';
 import * as sqliteVec from 'sqlite-vec';
 import fs from 'fs/promises';
 import * as glob from 'glob';
-import path from 'path';
+
 import { SQLiteVectorDB } from './sqlite-db';
 
 // 模拟 fetch
@@ -68,8 +68,9 @@ describe('SQLiteVectorDB', () => {
     // 重置所有模拟
     jest.clearAllMocks();
     
-    // 创建测试实例
+    // 创建测试实例并连接数据库
     db = await SQLiteVectorDB.getInstance();
+    db.connect();
   });
 
   describe('单例模式', () => {
@@ -78,6 +79,61 @@ describe('SQLiteVectorDB', () => {
       const instance2 = await SQLiteVectorDB.getInstance();
       
       expect(instance1).toBe(instance2);
+    });
+  });
+
+  describe('connect', () => {
+    it('应该初始化数据库连接', () => {
+      // 重置模拟
+      jest.clearAllMocks();
+      
+      const instance = new SQLiteVectorDB('./test.db');
+      instance.connect();
+      
+      // 验证数据库连接是否创建
+      expect(betterSqlite3).toHaveBeenCalledWith('./test.db');
+    });
+
+    it('应该加载 sqlite-vec 扩展', () => {
+      // 重置模拟
+      jest.clearAllMocks();
+      
+      const instance = new SQLiteVectorDB('./test.db');
+      instance.connect();
+      
+      // 验证 sqlite-vec 扩展是否加载
+      expect(sqliteVec.load).toHaveBeenCalled();
+    });
+
+    it('应该创建必要的表结构', () => {
+      // 重置模拟
+      jest.clearAllMocks();
+      
+      const instance = new SQLiteVectorDB('./test.db');
+      instance.connect();
+      
+      // 验证创建了必要的表
+      expect(mockExec).toHaveBeenCalledTimes(3); // 创建了三个表
+      expect(mockExec).toHaveBeenNthCalledWith(1, expect.stringContaining('CREATE TABLE IF NOT EXISTS file_tracker'));
+      expect(mockExec).toHaveBeenNthCalledWith(2, expect.stringContaining('CREATE TABLE IF NOT EXISTS chunks'));
+      expect(mockExec).toHaveBeenNthCalledWith(3, expect.stringContaining('CREATE VIRTUAL TABLE IF NOT EXISTS vec_chunks'));
+    });
+
+    it('多次调用应该只初始化一次', () => {
+      // 重置模拟
+      jest.clearAllMocks();
+      
+      const instance = new SQLiteVectorDB('./test.db');
+      
+      // 多次调用 connect 方法
+      instance.connect();
+      instance.connect();
+      instance.connect();
+      
+      // 验证数据库只初始化了一次
+      expect(betterSqlite3).toHaveBeenCalledTimes(1);
+      expect(sqliteVec.load).toHaveBeenCalledTimes(1);
+      expect(mockExec).toHaveBeenCalledTimes(3); // 三次表创建语句，只执行一次
     });
   });
 
@@ -207,6 +263,42 @@ describe('SQLiteVectorDB', () => {
 
       // 恢复原始方法
       (db as any).computeHash = originalComputeHash;
+    });
+  });
+
+  describe('错误处理', () => {
+    it('未连接数据库时调用 syncFiles 应该抛出错误', async () => {
+      // 重置单例实例
+      (SQLiteVectorDB as any).instance = null;
+      
+      // 创建实例但不调用 connect
+      const instance = await SQLiteVectorDB.getInstance();
+      
+      // 模拟 glob 返回文件列表
+      (glob.glob as jest.MockedFunction<typeof glob.glob>).mockResolvedValue(['file1.md']);
+      (fs.readFile as jest.MockedFunction<typeof fs.readFile>).mockResolvedValue('test content');
+      
+      await expect(instance.syncFiles()).rejects.toThrow('Database not connected. Call connect() first.');
+    });
+
+    it('未连接数据库时调用 search 应该抛出错误', async () => {
+      // 重置单例实例
+      (SQLiteVectorDB as any).instance = null;
+      
+      // 创建实例但不调用 connect
+      const instance = await SQLiteVectorDB.getInstance();
+      
+      await expect(instance.search('test query')).rejects.toThrow('Database not connected. Call connect() first.');
+    });
+
+    it('未连接数据库时调用 updateFileEmbeddings 应该抛出错误', async () => {
+      // 重置单例实例
+      (SQLiteVectorDB as any).instance = null;
+      
+      // 创建实例但不调用 connect
+      const instance = await SQLiteVectorDB.getInstance();
+      
+      await expect((instance as any).updateFileEmbeddings('file.md', 'hash', ['content'])).rejects.toThrow('Database not connected. Call connect() first.');
     });
   });
 
