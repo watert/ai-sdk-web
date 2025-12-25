@@ -3,8 +3,8 @@ import _ from "lodash";
 import { type AiGenTextStreamOpts, prepareAiSdkRequest } from "./ai-sdk-utils";
 
 export type AiGenObjStreamOpts = AiGenTextStreamOpts & {}
-export function aiGenObjStream<T=any>(opts: AiGenObjStreamOpts, ctx?: any): StreamObjectResult<any, T, any> {
-  const { params, info } = prepareAiSdkRequest(opts, ctx);
+export async function aiGenObjStream<T=any>(opts: AiGenObjStreamOpts, ctx?: any): Promise<StreamObjectResult<any, T, any>> {
+  const { params, info } = await prepareAiSdkRequest(opts, ctx);
   let context: any = {
     metadata: {},
     ...(opts.experimental_context as any) || {},

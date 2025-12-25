@@ -124,7 +124,7 @@ const prepareOptionsForPlatform: {
     return extraOpts;
   },
 }
-export function prepareAiSdkRequest(opts: AiGenTextOpts | AiGenTextStreamOpts, ctx: any = {}) {
+export async function prepareAiSdkRequest(opts: AiGenTextOpts | AiGenTextStreamOpts, ctx: any = {}) {
   const platformOpts = prepareOptionsForPlatform[opts.platform]?.(opts) || {};
   if (platformOpts) {
     opts = _.merge({}, platformOpts, opts);
@@ -132,7 +132,7 @@ export function prepareAiSdkRequest(opts: AiGenTextOpts | AiGenTextStreamOpts, c
   let { platform, model, options, providerOptions, messages, ...rest } = opts;
   if (messages?.length) {
     try {
-      messages = convertToModelMessages(messages as any);
+      messages = await convertToModelMessages(messages as any);
     } catch(err) { _.noop(); }
   }
   const modelData = getAISDKModel({ platform, model });

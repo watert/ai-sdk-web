@@ -57,7 +57,7 @@ describe('ai-gen-text', () => {
     \`\`\``).message).toBe('Hello.');
   });
   it.skip('basic json stream test', async () => {
-    const res = aiGenTextStream({ platform: 'GEMINI', prompt: 'you should output JSON { message: string }\n\nHello' });
+    const res = await aiGenTextStream({ platform: 'GEMINI', prompt: 'you should output JSON { message: string }\n\nHello' });
     console.log('toPromise', await res.toPromise());
     console.log('toJsonFormat', await res.toJsonFormat());
   }, 20e3);
@@ -69,7 +69,7 @@ describe('ai-gen-text', () => {
     }
   }, 30e3);
   it.skip('basic stream', async () => {
-    const resp = aiGenTextStream({ platform: 'GLM', model: 'glm-4.5-flash', prompt: 'Hello' });
+    const resp = await aiGenTextStream({ platform: 'GLM', model: 'glm-4.5-flash', prompt: 'Hello' });
     const { params, info } = resp as any;
     console.log('resp params', params, 'info', info );
     for await (const chunk of resp.textStream) {
@@ -113,7 +113,7 @@ describe('ai-gen-text', () => {
     // 使用 ai-sdk 的 tool 函数定义天气查询工具（weatherTool2 是生成器版本）
     
     // 调用AI生成文本流，指定工具
-    const streamResult = aiGenTextStream({
+    const streamResult = await aiGenTextStream({
       platform: 'OLLAMA', model: 'qwen3:4b-instruct',
       prompt: '北京气温?',
       tools: { get_weather: weatherTool2 },
@@ -134,41 +134,41 @@ describe('ai-gen-text', () => {
   }, 30e3);
   
   describe('prepareAiSdkRequest', () => {
-    it('should handle GEMINI platform with search option', () => {
+    it('should handle GEMINI platform with search option', async () => {
       const opts = {
         platform: 'GEMINI', model: 'gemini-2.5-flash',
         search: true, prompt: 'test prompt'
       };
-      const result = prepareAiSdkRequest(opts);
+      const result = await prepareAiSdkRequest(opts);
       
       expect(result.info).toEqual({ platform: 'GEMINI', model: 'gemini-2.5-flash' });
       expect(result.params.tools?.google_search?.name).toBe('google_search');
     });
     
-    it('should handle GEMINI platform with thinking option for gemini-3', () => {
+    it('should handle GEMINI platform with thinking option for gemini-3', async () => {
       const opts1 = {
         platform: 'GEMINI', model: 'gemini-3-pro-preview',
         thinking: true, prompt: 'test prompt'
       };
-      const result1 = prepareAiSdkRequest(opts1);
+      const result1 = await prepareAiSdkRequest(opts1);
       expect(result1.info).toEqual({ platform: 'GEMINI', model: 'gemini-3-pro-preview' });
       
       const opts2 = {
         platform: 'GEMINI', model: 'gemini-3-pro-preview',
         thinking: false, prompt: 'test prompt'
       };
-      const result2 = prepareAiSdkRequest(opts2);
+      const result2 = await prepareAiSdkRequest(opts2);
       
       expect(result2.params.providerOptions.google).toHaveProperty('thinkingConfig');
       expect(result2.params.providerOptions.google.thinkingConfig).toHaveProperty('thinkingLevel', 'low');
     });
     
-    it('should handle GEMINI platform with thinking option for non-gemini-3', () => {
+    it('should handle GEMINI platform with thinking option for non-gemini-3', async () => {
       const opts1 = {
         platform: 'GEMINI', model: 'gemini-flash-latest',
         thinking: true, prompt: 'test prompt', stopWhen: stepCountIs(5),
       };
-      const result1 = prepareAiSdkRequest(opts1);
+      const result1 = await prepareAiSdkRequest(opts1);
       
       expect(result1.params.providerOptions.google).toHaveProperty('thinkingConfig');
       expect(result1.params.providerOptions.google.thinkingConfig).toHaveProperty('thinkingBudget', -1);
@@ -180,27 +180,27 @@ describe('ai-gen-text', () => {
         thinking: false,
         prompt: 'test prompt'
       };
-      const result2 = prepareAiSdkRequest(opts2);
+      const result2 = await prepareAiSdkRequest(opts2);
       
       expect(result2.params.providerOptions.google).toHaveProperty('thinkingConfig');
       expect(result2.params.providerOptions.google.thinkingConfig).toHaveProperty('thinkingBudget', 0);
     });
     
-    it('should handle QWEN platform with search option', () => {
+    it('should handle QWEN platform with search option', async () => {
       const opts = {
         platform: 'QWEN',
         model: 'qwen-plus',
         search: true,
         prompt: 'test prompt'
       };
-      const result = prepareAiSdkRequest(opts);
+      const result = await prepareAiSdkRequest(opts);
       
       expect(result.info).toEqual({ platform: 'QWEN', model: 'qwen-plus' });
       expect(result.params.providerOptions).toHaveProperty('QWEN');
       expect(result.params.providerOptions.QWEN).toHaveProperty('enable_search', true);
     });
     
-    it('should handle messages conversion', () => {
+    it('should handle messages conversion', async () => {
       const opts = {
         platform: 'GEMINI',
         model: 'gemini-2.5-flash',
@@ -210,13 +210,13 @@ describe('ai-gen-text', () => {
           { role: 'assistant' as const, content: 'Hi there' }
         ]
       };
-      const result = prepareAiSdkRequest(opts);
+      const result = await prepareAiSdkRequest(opts);
       
       expect(result.params).toHaveProperty('messages');
       expect(Array.isArray(result.params.messages)).toBeTruthy();
     });
     
-    it('should merge providerOptions and options correctly', () => {
+    it('should merge providerOptions and options correctly', async () => {
       const opts = {
         platform: 'GLM',
         model: 'glm-4.5-flash',
@@ -224,26 +224,26 @@ describe('ai-gen-text', () => {
         providerOptions: { GLM: { max_tokens: 1000 } },
         prompt: 'test prompt'
       };
-      const result = prepareAiSdkRequest(opts);
+      const result = await prepareAiSdkRequest(opts);
       
       expect(result.params.providerOptions).toHaveProperty('GLM');
       expect(result.params.providerOptions.GLM).toHaveProperty('temperature', 0.7);
       expect(result.params.providerOptions.GLM).toHaveProperty('max_tokens', 1000);
     });
     
-    it('should handle VERCEL platform', () => {
+    it('should handle VERCEL platform', async () => {
       const opts = {
         platform: 'VERCEL',
         model: 'gpt-4',
         prompt: 'test prompt'
       };
-      const result = prepareAiSdkRequest(opts);
+      const result = await prepareAiSdkRequest(opts);
       
       expect(result.info).toEqual({ platform: 'VERCEL', model: 'gpt-4' });
       expect(result.params.model).toBe('gpt-4');
     });
     
-    it('should handle tool configuration using ai-sdk tool function', () => {
+    it('should handle tool configuration using ai-sdk tool function', async () => {
       // 使用 ai-sdk 的 tool 函数定义天气工具
       const weatherTool = tool({
         description: 'Get the current weather for a location',
@@ -265,7 +265,7 @@ describe('ai-gen-text', () => {
         tools: { get_weather: weatherTool }
       };
       
-      const result = prepareAiSdkRequest(opts);
+      const result = await prepareAiSdkRequest(opts);
       
       expect(result.info).toEqual({ platform: 'GEMINI', model: 'gemini-2.5-flash' });
       expect(result.params).toHaveProperty('tools');
@@ -313,7 +313,7 @@ describe('ai-gen-text', () => {
   
   it('should generate quiz form in streaming response', async () => {
     // 调用AI生成表单流，使用quizFormSysPrompt和getQuizForm工具
-    const streamResult = aiGenTextStream({
+    const streamResult = await aiGenTextStream({
       platform: 'OLLAMA', model: 'qwen3:4b-instruct',
       prompt: quizFormSysPrompt + '\n\n请生成一个关于前端开发的小测验表单',
       tools: { getQuizForm },

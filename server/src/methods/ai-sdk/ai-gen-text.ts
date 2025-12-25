@@ -12,7 +12,7 @@ export async function aiGenText(this: any, opts: AiGenTextOpts): Promise<Generat
   toJSON: () => any;
   toJsonFormat: () => any;
 }> {
-  const { params, info } = prepareAiSdkRequest(opts, this);
+  const { params, info } = await prepareAiSdkRequest(opts, this);
   const result = await generateText(params);
 
   const pickFields = ['text', 'content', 'reasoning', 'reasoningText', 'files', 'sources', 'toolCalls', 'toolResults', 'finishReason', 'usage', 'totalUsage', 'warnings'];
@@ -33,8 +33,8 @@ export type AiGenTextStreamResult = StreamTextResult<any,any> & {
   toPromise: () => Promise<any>,
   toJsonFormat: () => Promise<any>;
 }
-export function aiGenTextStream(opts: AiGenTextStreamOpts, ctx?: any): AiGenTextStreamResult{
-  const { params, info } = prepareAiSdkRequest(opts, ctx);
+export async function aiGenTextStream(opts: AiGenTextStreamOpts, ctx?: any): Promise<AiGenTextStreamResult>{
+  const { params, info } = await prepareAiSdkRequest(opts, ctx);
   let context: any = { metadata: {}, ...(opts.experimental_context as any) || {}, ...opts.context };
   const resp = streamText({
     experimental_context: context,

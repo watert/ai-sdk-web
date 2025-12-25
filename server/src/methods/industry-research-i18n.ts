@@ -17,7 +17,7 @@ export async function translateResearchDoc({ doc, targetLanguages = researchTarg
   researchDocSchema.parse(doc);
   const outputSchema = z.object(_.fromPairs(targetLanguages.map((lang) => [lang, researchDocSchema])));
   // console.log('outputSchema', outputSchema, _.keyBy(targetLanguages, (lang) => researchDocSchema));
-  const { params, info } = prepareAiSdkRequest({
+  const { params, info } = await prepareAiSdkRequest({
     platform: 'GEMINI', model: 'gemini-2.5-flash-lite', system: systemPrompt,
     prompt: `
 ${JSON.stringify(doc, null, 2)}
