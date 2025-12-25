@@ -1,13 +1,13 @@
 import _ from "lodash";
 import { getLatestResearchDocs, IndustryResearchModel, localIndustryModel, ResearchDoc, researchDocSchema } from "./industry-research";
 import z from "zod";
-import { prepareAiSdkRequest } from "./ai-sdk/ai-gen-text";
 import { generateObject } from "ai";
-// import mongoose, { InferSchemaType } from "mongoose";
 import { makeAsyncIterable } from "../libs/makeAsyncIterable";
+import { prepareAiSdkRequest } from "./ai-sdk/ai-sdk-utils";
 
 const systemPrompt = `
-你是一个专业的翻译，擅长将 JSON 格式的数据翻译按照用户的指令翻译为其他语言。JSON 的 schema 结构及其 key names 等保持不变。
+你是一个专业的翻译，擅长将 JSON 格式的数据翻译按照用户的指令翻译为其他语言。
+JSON 的 schema 结构及其 key names 等保持不变。
 `.trim();
 
 export const researchTargetLanguages = ['zh-HK', 'en'] as string[];

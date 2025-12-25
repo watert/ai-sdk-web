@@ -1,4 +1,4 @@
-import { toXmlText } from './prompt-utils';
+import { toXmlText } from './ai-msg-utils';
 
 describe('toXmlText', () => {
   test('基本转换', () => {

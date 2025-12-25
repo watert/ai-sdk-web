@@ -1,5 +1,6 @@
 import { marked, type Token } from 'marked';
 import { jsonrepair } from 'jsonrepair';
+import { parseLlmXml } from './parseLlmXml';
 
 /**
  * 将 Markdown 解析为 (string | (Token & { json?: any }))[] 格式的分块数组

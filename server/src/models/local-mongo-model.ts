@@ -37,7 +37,6 @@ export class LocalMongoDocument<T = any> {
   toJSON(): T { return this.data; }
   async save() {
     const data = await this.model.loadLocalCollection();
-    // console.log("saving", data, this.data)
     const index = data.findIndex(v => v._id === this.data._id);
     if (index === -1) {
       data.push(this.data);

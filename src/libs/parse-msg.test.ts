@@ -1,4 +1,4 @@
-import { parseMdBlocks } from './parse-md-blocks';
+import { parseMdBlocks } from './parse-msg';
 import type * as marked from 'marked';
 
 type ParseResult = ReturnType<typeof parseMdBlocks>;
