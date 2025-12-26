@@ -1,10 +1,103 @@
-import { Request, Response } from 'express';
+import { Request, RequestHandler, Response } from 'express';
 import { isAsyncIterable } from './type-utils';
 import _ from 'lodash';
 import { sendEventStream } from './sendEventStream';
+import { mongoCache } from '../models/mongoCache';
 
 function isReadableStream(stream?: any) {
   return stream?.pipe && typeof stream.pipe === 'function';
+}
+/**
+ * 将一个异步可迭代对象分叉为多个独立的异步可迭代对象。
+ * 共享同一个源，支持背压，自动回收已消费的内存。
+ *
+ * @param source 原始的异步可迭代对象
+ * @param count 需要分叉的数量 (默认为 2)
+ */
+export function forkAsyncIterable<T>(
+  source: AsyncIterable<T>,
+  count: number = 2
+): AsyncIterable<T>[] {
+  // 获取源迭代器
+  const iterator = source[Symbol.asyncIterator]();
+  const buffer: IteratorResult<T>[] = []; // 共享的缓冲区，存储 { done, value }
+  let sourceEnded = false; // 记录源是否已经通过 return/throw 结束
+  const cursors = new Array(count).fill(0); // 每一个分叉当前的读取位置（指针）
+  let fetchPromise: Promise<void> | null = null; // 用于防止多个分叉同时触发源的 next()
+
+  const ensureAvailable = async (index: number) => { // 核心拉取逻辑：确保缓冲区里有 index 位置的数据
+    if (index < buffer.length) return; // 如果需要的索引已经在缓冲区内，直接返回
+    if (sourceEnded) return; // 如果源已经结束且缓冲区不够，说明没有更多数据了
+    
+    if (fetchPromise) { // 如果当前已经有一个拉取请求在进行中，复用它（避免重复拉取）
+      await fetchPromise;
+      await ensureAvailable(index);  // 递归检查，因为等待的那个 promise 结束后，数据可能正好够了，也可能还不够
+      return;
+    }
+    fetchPromise = (async () => { // 创建新的拉取锁
+      try {
+        const result = await iterator.next();
+        buffer.push(result);
+        if (result.done) { sourceEnded = true; }
+      } finally {
+        fetchPromise = null;
+      }
+    })();
+
+    await fetchPromise;
+  };
+
+  // 尝试清理缓冲区：如果所有分叉都读取了前面的数据，就扔掉
+  const tryCleanup = () => {
+    const minCursor = Math.min(...cursors); // 找到所有分叉中进度最慢的那个 (最小的索引)
+    
+    if (minCursor > 0) {
+      buffer.splice(0, minCursor); // 从缓冲区头部移除已被所有分叉消费的数据
+      for (let i = 0; i < count; i++) { // 将所有分叉的指针减去移除的数量，保持相对位置正确
+        cursors[i] -= minCursor;
+      }
+    }
+  };
+
+  // 生成分叉的方法
+  const createFork = (forkIndex: number): AsyncIterable<T> => {
+    return {
+      [Symbol.asyncIterator]() {
+        return {
+          async next() {
+            await ensureAvailable(cursors[forkIndex]); // 1. 确保存储区里有当前指针指向的数据
+            const currentIdx = cursors[forkIndex], result = buffer[currentIdx]; // 2. 获取数据
+            if (!result) { // 3. 如果拿不到数据，说明源结束了，且缓冲区也空了
+              return { done: true, value: undefined };
+            }
+            cursors[forkIndex]++; // 4. 移动指针
+            tryCleanup(); // 5. 尝试垃圾回收 (关键步骤，防止内存泄漏)
+            return result; // 6. 返回数据的副本（如果是对象，引用还是共享的，符合 JS 行为）
+          },
+          
+          async return(value?: any) { // 可选：实现 return 以处理 break 等提前退出的情况
+             // 简单的处理：如果该分支退出了，我们可以把它的指针设为无限大，这样它就不会阻碍垃圾回收了。
+             cursors[forkIndex] = Infinity;
+             tryCleanup();
+             return { done: true, value };
+          }
+        };
+      },
+    };
+  };
+  // 返回指定数量的分叉
+  return Array.from({ length: count }, (_, i) => createFork(i));
+}
+
+async function streamWithCache<T = any>(cacheKey: string, fn: () => AsyncIterable<T>) {
+  return mongoCache(cacheKey, async () => {
+    return fn();
+  })
+  const [iterable, iterable2] = forkAsyncIterable(fn());
+  // exportStream(iterable2).then(data => {
+
+  // });
+  return iterable;
 }
 
 function transformForStorage(chunk: any) {
@@ -63,22 +156,26 @@ async function pipeAsyncIterableToResponse(iterable: AsyncIterable<any>, res: Re
   res.end();
 }
 
-export function createAiStreamMiddleware(fn: (bodyWithSignal: any) => any) {
+
+export function createAiStreamMiddleware(fn: (bodyWithSignal: any) => any): RequestHandler;
+export function createAiStreamMiddleware(fn: (body: any, { signal, req, res }: { signal?: AbortSignal, req: Request, res: Response }) => any): RequestHandler {
   return async (req: Request, res: Response) => {
     const controller = new AbortController();
     res.on('close', () => { console.log('abort by res "close"'); controller.abort(); });
     req.on('abort', () => { console.log('abort by req "abort"'); controller.abort(); });
     
-    let aiStreamResult = fn({ ...req.body, abortSignal: controller.signal });
-    if (typeof aiStreamResult?.then === 'function') {
+    let bodyData = req.method === 'GET' ? req.query : req.body;
+    const hasArg2 = fn.length > 1;
+    if (!hasArg2) bodyData = { ...bodyData, abortSignal: controller.signal };
+    let aiStreamResult = fn(bodyData, { signal: controller.signal, req, res });
+    
+    if (typeof aiStreamResult?.then === 'function') { // promise type
       console.log('has aiStreamResult.then, await it', await aiStreamResult);
       aiStreamResult = await aiStreamResult;
     }
     console.log('aiStreamResult', aiStreamResult);
     
-    // --- return part
-    
-    if (aiStreamResult?.pipeAiStreamResultToResponse) {
+    if (aiStreamResult?.pipeAiStreamResultToResponse) { // customed type
       console.log('call pipeAiStreamResultToResponse');
       res.setHeader('Content-Type', 'text/event-stream');
       aiStreamResult.pipeAiStreamResultToResponse(res);
@@ -101,3 +198,4 @@ export function createAiStreamMiddleware(fn: (bodyWithSignal: any) => any) {
     res.status(500).json({ error: 'Invalid stream result' });
   };
 }
+export const resStreamOut = createAiStreamMiddleware;

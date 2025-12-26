@@ -4,6 +4,7 @@ import { aiGenTextStream } from "../methods/ai-sdk/ai-gen-text";
 import { exportStream, recoverExportedStream } from "./stream-helper";
 
 const Model = new LocalMongoModel('stream_exports');
+
 describe('stream-helper', () => {
   beforeAll(async () => {
     const testDoc = await Model.findOne({ id: 'ollama-hello' }).lean();
