@@ -48,7 +48,6 @@ import { EventSourceParserStream, type EventSourceMessage } from '../libs/event-
 import { readUIMessageStream } from 'ai'
 import type { AsyncIterableStream, UIMessage, UIMessageChunk } from "ai";
 import { getAppReqHeaders } from './appAxios';
-import { jsonrepair } from 'jsonrepair';
 import { parseJsonFromText } from './fixJson';
 import { toAsyncIterableStream } from './toAsyncIterableStream';
 
@@ -161,7 +160,7 @@ export class EventEmitter<T> {
 // }
 
 
-export function createJsonTransform({ isJson = false }: { isJson?: boolean } = {}) {
+export function createJsonTransform({ isJson = false, onJson }: { isJson?: boolean, onJson?: (json: any) => void } = {}) {
   let lastJson: any, json: any, shouldTryInferJsonType = true;
   const inferJsonRegexp = /(\s*```json[\s\S]*?```\s*|{\s*("[\w\d_\-\s]+"\s*:\s*|[\s\r\n]*"[\w\d_-]{2,}"\s*:\s*))/ig;
 
@@ -173,7 +172,10 @@ export function createJsonTransform({ isJson = false }: { isJson?: boolean } = {
       }
       if (isJson) {
         json = parseJsonFromText(textMsg);
-        if (json) lastJson = json;
+        if (json) {
+          lastJson = json;
+          onJson?.(json);
+        }
       }
       controller.enqueue({ ...chunk, json: json || lastJson });
     }
@@ -274,14 +276,16 @@ export async function requestUIMessageStream(options: RequestAiStreamInit): Prom
 
   const messages: UIMessage[] = [];
   const messagesById: Record<string, UIMessage> = {};
+  let lastJsonStr: any, json: any;
   let msgStream: AsyncIterableStream<UIMessage> = toAsyncIterableStream(
     readUIMessageStream({ stream }).pipeThrough(
-      createJsonTransform({ isJson: options.isJson })
+      createJsonTransform({ isJson: options.isJson, onJson: (_json) => {
+        json = _json;
+      } })
     )
   );
   const emitter = new EventEmitter<RequestAiStreamState>();
 
-  let lastJsonStr: any, json: any;
   // 初始化状态为 'submitted'，表示请求已提交
   let latestState: RequestAiStreamState = { messages, json, status: 'submitted' };
   
