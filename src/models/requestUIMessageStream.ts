@@ -131,34 +131,6 @@ export class EventEmitter<T> {
     this.subscribes.forEach(fn => fn(state));
   }
 }
-// export function parseJsonFromText(text: string) {
-//   text = text.trim()
-  
-//   // 先尝试清理 Markdown json 代码块前面的部分
-//   if (text.includes('```json') && !text.startsWith('```json')) {
-//     text = text.slice(text.indexOf('```json') + 7, text.lastIndexOf('```'));
-//   }
-
-//   try {
-//     return JSON.parse(jsonrepair(text));
-//   } catch (e) {
-//     const lastJsonTokens = ['```', '}', ']']
-//     const { tokenStr, index } = lastJsonTokens.reduce((prev, cur) => {
-//       const index = text.lastIndexOf(cur);
-//       return index !== -1 && (prev.index === -1 || index > prev.index) ? { tokenStr: cur, index } : prev;
-//     }, { tokenStr: '', index: -1 });
-//     if (index !== -1) {
-//       text = text.slice(0, index + tokenStr.length);
-//     }
-//     try {
-//       return JSON.parse(jsonrepair(text));
-//     } catch (e) {
-//       console.log('parse error', e);
-//       return undefined;
-//     }
-//   }
-// }
-
 
 export function createJsonTransform({ isJson = false, onJson }: { isJson?: boolean, onJson?: (json: any) => void } = {}) {
   let lastJson: any, json: any, shouldTryInferJsonType = true;
@@ -276,12 +248,11 @@ export async function requestUIMessageStream(options: RequestAiStreamInit): Prom
 
   const messages: UIMessage[] = [];
   const messagesById: Record<string, UIMessage> = {};
-  let lastJsonStr: any, json: any;
+  let json: any;
+  const onJson = (_json) => { json = _json; }
   let msgStream: AsyncIterableStream<UIMessage> = toAsyncIterableStream(
     readUIMessageStream({ stream }).pipeThrough(
-      createJsonTransform({ isJson: options.isJson, onJson: (_json) => {
-        json = _json;
-      } })
+      createJsonTransform({ isJson: options.isJson, onJson })
     )
   );
   const emitter = new EventEmitter<RequestAiStreamState>();
@@ -294,7 +265,10 @@ export async function requestUIMessageStream(options: RequestAiStreamInit): Prom
     emitter.emit(state);
   }, throttle);
   
-  const getState = () => { return latestState; };
+  const getState = () => {
+    latestState = { ...latestState, json };
+    return latestState;
+  };
   const subscribe = (fn: (state: RequestAiStreamState) => void) => {
     console.count('called subscribe');
     const unsub = emitter.subscribe(fn);
@@ -324,8 +298,6 @@ export async function requestUIMessageStream(options: RequestAiStreamInit): Prom
     // _.last(messages)?.parts?.push({ type: 'abort' });
   };
   
-  let isJson = options.isJson || false, shouldTryInferJsonType = true;
-  const inferJsonRegexp = /(\s*```json[\s\S]*?```\s*|{\s*("[\w\d_\-\s]+"\s*:\s*|[\s\r\n]*"[\w\d_-]{2,}"\s*:\s*))/ig;
   const promise = (async () => {
     try {
       // 开始接收流数据，更新状态为 'streaming'
@@ -340,8 +312,11 @@ export async function requestUIMessageStream(options: RequestAiStreamInit): Prom
         } else {
           Object.assign(messagesById[id], msg);
         }
-        // const lastTextMsg = _.findLast(messages.flatMap(msg => msg.parts), msg => msg.type === 'text');
-        latestState = { json: (_.last(messages) as any)?.json, messages, status: 'streaming' };
+        latestState = {
+          json: (_.last(messages) as any)?.json,
+          messages,
+          status: 'streaming'
+        };
         throttledEmit(latestState);
       }
       
