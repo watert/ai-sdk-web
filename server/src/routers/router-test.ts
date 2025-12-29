@@ -1,8 +1,13 @@
 import { Router, Request, Response } from 'express';
 import asyncWait from '../libs/asyncWait';
 import { createAiStreamMiddleware } from '../libs/stream-helper';
+import { aiGenTextStream } from '../methods/ai-sdk/ai-gen-text';
 
 const router = Router();
+
+router.get('/test-uimsg-stream', createAiStreamMiddleware(async (body) => {
+  return (await aiGenTextStream({ platform: 'OLLAMA', prompt: 'hello', ...body })).toUIMessageStream();
+}));
 
 router.get('/test-async-iterable', createAiStreamMiddleware(async (bodyWithSignal) => {
   const testIterable2 = async function* () {
