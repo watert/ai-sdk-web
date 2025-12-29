@@ -11,38 +11,29 @@
     "@ai-sdk/provider-utils" "4.0.1"
     "@vercel/oidc" "3.0.5"
 
-"@ai-sdk/google@^2.0.44":
-  version "2.0.44"
-  resolved "https://registry.yarnpkg.com/@ai-sdk/google/-/google-2.0.44.tgz#f7a20b97691c68a7fd639fad6ebd4423042fe479"
-  integrity sha512-c5dck36FjqiVoeeMJQLTEmUheoURcGTU/nBT6iJu8/nZiKFT/y8pD85KMDRB7RerRYaaQOtslR2d6/5PditiRw==
+"@ai-sdk/google@^3":
+  version "3.0.1"
+  resolved "https://registry.yarnpkg.com/@ai-sdk/google/-/google-3.0.1.tgz#e3fccf4abc08a6a757e52937f0a18b8f01ba65a7"
+  integrity sha512-gh7i4lEvd1CElmefkq7+RoUhNkhP2OTshzVxSt7/Vh2AV5wTPLhduKJMg1c7SFwErytqffO3el/M/LlfCsqzEw==
   dependencies:
-    "@ai-sdk/provider" "2.0.0"
-    "@ai-sdk/provider-utils" "3.0.18"
+    "@ai-sdk/provider" "3.0.0"
+    "@ai-sdk/provider-utils" "4.0.1"
 
-"@ai-sdk/openai-compatible@^1.0.28":
-  version "1.0.28"
-  resolved "https://registry.yarnpkg.com/@ai-sdk/openai-compatible/-/openai-compatible-1.0.28.tgz#328b598c4c01cb6b5ff01236d27eddf7ca91d6bb"
-  integrity sha512-yKubDxLYtXyGUzkr9lNStf/lE/I+Okc8tmotvyABhsQHHieLKk6oV5fJeRJxhr67Ejhg+FRnwUOxAmjRoFM4dA==
+"@ai-sdk/openai-compatible@^2":
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/@ai-sdk/openai-compatible/-/openai-compatible-2.0.1.tgz#ade97084121e55778454d1ad3753eb932e21d4d4"
+  integrity sha512-6tfF6YAREdECPHqQ4ydZFQyY6AiwRc+MHZPbwx2HGsLBTPQXtImLO+iew/pB9XjD2G8s4un6PSNYK//Y+jWDcQ==
   dependencies:
-    "@ai-sdk/provider" "2.0.0"
-    "@ai-sdk/provider-utils" "3.0.18"
+    "@ai-sdk/provider" "3.0.0"
+    "@ai-sdk/provider-utils" "4.0.1"
 
-"@ai-sdk/openai@^3.0.1":
+"@ai-sdk/openai@^3":
   version "3.0.1"
   resolved "https://registry.yarnpkg.com/@ai-sdk/openai/-/openai-3.0.1.tgz#cff69e454a3595b7a620e9316a022478929af805"
   integrity sha512-P+qxz2diOrh8OrpqLRg+E+XIFVIKM3z2kFjABcCJGHjGbXBK88AJqmuKAi87qLTvTe/xn1fhZBjklZg9bTyigw==
   dependencies:
     "@ai-sdk/provider" "3.0.0"
     "@ai-sdk/provider-utils" "4.0.1"
-
-"@ai-sdk/provider-utils@3.0.18":
-  version "3.0.18"
-  resolved "https://registry.yarnpkg.com/@ai-sdk/provider-utils/-/provider-utils-3.0.18.tgz#fc7757ad7eb48a48ce1976da3025f0b9215b1aff"
-  integrity sha512-ypv1xXMsgGcNKUP+hglKqtdDuMg68nWHucPPAhIENrbFAI+xCHiqPVN8Zllxyv1TNZwGWUghPxJXU+Mqps0YRQ==
-  dependencies:
-    "@ai-sdk/provider" "2.0.0"
-    "@standard-schema/spec" "^1.0.0"
-    eventsource-parser "^3.0.6"
 
 "@ai-sdk/provider-utils@4.0.1":
   version "4.0.1"
@@ -52,13 +43,6 @@
     "@ai-sdk/provider" "3.0.0"
     "@standard-schema/spec" "^1.1.0"
     eventsource-parser "^3.0.6"
-
-"@ai-sdk/provider@2.0.0":
-  version "2.0.0"
-  resolved "https://registry.yarnpkg.com/@ai-sdk/provider/-/provider-2.0.0.tgz#b853c739d523b33675bc74b6c506b2c690bc602b"
-  integrity sha512-6o7Y2SeO9vFKB8lArHXehNuusnpddKPk7xqL7T2/b+OvXMRIXUO1rR4wcv1hAFUAT9avGZshty3Wlua/XA7TvA==
-  dependencies:
-    json-schema "^0.4.0"
 
 "@ai-sdk/provider@3.0.0":
   version "3.0.0"
@@ -1508,11 +1492,6 @@
   integrity sha512-36/hTbH2uaWuGVERyC6da9YwGWnzUZXuPro/F2LfsdOsLnCojz/iSH8MxUt/FD2S5XBSVPhmArFUXcpCQ2Hkiw==
   dependencies:
     "@sinonjs/commons" "^3.0.1"
-
-"@standard-schema/spec@^1.0.0":
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/@standard-schema/spec/-/spec-1.0.0.tgz#f193b73dc316c4170f2e82a881da0f550d551b9c"
-  integrity sha512-m2bOd0f2RT9k8QJx1JN85cZYyH1RqFBdlwtkSlf4tBDYLCiiZnv1fIIwacK6cqwXavOydf0NPToMQgpKq+dVlA==
 
 "@standard-schema/spec@^1.1.0":
   version "1.1.0"

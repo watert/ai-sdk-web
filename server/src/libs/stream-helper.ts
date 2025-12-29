@@ -1,11 +1,13 @@
-import { Request, RequestHandler, Response } from 'express';
-import { isAsyncIterable } from './type-utils';
 import _ from 'lodash';
+import { Request, RequestHandler, Response } from 'express';
 import { sendEventStream } from './sendEventStream';
-import { mongoCache } from '../models/mongoCache';
+import { AsyncIterableStream } from 'ai';
 
 function isReadableStream(stream?: any) {
   return stream?.pipe && typeof stream.pipe === 'function';
+}
+function isAsyncIterable(value: any): boolean {
+  return typeof value?.[Symbol.asyncIterator] === 'function';
 }
 /**
  * 将一个异步可迭代对象分叉为多个独立的异步可迭代对象。
@@ -89,23 +91,20 @@ export function forkAsyncIterable<T>(
   return Array.from({ length: count }, (_, i) => createFork(i));
 }
 
-async function streamWithCache<T = any>(cacheKey: string, fn: () => AsyncIterable<T>) {
-  return mongoCache(cacheKey, async () => {
-    return fn();
-  })
-  const [iterable, iterable2] = forkAsyncIterable(fn());
-  // exportStream(iterable2).then(data => {
+// async function streamWithCache<T = any>(cacheKey: string, fn: () => AsyncIterable<T>) {
+//   return mongoCache(cacheKey, async () => {
+//     return fn();
+//   })
+//   const [iterable, iterable2] = forkAsyncIterable(fn());
+//   return iterable;
+// }
 
-  // });
-  return iterable;
-}
-
-function transformForStorage(chunk: any) {
-  if (chunk instanceof Uint8Array) {
-    return { __type: 'binary', data: Buffer.from(chunk).toString('base64') };
-  }
-  return { data: chunk };
-}
+// function transformForStorage(chunk: any) {
+//   if (chunk instanceof Uint8Array) {
+//     return { __type: 'binary', data: Buffer.from(chunk).toString('base64') };
+//   }
+//   return { data: chunk };
+// }
 
 export type ExportStreamChunk<T = any> = { chunk: T, __type?: 'binary', ts: number }; // ts is based on start time, ms unit
 export type ExportStreamResult<T = any> = { chunks: ExportStreamChunk<T>[], startTime: Date };
@@ -199,3 +198,36 @@ export function createAiStreamMiddleware(fn: (body: any, { signal, req, res }: {
   };
 }
 export const resStreamOut = createAiStreamMiddleware;
+
+
+export function streamFromAsyncIterable<T>(iterable: AsyncIterable<T>): ReadableStream<T> {
+  return new ReadableStream({
+    async start(controller) {
+      try {
+        for await (const item of iterable) {
+          controller.enqueue(item);
+        }
+        controller.close();
+      } catch (err) {
+        controller.error(err);
+      }
+    },
+  });
+}
+
+
+// type AsyncIterableStream<T> = AsyncIterable<T> & ReadableStream<T>;
+export function toAsyncIterableStream<T>(stream: ReadableStream<T> | AsyncIterable<T>): AsyncIterableStream<T> {
+  if (isAsyncIterable(stream)) {
+    const asyncIterable = stream as AsyncIterable<T>;
+    const stream2 = streamFromAsyncIterable(asyncIterable);
+    Object.assign(stream2, {
+      async * [Symbol.asyncIterator]() {
+        return stream2.getReader();
+      },
+    })
+    return stream2 as any;
+  } else {
+    return stream as AsyncIterableStream<T>;
+  }
+}
