@@ -12,31 +12,17 @@ function getMongoUrl(url: string) {
   return url;
 }
 
-let _connPromise: Promise<Mongoose> | null = null;
-export async function connectMongo(opts = {}) {
-  if (_connPromise) return _connPromise;
+let _conn: Connection;
+export function connectMongo(opts = {}) {
+  // if (_conn) return _conn;
+  if (_conn) return _conn;
   const uri = getMongoUrl(process.env.MONGO_URL!);
-  console.log('MongoDB: Try connect URI: ', uri);
-  // console.log('Connect MONGO_URL with is aws check', { isAws, shouldMongoTls }, uri);
-  // const proxyConfig = getEnvProxyConfig() || {};
-  _connPromise = promiseRetry(5, async () => {
-    return mongoose.connect(uri, {
-      // ...proxyConfig,
-      // tls: !!(shouldMongoTls),
-      ...opts || {},
-      dbName: 'ext_data',
-      // dbName: isProdEnv ? 'web3pass' : 'web3pass_dev' // better if can config in uri
-      // maxConnecting: 5,
-      // directConnection: true,
-      // maxPoolSize,
-      // minPoolSize: 1,
-    })
+  const conn = mongoose.createConnection(uri, {
+    ...opts || {},
+    dbName: 'ext_data',
   });
-  _connPromise.catch(err => {
-    console.log('MongoDB: CONNECT MONGO error', err);
-    _connPromise = null;
-  });
-  // console.log('CONNECT MONGO', , mongoose.);
+  _conn = conn;
   console.log('MongoDB: CONNECTED MONGO main');
-  return await _connPromise;
+  return conn;
 }
+export const connectExtData = connectMongo;
