@@ -1,5 +1,6 @@
 import { parseMdBlocks } from './parse-msg';
 import type * as marked from 'marked';
+import { splitTextXml } from './splitTextXml';
 
 type ParseResult = ReturnType<typeof parseMdBlocks>;
 type CodeTokenWithJson = marked.Tokens.Code & { json?: any };
@@ -13,6 +14,12 @@ describe('parseMdBlocks', () => {
     expect(typeof result[0]).toBe('string');
     expect(result[0]).toContain('# Hello');
     expect(result[0]).toContain('This is a paragraph');
+  });
+  it.only('try handle mdx', () => {
+    const markdown = '# Hello\n\nThis is a paragraph. <hello>world</hello>';
+    // const result = parseMdBlocks(markdown);
+    const result = splitTextXml(markdown);
+    console.log('result', result);
   });
 
   it('should parse markdown with JSON code blocks', () => {
@@ -28,11 +35,10 @@ describe('parseMdBlocks', () => {
     expect((result[1] as CodeTokenWithJson).json).toEqual({ key: 'value' });
   });
 
-  it.only('should parse indent markdown with json', () => {
+  it('should parse indent markdown with json', () => {
     const markdown = '# 标题\n基本信息\n    ```json\n    {\n      "message": "partial content';
     const result = parseMdBlocks(markdown);
-    
-    console.log('result', result)
+    expect((result[1] as any)?.json?.message === 'partial content').toBe(true);
   });
 
   it('should handle multiple JSON blocks', () => {
