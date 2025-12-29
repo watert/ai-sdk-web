@@ -217,17 +217,75 @@ export function streamFromAsyncIterable<T>(iterable: AsyncIterable<T>): Readable
 
 
 // type AsyncIterableStream<T> = AsyncIterable<T> & ReadableStream<T>;
-export function toAsyncIterableStream<T>(stream: ReadableStream<T> | AsyncIterable<T>): AsyncIterableStream<T> {
-  if (isAsyncIterable(stream)) {
-    const asyncIterable = stream as AsyncIterable<T>;
-    const stream2 = streamFromAsyncIterable(asyncIterable);
-    Object.assign(stream2, {
-      async * [Symbol.asyncIterator]() {
-        return stream2.getReader();
+export function toAsyncIterableStream<T>(
+  source: ReadableStream<T>,
+): AsyncIterableStream<T> {
+  const stream = source.pipeThrough(new TransformStream<T, T>());
+  (stream as AsyncIterableStream<T> as any)[Symbol.asyncIterator] = function (
+    this: ReadableStream<T>,
+  ): AsyncIterator<T> {
+    const reader = this.getReader();
+
+    let finished = false;
+
+    /**
+     * Cleans up the reader by cancelling and releasing the lock.
+     */
+    async function cleanup(cancelStream: boolean) {
+      finished = true;
+      try {
+        if (cancelStream) {
+          await reader.cancel?.();
+        }
+      } finally {
+        try {
+          reader.releaseLock();
+        } catch {}
+      }
+    }
+
+    return {
+      /**
+       * Reads the next chunk from the stream.
+       * @returns A promise resolving to the next IteratorResult.
+       */
+      async next(): Promise<IteratorResult<T>> {
+        if (finished) {
+          return { done: true, value: undefined };
+        }
+
+        const { done, value } = await reader.read();
+
+        if (done) {
+          await cleanup(true);
+          return { done: true, value: undefined };
+        }
+
+        return { done: false, value };
       },
-    })
-    return stream2 as any;
-  } else {
-    return stream as AsyncIterableStream<T>;
-  }
+
+      /**
+       * Called on early exit (e.g., break from for-await).
+       * Ensures the stream is cancelled and resources are released.
+       * @returns A promise resolving to a completed IteratorResult.
+       */
+      async return(): Promise<IteratorResult<T>> {
+        await cleanup(true);
+        return { done: true, value: undefined };
+      },
+
+      /**
+       * Called on early exit with error.
+       * Ensures the stream is cancelled and resources are released, then rethrows the error.
+       * @param err The error to throw.
+       * @returns A promise that rejects with the provided error.
+       */
+      async throw(err: unknown): Promise<IteratorResult<T>> {
+        await cleanup(true);
+        throw err;
+      },
+    };
+  };
+
+  return stream as AsyncIterableStream<T>;
 }

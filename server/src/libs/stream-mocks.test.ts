@@ -1,6 +1,27 @@
-import { readUIMessageStream } from "ai";
-import { streamFromAsyncIterable } from "./stream-helper";
+import { readUIMessageStream, UIMessage, UIMessageChunk } from "ai";
+import { streamFromAsyncIterable, toAsyncIterableStream } from "./stream-helper";
 import { getUIMsgStreamFromJSON } from "./stream-mocks";
+import { fixJson, parseJsonFromText } from "./fixJson";
+
+
+export function createJsonTransform({ isJson = false }: { isJson?: boolean } = {}) {
+  let lastJson: any, json: any, shouldTryInferJsonType = true;
+  const inferJsonRegexp = /(\s*```json[\s\S]*?```\s*|{\s*("[\w\d_\-\s]+"\s*:\s*|[\s\r\n]*"[\w\d_-]{2,}"\s*:\s*))/ig;
+
+  return new TransformStream({
+    async transform(chunk: UIMessage, controller) {
+      const textMsg = chunk.parts.reverse().find(msg => msg.type === 'text')?.text || '';
+      if (!isJson && textMsg && shouldTryInferJsonType && inferJsonRegexp.test(textMsg)) {
+        isJson = true;
+      }
+      if (isJson) {
+        json = parseJsonFromText(textMsg);
+        if (json) lastJson = json;
+      }
+      controller.enqueue({ ...chunk, json: json || lastJson });
+    }
+  })
+}
 
 describe("stream-mocks", () => {
   it("should yield the correct finish event", async () => {
@@ -13,10 +34,10 @@ describe("stream-mocks", () => {
       "name": "街头巷尾觅食者"
     };
     const iterable = getUIMsgStreamFromJSON(json);
-    const stream = streamFromAsyncIterable(iterable);
-    const stream2 = await readUIMessageStream({ stream });
+    const stream = await readUIMessageStream({ stream: streamFromAsyncIterable(iterable)});
+    const stream2 = stream.pipeThrough(createJsonTransform());
     let final: any;
-    for await (const chunk of stream2) { final = chunk; }
+    for await (const chunk of toAsyncIterableStream(stream2)) { final = chunk; }
     console.log('final', final);
   });
 });
