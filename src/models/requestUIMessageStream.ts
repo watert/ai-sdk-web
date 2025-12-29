@@ -46,13 +46,13 @@
 import _ from 'lodash';
 import { EventSourceParserStream, type EventSourceMessage } from '../libs/event-source-parser';
 import { readUIMessageStream } from 'ai'
-import type { UIMessage, UIMessageChunk } from "ai";
+import type { AsyncIterableStream, UIMessage, UIMessageChunk } from "ai";
 import { getAppReqHeaders } from './appAxios';
 import { jsonrepair } from 'jsonrepair';
+import { parseJsonFromText } from './fixJson';
+import { toAsyncIterableStream } from './toAsyncIterableStream';
 
-/**
- * 可解析类型，支持直接值、Promise 和函数返回值
- */
+// 可解析类型，支持直接值、Promise 和函数返回值
 type Resolvable<T> = T | Promise<T> | (() => T) | (() => Promise<T>);
 
 /**
@@ -132,33 +132,54 @@ export class EventEmitter<T> {
     this.subscribes.forEach(fn => fn(state));
   }
 }
-export function parseJsonFromText(text: string) {
-  text = text.trim()
+// export function parseJsonFromText(text: string) {
+//   text = text.trim()
   
-  // 先尝试清理 Markdown json 代码块前面的部分
-  if (text.includes('```json') && !text.startsWith('```json')) {
-    text = text.slice(text.indexOf('```json') + 7, text.lastIndexOf('```'));
-  }
+//   // 先尝试清理 Markdown json 代码块前面的部分
+//   if (text.includes('```json') && !text.startsWith('```json')) {
+//     text = text.slice(text.indexOf('```json') + 7, text.lastIndexOf('```'));
+//   }
 
-  try {
-    return JSON.parse(jsonrepair(text));
-  } catch (e) {
-    const lastJsonTokens = ['```', '}', ']']
-    const { tokenStr, index } = lastJsonTokens.reduce((prev, cur) => {
-      const index = text.lastIndexOf(cur);
-      return index !== -1 && (prev.index === -1 || index > prev.index) ? { tokenStr: cur, index } : prev;
-    }, { tokenStr: '', index: -1 });
-    if (index !== -1) {
-      text = text.slice(0, index + tokenStr.length);
+//   try {
+//     return JSON.parse(jsonrepair(text));
+//   } catch (e) {
+//     const lastJsonTokens = ['```', '}', ']']
+//     const { tokenStr, index } = lastJsonTokens.reduce((prev, cur) => {
+//       const index = text.lastIndexOf(cur);
+//       return index !== -1 && (prev.index === -1 || index > prev.index) ? { tokenStr: cur, index } : prev;
+//     }, { tokenStr: '', index: -1 });
+//     if (index !== -1) {
+//       text = text.slice(0, index + tokenStr.length);
+//     }
+//     try {
+//       return JSON.parse(jsonrepair(text));
+//     } catch (e) {
+//       console.log('parse error', e);
+//       return undefined;
+//     }
+//   }
+// }
+
+
+export function createJsonTransform({ isJson = false }: { isJson?: boolean } = {}) {
+  let lastJson: any, json: any, shouldTryInferJsonType = true;
+  const inferJsonRegexp = /(\s*```json[\s\S]*?```\s*|{\s*("[\w\d_\-\s]+"\s*:\s*|[\s\r\n]*"[\w\d_-]{2,}"\s*:\s*))/ig;
+
+  return new TransformStream({
+    async transform(chunk: UIMessage, controller) {
+      const textMsg = chunk.parts.reverse().find(msg => msg.type === 'text')?.text || '';
+      if (!isJson && textMsg && shouldTryInferJsonType && inferJsonRegexp.test(textMsg)) {
+        isJson = true;
+      }
+      if (isJson) {
+        json = parseJsonFromText(textMsg);
+        if (json) lastJson = json;
+      }
+      controller.enqueue({ ...chunk, json: json || lastJson });
     }
-    try {
-      return JSON.parse(jsonrepair(text));
-    } catch (e) {
-      console.log('parse error', e);
-      return undefined;
-    }
-  }
+  })
 }
+
 export async function resolve<T>(resolvable: Resolvable<T>): Promise<T> {
   if (typeof resolvable === 'function') {
     // 区分同步和异步函数调用
@@ -253,7 +274,11 @@ export async function requestUIMessageStream(options: RequestAiStreamInit): Prom
 
   const messages: UIMessage[] = [];
   const messagesById: Record<string, UIMessage> = {};
-  const msgStream = readUIMessageStream({ stream });
+  let msgStream: AsyncIterableStream<UIMessage> = toAsyncIterableStream(
+    readUIMessageStream({ stream }).pipeThrough(
+      createJsonTransform({ isJson: options.isJson })
+    )
+  );
   const emitter = new EventEmitter<RequestAiStreamState>();
 
   let lastJsonStr: any, json: any;
@@ -311,24 +336,8 @@ export async function requestUIMessageStream(options: RequestAiStreamInit): Prom
         } else {
           Object.assign(messagesById[id], msg);
         }
-        const lastTextMsg = _.findLast(messages.flatMap(msg => msg.parts), msg => msg.type === 'text');
-        if (!isJson && lastTextMsg?.text && shouldTryInferJsonType && inferJsonRegexp.test(lastTextMsg?.text)) {
-          isJson = true;
-        }
-        if (isJson) {
-          if (lastTextMsg && lastTextMsg?.text !== lastJsonStr) {
-            try {
-              json = parseJsonFromText(lastTextMsg?.text || 'undefined');
-              lastJsonStr = lastTextMsg?.text || 'undefined';
-            } catch(err) {
-              if (!options.isJson && shouldTryInferJsonType) {
-                isJson = false;
-                shouldTryInferJsonType = false;
-              }
-            }
-          }
-        }
-        latestState = { json, messages, status: 'streaming' };
+        // const lastTextMsg = _.findLast(messages.flatMap(msg => msg.parts), msg => msg.type === 'text');
+        latestState = { json: (_.last(messages) as any)?.json, messages, status: 'streaming' };
         throttledEmit(latestState);
       }
       
