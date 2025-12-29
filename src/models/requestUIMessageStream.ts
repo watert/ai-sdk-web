@@ -116,6 +116,7 @@ export interface RequestAiStreamInit {
   throttle?: number;
   /** 状态更新回调函数，每次状态变化时调用 */
   onChange?: (state: RequestAiStreamState) => void;
+  onFinish?: (state: RequestAiStreamState) => void;
 }
 
 export class EventEmitter<T> {
@@ -201,7 +202,10 @@ function readableStreamFromObjects<T>(objects: T[]): ReadableStream<T> {
  * });
  */
 export async function requestUIMessageStream(options: RequestAiStreamInit): Promise<RequestAiStreamResult> {
-  let { url, method = 'POST', headers, body, fetch = window.fetch, throttle = 33, onChange } = options;
+  let {
+    url, method = 'POST', headers, body,
+    fetch = window.fetch, throttle = 33,
+    onChange, onFinish } = options;
   body = await resolve(body);
   if (typeof body !== 'string') {
     body = JSON.stringify(body);
@@ -249,7 +253,10 @@ export async function requestUIMessageStream(options: RequestAiStreamInit): Prom
   const messages: UIMessage[] = [];
   const messagesById: Record<string, UIMessage> = {};
   let json: any;
-  const onJson = (_json) => { json = _json; }
+  const onJson = (_json) => {
+    json = _json;
+    latestState = { ...latestState, json };
+  }
   let msgStream: AsyncIterableStream<UIMessage> = toAsyncIterableStream(
     readUIMessageStream({ stream }).pipeThrough(
       createJsonTransform({ isJson: options.isJson, onJson })
@@ -266,7 +273,7 @@ export async function requestUIMessageStream(options: RequestAiStreamInit): Prom
   }, throttle);
   
   const getState = () => {
-    latestState = { ...latestState, json };
+    // latestState = { ...latestState, json };
     return latestState;
   };
   const subscribe = (fn: (state: RequestAiStreamState) => void) => {
@@ -345,6 +352,10 @@ export async function requestUIMessageStream(options: RequestAiStreamInit): Prom
     }
     return latestState;
   })();
+  
+  promise.then((state) => {
+    onFinish?.(state);
+  });
   
   return { stream: msgStream, subscribe, promise, getState, abort };
 }

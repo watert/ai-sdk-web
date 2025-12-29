@@ -13,6 +13,9 @@ const RequestAiStreamDemoPage: React.FC = () => {
         platform: 'OLLAMA', model: 'qwen3:4b-instruct',
         prompt: 'Respond with a JSON object: { msg: "Hello, what can I help you?" }',
       },
+      onFinish: (state) => {
+        console.log('onFinish', state);
+      }
     });
     return resp;
   }, []);
