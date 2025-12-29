@@ -76,9 +76,9 @@ app.use((err: Error, req: Request, res: Response, next) => {
 });
 
 // let agenda: Agenda;
-connectMongo().then(async (conn) => {
+connectMongo().asPromise().then(async (conn) => {
   // console.log('MongoDB: 连接成功', );
-  if (!conn.connection.db) {
+  if (!conn.db) {
     console.log('no conn.connection.db', conn);
     return;
   }
