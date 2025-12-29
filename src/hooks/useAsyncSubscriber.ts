@@ -1,4 +1,4 @@
-import { useCallback, useSyncExternalStore, type DependencyList } from 'react';
+import { useCallback, useState, useSyncExternalStore, type DependencyList } from 'react';
 import { useAsyncFn } from 'react-use';
 
 // 定义泛型 HandlerType 接口，支持具体的状态类型
@@ -7,7 +7,18 @@ interface HandlerType<TState> {
   getState: () => TState;
   abort?: () => void;
 }
-
+type MaybePromise<T> = T | Promise<T>;
+export function useAsyncIterableFn<TChunk, TParams extends any[] = []>(
+  func: (...params: TParams) => MaybePromise<AsyncIterable<TChunk>>,
+  deps: DependencyList
+) {
+  const [state, setState] = useState<TChunk | undefined>(undefined);
+  const fn = useCallback(async (...params: TParams) => {
+    const iterable = await func(...params);
+    for await (const chunk of iterable) { setState(chunk); }
+  }, deps);
+  return [state, fn];
+}
 // 添加泛型支持，实现类型推断
 export function useAsyncSubscriberFn<TState, TParams extends any[] = []>(
   func: (...params: TParams) => Promise<HandlerType<TState>>, 
