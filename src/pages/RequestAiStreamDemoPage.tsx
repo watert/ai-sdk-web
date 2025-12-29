@@ -5,7 +5,7 @@ import _ from 'lodash';
 
 const RequestAiStreamDemoPage: React.FC = () => {
   // 使用自定义 hook 订阅 AI 流
-  const [state, fn, abort] = useAsyncSubscriberFn(async () => {
+  const { state, send: fn, abort } = useAsyncSubscriberFn(async (params) => {
     const resp = await requestUIMessageStream({
       // isJson: true, // will auto infer if json exists
       url: 'http://localhost:5178/api/dev/ai-gen-stream',
