@@ -84,9 +84,9 @@ export interface RequestAiStreamState {
 /**
  * AI 流式请求结果接口，包含流处理相关的方法和属性
  */
-export interface RequestAiStreamResult {
+export interface AiStreamHandler {
   /** 原始ReadableStream流 */
-  stream: ReadableStream<UIMessage>;
+  stream: ReadableStream<UIMessage & { json?: any }>;
   /** 订阅状态变化的方法，返回取消订阅的函数 */
   subscribe: (fn: (state: RequestAiStreamState) => void) => (() => void);
   /** 流处理完成后的Promise，resolve为最终状态 */
@@ -112,11 +112,13 @@ export interface RequestAiStreamInit {
   fetch?: typeof fetch;
   /** 请求体，支持直接值、Promise或函数返回值 */
   body?: Resolvable<Record<string, any> | string>;
+  /** 取消请求的信号量 */
+  signal?: AbortSignal;
   /** 状态更新节流时间（毫秒），默认33ms */
-  throttle?: number;
+  // throttle?: number;
   /** 状态更新回调函数，每次状态变化时调用 */
-  onChange?: (state: RequestAiStreamState) => void;
-  onFinish?: (state: RequestAiStreamState) => void;
+  // onChange?: (state: RequestAiStreamState) => void;
+  // onFinish?: (state: RequestAiStreamState) => void;
 }
 
 export class EventEmitter<T> {
@@ -201,21 +203,21 @@ function readableStreamFromObjects<T>(objects: T[]): ReadableStream<T> {
  *   throttle: 100 // 每100ms更新一次状态
  * });
  */
-export async function requestUIMessageStream(options: RequestAiStreamInit): Promise<RequestAiStreamResult> {
+export async function requestUIMessageStream(options: RequestAiStreamInit): Promise<AsyncIterableStream<UIMessage>> {
   let {
     url, method = 'POST', headers, body,
-    fetch = window.fetch, throttle = 33,
-    onChange, onFinish } = options;
+    signal,
+    fetch = window.fetch
+  } = options;
   body = await resolve(body);
   if (typeof body !== 'string') {
     body = JSON.stringify(body);
   }
   headers = { ...getAppReqHeaders(), ...await resolve(headers) };
-  // console.log('headers', headers);
   
   // 创建 AbortController 用于支持取消请求
-  const controller = new AbortController();
-  const { signal } = controller;
+  // const controller = new AbortController();
+  // const { signal } = controller;
   
   const resp = await fetch(await resolve(url), {
     method: await resolve(method), headers, body, signal,
@@ -224,19 +226,8 @@ export async function requestUIMessageStream(options: RequestAiStreamInit): Prom
     throw new Error('Stream is null');
   }
   const contentType = resp.headers.get('Content-Type');
-  console.log('contentType', contentType);
   if (contentType?.includes('application/json')) { // 处理 JSON 响应而非 SSE
-    let data = await resp.json();
-    if (data.data) data = data.data;
-    const state: RequestAiStreamState = { status: 'ready', messages: [{ role: 'assistant', metadata: data, id: Date.now().toString(16), parts: [{ type: 'text', text: 'DONE' }] }] };
-    onChange?.(state);
-    return {
-      stream: readableStreamFromObjects(state.messages),
-      subscribe: _.noop as any,
-      getState: () => state,
-      abort: () => controller.abort(),
-      promise: Promise.resolve(state),
-    }
+    throw new Error('JSON response is not supported');
   }
   const stream = resp.body
     .pipeThrough(new TextDecoderStream())
@@ -249,19 +240,140 @@ export async function requestUIMessageStream(options: RequestAiStreamInit): Prom
         },
       }),
     );
+  let msgStream: AsyncIterableStream<UIMessage> = toAsyncIterableStream(
+    readUIMessageStream({ stream }).pipeThrough(
+      createJsonTransform({ isJson: options.isJson })
+    )
+  );
+  return msgStream;
+  // const handler = streamToAiStreamHandler({
+  //   stream: msgStream, throttle,
+  //   onChange, onFinish, options,
+  //   abortController: controller,
+  // });
+  // return handler;
+  // const emitter = new EventEmitter<RequestAiStreamState>();
 
+  // // 初始化状态为 'submitted'，表示请求已提交
+  // let latestState: RequestAiStreamState = { messages, json, status: 'submitted' };
+  
+  // // 使用 lodash throttle 创建节流的 emit 函数
+  // const throttledEmit = _.throttle((state: RequestAiStreamState) => {
+  //   emitter.emit(state);
+  // }, throttle);
+  
+  // const getState = () => {
+  //   // latestState = { ...latestState, json };
+  //   return latestState;
+  // };
+  // const subscribe = (fn: (state: RequestAiStreamState) => void) => {
+  //   console.count('called subscribe');
+  //   const unsub = emitter.subscribe(fn);
+  //   const state = getState();
+  //   if (state.messages?.length) { fn(state); }
+  //   return unsub;
+  // };
+
+  // // 如果提供了 onChange 回调，自动订阅状态变化
+  // let unsubOnChange: (() => void) | undefined;
+  // if (onChange) {
+  //   unsubOnChange = subscribe(onChange);
+  // }
+  
+  // // 实现 abort 函数
+  // const abort = () => {
+  //   controller.abort();
+  //   // 更新状态为 'ready' 表示可以发起新请求
+  //   latestState = { ...latestState, status: 'ready' };
+  //   // 取消节流，立即 emit 最终状态
+  //   throttledEmit.cancel();
+  //   emitter.emit(latestState);
+  //   // 取消 onChange 订阅
+  //   if (unsubOnChange) {
+  //     unsubOnChange();
+  //   }
+  //   // _.last(messages)?.parts?.push({ type: 'abort' });
+  // };
+  
+  // const promise = (async () => {
+  //   try {
+  //     // 开始接收流数据，更新状态为 'streaming'
+  //     latestState = { ...latestState, status: 'streaming' };
+  //     throttledEmit(latestState);
+      
+  //     for await (const msg of msgStream) {
+  //       const { id } = msg;
+  //       if (!messagesById[id]) {
+  //         messages.push(msg);
+  //         messagesById[id] = msg;
+  //       } else {
+  //         Object.assign(messagesById[id], msg);
+  //       }
+  //       latestState = {
+  //         json: (_.last(messages) as any)?.json,
+  //         messages,
+  //         status: 'streaming'
+  //       };
+  //       throttledEmit(latestState);
+  //     }
+      
+  //     // 流结束，更新状态为 'ready'
+  //     latestState = { ...latestState, status: 'ready' };
+  //     // 取消节流，立即 emit 最终状态
+  //     throttledEmit.cancel();
+  //     emitter.emit(latestState);
+  //     // 取消 onChange 订阅
+  //     if (unsubOnChange) {
+  //       unsubOnChange();
+  //     }
+  //   } catch (error) {
+  //     if ((error as Error).name !== 'AbortError') {
+  //       console.error('Stream error:', error);
+  //       // 发生错误，更新状态为 'error'
+  //       latestState = { ...latestState, status: 'error', error };
+  //       // 取消节流，立即 emit 错误状态
+  //       throttledEmit.cancel();
+  //       emitter.emit(latestState);
+  //       // 取消 onChange 订阅
+  //       if (unsubOnChange) {
+  //         unsubOnChange();
+  //       }
+  //     }
+  //   }
+  //   return latestState;
+  // })();
+  
+  // promise.then((state) => {
+  //   onFinish?.(state);
+  // });
+  
+  // return { stream: msgStream, subscribe, promise, getState, abort };
+}
+
+
+export function streamToAiStreamHandler<TState>({
+  stream: msgStream,
+  throttle = 33,
+  onChange,
+  onFinish,
+  options = {},
+  abortController: controller,
+}: {
+  stream: AsyncIterableStream<UIMessage & { json?: any }>;
+  abortController?: AbortController;
+  throttle?: number;
+  onChange?: (state: RequestAiStreamState) => void;
+  onFinish?: (state: RequestAiStreamState) => void;
+  options?: { isJson?: boolean };
+}): AiStreamHandler {
+  
   const messages: UIMessage[] = [];
   const messagesById: Record<string, UIMessage> = {};
   let json: any;
-  const onJson = (_json) => {
-    json = _json;
-    latestState = { ...latestState, json };
-  }
-  let msgStream: AsyncIterableStream<UIMessage> = toAsyncIterableStream(
-    readUIMessageStream({ stream }).pipeThrough(
-      createJsonTransform({ isJson: options.isJson, onJson })
-    )
-  );
+  // const onJson = (_json) => {
+  //   json = _json;
+  //   latestState = { ...latestState, json };
+  // }
   const emitter = new EventEmitter<RequestAiStreamState>();
 
   // 初始化状态为 'submitted'，表示请求已提交
@@ -292,7 +404,7 @@ export async function requestUIMessageStream(options: RequestAiStreamInit): Prom
   
   // 实现 abort 函数
   const abort = () => {
-    controller.abort();
+    controller?.abort();
     // 更新状态为 'ready' 表示可以发起新请求
     latestState = { ...latestState, status: 'ready' };
     // 取消节流，立即 emit 最终状态
@@ -312,18 +424,14 @@ export async function requestUIMessageStream(options: RequestAiStreamInit): Prom
       throttledEmit(latestState);
       
       for await (const msg of msgStream) {
-        const { id } = msg;
+        const { id, json } = msg;
         if (!messagesById[id]) {
           messages.push(msg);
           messagesById[id] = msg;
         } else {
           Object.assign(messagesById[id], msg);
         }
-        latestState = {
-          json: (_.last(messages) as any)?.json,
-          messages,
-          status: 'streaming'
-        };
+        latestState = { json, messages, status: 'streaming' };
         throttledEmit(latestState);
       }
       

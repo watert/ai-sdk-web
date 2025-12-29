@@ -2,7 +2,7 @@ import { useCallback, useState, useSyncExternalStore, type DependencyList } from
 import { useAsyncFn } from 'react-use';
 
 // 定义泛型 HandlerType 接口，支持具体的状态类型
-interface HandlerType<TState> {
+export interface HandlerType<TState> {
   subscribe: (fn: (state: TState) => void) => () => void;
   getState: () => TState;
   abort?: () => void;

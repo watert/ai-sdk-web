@@ -1,23 +1,25 @@
 import React from 'react';
 import { useAsyncSubscriberFn } from '../hooks/useAsyncSubscriber';
-import { requestUIMessageStream } from '../models/requestUIMessageStream';
+import { requestUIMessageStream, streamToAiStreamHandler } from '../models/requestUIMessageStream';
 import _ from 'lodash';
 
 const RequestAiStreamDemoPage: React.FC = () => {
   // 使用自定义 hook 订阅 AI 流
   const { state, send: fn, abort } = useAsyncSubscriberFn(async (params) => {
-    const resp = await requestUIMessageStream({
-      // isJson: true, // will auto infer if json exists
-      url: 'http://localhost:5178/api/dev/ai-gen-stream',
+    const controller = new AbortController();
+    const stream = await requestUIMessageStream({
+      url: 'http://localhost:5178/api/dev/ai-gen-stream', signal: controller.signal,
       body: {
         platform: 'OLLAMA', model: 'qwen3:4b-instruct',
         prompt: 'Respond with a JSON object: { msg: "Hello, what can I help you?" }',
       },
+    });
+    return streamToAiStreamHandler({
+      stream, abortController: controller,
       onFinish: (state) => {
         console.log('onFinish', state);
       }
     });
-    return resp;
   }, []);
 
   return (
