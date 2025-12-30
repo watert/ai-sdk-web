@@ -2,10 +2,10 @@ import _ from 'lodash';
 import { Request, RequestHandler, Response } from 'express';
 import { sendEventStream } from './sendEventStream';
 
-function isReadableStream(stream?: any) {
+function isReadableStream(stream: any): stream is ReadableStream {
   return stream?.pipe && typeof stream.pipe === 'function';
 }
-function isAsyncIterable(value: any): boolean {
+function isAsyncIterable(value: any): value is AsyncIterable<any> {
   return typeof value?.[Symbol.asyncIterator] === 'function';
 }
 /**
@@ -212,6 +212,13 @@ export function streamFromAsyncIterable<T>(iterable: AsyncIterable<T>): Readable
       }
     },
   });
+}
+
+export async function getStreamLastChunk<T>(stream: AsyncIterable<T> | ReadableStream<T>): Promise<T | undefined> {
+  let lastChunk: T | undefined;
+  const iterable = isReadableStream(stream) ? toAsyncIterableStream(stream) : stream;
+  for await (const chunk of iterable) { lastChunk = chunk; }
+  return lastChunk;
 }
 
 type AsyncIterableStream<T> = AsyncIterable<T> & ReadableStream<T>;

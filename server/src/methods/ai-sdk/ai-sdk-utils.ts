@@ -62,7 +62,7 @@ export const proxyFetch = !proxyUrl? undefined: (input: RequestInit | URL, init?
 
 
 const resolveConfigItem = (data: any) => (typeof data === 'function') ? data(): data;
-export function getAISDKModel({ platform, model }: { platform?: string; model?: string }): { model: any, info: any } {
+export function getAISDKModel({ platform = 'OLLAMA', model }: { platform?: string; model?: string }): { model: any, info: any } {
   if (platform === 'VERCEL') {
     return { model, info: { platform, model } };
   }

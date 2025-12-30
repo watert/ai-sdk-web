@@ -1,42 +1,50 @@
 import React from 'react';
-import { useAsyncSubscriberFn } from '../hooks/useAsyncSubscriber';
-import { requestUIMessageStream, streamToAiStreamHandler } from '../models/requestUIMessageStream';
 import _ from 'lodash';
+import { useAiStream } from '@/hooks/useAiStream';
+import { requestAIStream } from '@/models/requestAIStream';
+
+const aiURL = 'http://localhost:5178/api/dev/ai-gen-stream';
+async function onClickAxios() {
+  await requestAIStream(aiURL, {
+    // platform: 'OLLAMA',
+    prompt: 'Respond with a JSON object: { msg: "Hello, what can I help you?" }',
+  }, {
+    onChange: (chunk) => {
+      console.log('onChange', chunk);
+    },
+  });
+}
 
 const RequestAiStreamDemoPage: React.FC = () => {
   // 使用自定义 hook 订阅 AI 流
-  const { state, send: fn, abort } = useAsyncSubscriberFn(async (params) => {
-    const controller = new AbortController();
-    const stream = await requestUIMessageStream({
-      url: 'http://localhost:5178/api/dev/ai-gen-stream', signal: controller.signal,
-      body: {
-        platform: 'OLLAMA', model: 'qwen3:4b-instruct',
-        prompt: 'Respond with a JSON object: { msg: "Hello, what can I help you?" }',
-      },
-    });
-    return streamToAiStreamHandler({
-      stream, abortController: controller,
-      onFinish: (state) => {
-        console.log('onFinish', state);
-      }
-    });
-  }, []);
-
+  // useState<any>()
+  const [state, send, abort] = useAiStream({ url: aiURL, platform: 'OLLAMA' })
+  const onClick = () => send({
+    prompt: 'Respond with a JSON object: { msg: "Hello, what can I help you?" }',
+  });
+  
   return (
     <div className="p-6 space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Request AI Stream Demo</h1>
         <p className="text-slate-600 dark:text-slate-400 mt-2">
-          这是一个演示 requestUIMessageStream 函数和 useAsyncSubscriber hook 的页面
+          这是一个演示 useAiStream 的页面 <br />
+          底层是 requestUIMessageStream 函数和 useAsyncSubscriber hook
         </p>
       </div>
 
       <div className="flex justify-center gap-4">
         <button
-          onClick={() => fn()}
+          onClick={onClick}
           className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200"
         >
           发起 AI 请求
+        </button>
+        <button
+          onClick={onClickAxios}
+          className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200"
+        >
+          发起 Axios 请求
         </button>
         <button
           onClick={() => abort()}

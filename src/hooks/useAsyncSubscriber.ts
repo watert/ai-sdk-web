@@ -20,26 +20,22 @@ export function useAsyncIterableFn<TChunk, TParams extends any[] = []>(
   return [state, fn];
 }
 
-export type UseAsyncSubscriberReturn<TParams, TState> = {
-  state: TState | undefined;
+export type UseAsyncSubscriberReturn<TState = any, TParams = any> = {
+  state: TState;
   send: (params?: TParams) => Promise<HandlerType<TState>>;
   abort: () => void;
 }
 // 添加泛型支持，实现类型推断
-export function useAsyncSubscriberFn<TState, TParams extends any[] = []>(
+export function useAsyncSubscriberFn<TState, TParams = any>(
   func: (params?: TParams) => Promise<HandlerType<TState>>, 
   deps: DependencyList
-): UseAsyncSubscriberReturn<TParams, TState> {
+): UseAsyncSubscriberReturn<TState, TParams> {
   const [resp, fn] = useAsyncFn(func, deps);
-  const getState = resp.value?.getState || (() => undefined as TState | undefined);
+  const getState = resp.value?.getState || (() => undefined as TState);
   const subscribe = useCallback(resp.value?.subscribe || (() => () => {}), [resp.value?.subscribe]);
   
   // 使用 useSyncExternalStore 的泛型版本
-  const state = useSyncExternalStore<TState | undefined>(
-    subscribe,
-    getState,
-    getState
-  );
+  const state = useSyncExternalStore<TState>( subscribe, getState );
   
   // 返回 abort 函数，用于取消请求
   const abort = useCallback(() => {
