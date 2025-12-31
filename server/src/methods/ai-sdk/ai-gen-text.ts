@@ -72,27 +72,6 @@ export async function aiGenTextStream(opts: AiGenTextStreamOpts, ctx?: any): Pro
     pipeAiStreamResultToResponse,
   });
 }
-// export function aiStreamMerge(results: AiGenTextStreamResult[]) {
-//   const stream = createUIMessageStream({
-//     execute: async ({ writer }) => {
-//       for (const result of results) {
-//         writer.merge(result.toUIMessageStream({
-//           messageMetadata: aiHandleUIMsgMetadata
-//         }));
-//       }
-//     }
-//   });
-//   const result = _.last(results);
-//   if (!result) throw new Error('aiStreamMerge: empty results');
-//   const toUIMessageStream: any = () => stream;
-//   const pipeAiStreamResultToResponse = (res: any) => {
-//     return _pipeAiStreamResultToResponse(result, res);
-//   }
-//   return Object.assign(_.clone(result), {
-//     toUIMessageStream,
-//     pipeAiStreamResultToResponse,
-//   });
-// }
 
 export function _pipeAiStreamResultToResponse(result: StreamTextResult<any,any> & { context?: Record<string, any> }, res: Response, _metadata?: any) {
   const stream = createUIMessageStream({

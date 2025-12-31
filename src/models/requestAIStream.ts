@@ -1,13 +1,37 @@
 import _ from "lodash";
 import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
-import { readUIMessageStream, type UIMessage, type UIMessageChunk } from "ai";
-import { EventSourceParserStream } from "@/libs/event-source-parser";
+import { readUIMessageStream, type ReasoningUIPart, type TextUIPart, type UIMessage, type UIMessageChunk } from "ai";
 import { appAxios } from "./appAxios";
 import { parseJsonFromText } from "./fixJson";
 
 function isReadableStream(stream: any): stream is ReadableStream {
   return stream?.pipe && typeof stream.pipe === 'function';
 }
+
+class TransformSSEJSONStream<T = UIMessageChunk> extends TransformStream {
+  constructor() {
+    super({
+      transform(chunk, controller) {
+        const lines = chunk.split('\n').map(line => line.trim());
+        for (const line of lines) {
+          if (!line || line.startsWith(':')) continue;
+          const [fieldName, ...valueParts] = line.split(/: /);
+          const value = valueParts.join(': ');
+
+          if (fieldName !== 'data') continue;
+          if (value === '[DONE]') break;
+          try {
+            const json = JSON.parse(value) as T;
+            if (json) controller.enqueue(json);
+          } catch (err) {
+            console.error('JSON parse error:', err, value);
+          }
+        }
+      }
+    })
+  }
+}
+
 function createThrottledStream(wait = 33, options = { leading: false, trailing: true }) {
   let throttledEnqueue, controller;
   return new TransformStream({
@@ -39,6 +63,13 @@ function createJsonTransform({ isJson = false, onJson }: { isJson?: boolean, onJ
     }
   })
 }
+function streamMap<T, U = any>(fn: (chunk: T) => U): TransformStream<T, U> {
+  return new TransformStream({
+    transform(chunk, controller) {
+      controller.enqueue(fn(chunk));
+    }
+  })
+}
 
 export function getJsonStreamFromAxiosResp<T = UIMessageChunk>(resp: AxiosResponse<ReadableStream>) {
   if (!isReadableStream(resp.data) && !(resp.data as any).pipeThrough) {
@@ -46,49 +77,31 @@ export function getJsonStreamFromAxiosResp<T = UIMessageChunk>(resp: AxiosRespon
   }
   let stream = resp.data
     .pipeThrough(new TextDecoderStream())
-    // .pipeThrough(new TransformStream({ // handle sse multiline format
-    //   transform(chunk, controller) {
-    //     const lines = chunk.split('\n').map(line => line.trim());
-    //     lines.forEach(line => {
-    //       if (!line || line.startsWith(':')) return;
-    //       const [fieldName, ...valueParts] = line.split(/:\s?/);
-    //       const value = valueParts.join(': ');
-    //       if (fieldName === 'data' && value !== '[DONE]') {
-    //         controller.enqueue(value);
-    //       }
-    //     })
-    //   }
-    // }))
-    .pipeThrough(new EventSourceParserStream())
-    .pipeThrough(new TransformStream({
-      transform(chunk, controller) {
-        if (!chunk.data || chunk.data?.trim() === '[DONE]') return;
-        try {
-          const json = JSON.parse(chunk.data) as T;
-          if (json) controller.enqueue(json);
-        } catch (err) {
-          console.error('JSON parse error:', err, chunk.data);
-        }
-      }
-    }));
-  return stream as ReadableStream<T>;
+    .pipeThrough(new TransformSSEJSONStream<T>())
+  return stream;
 }
 export async function requestAIStream<T = any>(url, data, options?: AxiosRequestConfig & {
   axios?: AxiosInstance;
   isJson?: boolean;
+  signal?: AbortSignal;
   throttle?: number;
   onChange?: (chunk: T) => void;
 }) {
-  let { axios = appAxios, isJson = false, throttle = 40, onChange, ...opts } = options || {};
+  let { axios = appAxios, isJson = false, throttle = 40, signal, onChange, ...opts } = options || {};
   const resp = await axios.post(url, data, {
-    adapter: 'fetch', responseType: 'stream', ...opts,
+    adapter: 'fetch', responseType: 'stream', signal, ...opts,
   });
 
   const stream = getJsonStreamFromAxiosResp<UIMessageChunk>(resp);
   const msgStream = readUIMessageStream({ stream })
     .pipeThrough(createThrottledStream(throttle))
     .pipeThrough(createJsonTransform({ isJson }))
-  let lastChunk: T = undefined as any;
+    .pipeThrough(streamMap((chunk: UIMessage<T>) => {
+      const lastTextPart = _.findLast(chunk.parts, { type: 'text' }) as TextUIPart | undefined;
+      const lastReasoningPart = _.findLast(chunk.parts, { type: 'reasoning' }) as ReasoningUIPart | undefined;
+      return { ...chunk, text: lastTextPart?.text || '', reasoning: lastReasoningPart?.text }
+    }));
+  let lastChunk: UIMessage<T> & { text: string, json?: any, reasoning?: string } = undefined as any;
   for await (const chunk of msgStream as any) {
     onChange?.(chunk);
     lastChunk = chunk;

@@ -5,14 +5,15 @@ import { requestAIStream } from '@/models/requestAIStream';
 
 const aiURL = 'http://localhost:5178/api/dev/ai-gen-stream';
 async function onClickAxios() {
-  await requestAIStream(aiURL, {
-    // platform: 'OLLAMA',
+  const res = await requestAIStream(aiURL, {
+    platform: 'OLLAMA',
     prompt: 'Respond with a JSON object: { msg: "Hello, what can I help you?" }',
   }, {
     onChange: (chunk) => {
       console.log('onChange', chunk);
     },
   });
+  console.log('req ai stream res', res);
 }
 
 const RequestAiStreamDemoPage: React.FC = () => {
