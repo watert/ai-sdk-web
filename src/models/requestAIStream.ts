@@ -1,3 +1,30 @@
+/** usage example:
+ * 
+ * 
+ * const exampleParams = {
+ *   platform: 'OLLAMA',
+ *   prompt: 'Respond with a JSON object: { msg: "Hello, what can I help you?" }',
+ * };
+ * 
+ * ## in async function:
+ * 
+ * const { text, json } = await requestAIStream(aiURL, exampleParams);
+ * console.log('resp content', { text, json });
+ * 
+ * ## in react
+ * const [state, setState] = useState<RequestAIStreamReturn>({ text: '', json: null });
+ * const abortRef = useRef<AbortController>(null);
+ * const send = useCallback(async (params: AiGenTextStreamOpts) => {
+ *   abortRef.current?.abort?.();
+ *   abortRef.current = new AbortController();
+ *   const final = await requestAIStream(aiURL, params, {
+ *      onChange: setState, signal: abortRef.current.signal,
+ *   });
+ *   setState(final);
+ * }, [aiURL]);
+ * 
+ */
+
 import _ from "lodash";
 import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
 import { readUIMessageStream, type ReasoningUIPart, type TextUIPart, type UIMessage, type UIMessageChunk } from "ai";
@@ -80,13 +107,31 @@ export function getJsonStreamFromAxiosResp<T = UIMessageChunk>(resp: AxiosRespon
     .pipeThrough(new TransformSSEJSONStream<T>())
   return stream;
 }
+export async function* streamToAsyncIterable<T = any>(
+  stream: ReadableStream<T>
+): AsyncIterable<T> {
+  const reader = stream.getReader();
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) return;
+      yield value;
+    }
+  } finally {
+    reader.releaseLock();
+  }
+}
+
+export type RequestAIStreamReturn<T = any> = UIMessage<T> & {
+  text: string, json?: any, reasoning?: string, status?: string
+}
 export async function requestAIStream<T = any>(url, data, options?: AxiosRequestConfig & {
   axios?: AxiosInstance;
   isJson?: boolean;
   signal?: AbortSignal;
   throttle?: number;
-  onChange?: (chunk: T) => void;
-}) {
+  onChange?: (chunk: RequestAIStreamReturn<T>) => void;
+}): Promise<RequestAIStreamReturn<T>> {
   let { axios = appAxios, isJson = false, throttle = 40, signal, onChange, ...opts } = options || {};
   const resp = await axios.post(url, data, {
     adapter: 'fetch', responseType: 'stream', signal, ...opts,
@@ -99,10 +144,10 @@ export async function requestAIStream<T = any>(url, data, options?: AxiosRequest
     .pipeThrough(streamMap((chunk: UIMessage<T>) => {
       const lastTextPart = _.findLast(chunk.parts, { type: 'text' }) as TextUIPart | undefined;
       const lastReasoningPart = _.findLast(chunk.parts, { type: 'reasoning' }) as ReasoningUIPart | undefined;
-      return { ...chunk, text: lastTextPart?.text || '', reasoning: lastReasoningPart?.text }
+      return { ...chunk, text: lastTextPart?.text || '', reasoning: lastReasoningPart?.text } as RequestAIStreamReturn<T>;
     }));
-  let lastChunk: UIMessage<T> & { text: string, json?: any, reasoning?: string } = undefined as any;
-  for await (const chunk of msgStream as any) {
+  let lastChunk: RequestAIStreamReturn<T> = undefined as any;
+  for await (const chunk of streamToAsyncIterable(msgStream)) {
     onChange?.(chunk);
     lastChunk = chunk;
   }

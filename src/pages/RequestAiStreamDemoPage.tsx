@@ -1,12 +1,12 @@
 import React from 'react';
 import _ from 'lodash';
-import { useAiStream } from '@/hooks/useAiStream';
-import { requestAIStream } from '@/models/requestAIStream';
+import { useAiStream, useAiStream2 } from '@/hooks/useAiStream';
+import { requestAIStream, type RequestAIStreamReturn } from '@/models/requestAIStream';
+import { twMerge } from 'tailwind-merge';
 
 const aiURL = 'http://localhost:5178/api/dev/ai-gen-stream';
 async function onClickAxios() {
   const res = await requestAIStream(aiURL, {
-    platform: 'OLLAMA',
     prompt: 'Respond with a JSON object: { msg: "Hello, what can I help you?" }',
   }, {
     onChange: (chunk) => {
@@ -19,11 +19,11 @@ async function onClickAxios() {
 const RequestAiStreamDemoPage: React.FC = () => {
   // 使用自定义 hook 订阅 AI 流
   // useState<any>()
-  const [state, send, abort] = useAiStream({ url: aiURL, platform: 'OLLAMA' })
+  const [{ value: state, loading, error }, send, abort] = useAiStream2({ url: aiURL, platform: 'OLLAMA' })
   const onClick = () => send({
     prompt: 'Respond with a JSON object: { msg: "Hello, what can I help you?" }',
   });
-  
+  const msg: RequestAIStreamReturn<any> = (state as any)?.parts ? state: _.last((state as any).messages || []);
   return (
     <div className="p-6 space-y-6">
       <div>
@@ -36,8 +36,13 @@ const RequestAiStreamDemoPage: React.FC = () => {
 
       <div className="flex justify-center gap-4">
         <button
+          disabled={loading}
           onClick={onClick}
-          className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200"
+          className={twMerge(
+            "px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200",
+            loading && "cursor-not-allowed opacity-50"
+          )
+          }
         >
           发起 AI 请求
         </button>
@@ -48,8 +53,12 @@ const RequestAiStreamDemoPage: React.FC = () => {
           发起 Axios 请求
         </button>
         <button
+          disabled={!loading}
           onClick={() => abort()}
-          className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors duration-200"
+          className={twMerge(
+            "px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors duration-200",
+            !loading && "cursor-not-allowed opacity-50"
+          )}
         >
           取消请求
         </button>
@@ -62,8 +71,8 @@ const RequestAiStreamDemoPage: React.FC = () => {
           <div>
             <h3 className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">状态:</h3>
             <div className="flex items-center">
-              <span className={`px-3 py-1 rounded-full text-sm font-medium ${state?.status === 'submitted' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' : state?.status === 'streaming' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : state?.status === 'ready' ? 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'}`}>
-                {state?.status || '未知'}
+              <span className={`px-3 py-1 rounded-full text-sm font-medium ${msg?.status === 'submitted' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' : state?.status === 'streaming' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : state?.status === 'ready' ? 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'}`}>
+                {msg?.status || '未知'}
               </span>
             </div>
           </div>
@@ -71,9 +80,9 @@ const RequestAiStreamDemoPage: React.FC = () => {
           <div>
             <h3 className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">Messages:</h3>
             <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-4 overflow-auto max-h-60">
-              {state?.messages?.length ? (
+              {!!msg ? (
                 <pre className="text-sm text-slate-900 dark:text-slate-100 whitespace-pre-wrap">
-                  {JSON.stringify(state.messages, null, 2)}
+                  {JSON.stringify(msg, null, 2)}
                 </pre>
               ) : (
                 <p className="text-slate-500 dark:text-slate-400">暂无消息</p>
@@ -84,9 +93,9 @@ const RequestAiStreamDemoPage: React.FC = () => {
           <div>
             <h3 className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">Parsed JSON:</h3>
             <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-4">
-              {state?.json ? (
+              {msg?.json ? (
                 <pre className="text-sm text-slate-900 dark:text-slate-100 whitespace-pre-wrap">
-                  {JSON.stringify(state.json, null, 2)}
+                  {JSON.stringify(msg.json, null, 2)}
                 </pre>
               ) : (
                 <p className="text-slate-500 dark:text-slate-400">暂无解析的 JSON</p>
