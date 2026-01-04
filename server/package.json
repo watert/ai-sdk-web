@@ -16,7 +16,6 @@
     "@ai-sdk/google": "^3",
     "@ai-sdk/openai": "^3",
     "@ai-sdk/openai-compatible": "^2",
-    "@ai-sdk/react": "^3.0.3",
     "@types/cookie-parser": "^1.4.10",
     "@types/express": "^5.0.5",
     "@types/express-session": "^1.18.2",

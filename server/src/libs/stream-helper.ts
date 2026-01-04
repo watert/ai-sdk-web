@@ -155,7 +155,7 @@ async function pipeAsyncIterableToResponse(iterable: AsyncIterable<any>, res: Re
 }
 
 
-export function createAiStreamMiddleware(fn: (bodyWithSignal: any) => any): RequestHandler;
+// export function createAiStreamMiddleware(fn: (bodyWithSignal: any) => any): RequestHandler;
 export function createAiStreamMiddleware(fn: (body: any, { signal, req, res }: { signal?: AbortSignal, req: Request, res: Response }) => any): RequestHandler {
   return async (req: Request, res: Response) => {
     const controller = new AbortController();

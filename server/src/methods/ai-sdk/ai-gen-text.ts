@@ -34,12 +34,30 @@ export type AiGenTextStreamResult = StreamTextResult<any,any> & {
   toJsonFormat: () => Promise<any>;
 }
 export async function aiGenTextStream(opts: AiGenTextStreamOpts, ctx?: any): Promise<AiGenTextStreamResult>{
-  const { params, info } = await prepareAiSdkRequest(opts, ctx);
+  const { params, info } = await prepareAiSdkRequest({ platform: 'OLLAMA', ...opts as any }, ctx);
   let context: any = { metadata: {}, ...(opts.experimental_context as any) || {}, ...opts.context };
-  const resp = streamText({
+  const streamOpts = {
     experimental_context: context,
     ..._.omit(params, 'search', 'thinking') as any,
-  });
+  }
+  let resp: StreamTextResult<any,any> | null = null;
+  try {
+
+    resp = streamText({
+      onError: (err) => {
+        console.error('streamText opts', streamOpts);
+        console.error('streamText error', err);
+      },
+      onAbort: (err) => {
+        console.error('streamText abort opts', streamOpts);
+        console.error('streamText abort error', err);
+      },
+      ...streamOpts,
+    });
+  } catch (err) {
+    console.error('streamText error', streamOpts, err);
+    throw err;
+  }
   
   (async () => {
     for await (const chunk of resp.toUIMessageStream({
