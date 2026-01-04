@@ -10,8 +10,6 @@ export function createAiHttpTransport(params: AiHttpTransportInit) {
   return new DefaultChatTransport({
     headers: async () => getAppReqHeaders(),
     prepareSendMessagesRequest: async (_request) => {
-      // console.log('prepare request', _request);
-      // _.set(_request, 'api', typeof api === 'function' ? await api() : api)
       return { api: typeof api === 'function' ? await api() : api };
     },
     api: '/dev/ai-gen',

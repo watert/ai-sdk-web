@@ -14,7 +14,7 @@ type DefaultStreamFuncParams = {
   prompt?: string; url?: string; body?: Record<string, any>;
 }
 
-export function useAiStream2({ url, baseURL, platform, model, system }: {
+export function useAiStreamFn({ url, baseURL, platform, model, system }: {
   url?: string; baseURL?: string;
   platform?: string; model?: string; system?: string;
 }): [
@@ -40,6 +40,7 @@ export function useAiStream2({ url, baseURL, platform, model, system }: {
   return [finalState, resp[1], () => abortRef.current?.abort?.()];
 }
 
+
 export function useAiStream<StateType = RequestAiStreamState, T = DefaultStreamFuncParams>(config: AiStreamConfig):[
   state: { value: StateType, loading: boolean, error?: any },
   send: (params?: T) => void,
@@ -63,9 +64,10 @@ export function useAiStream<StateType = RequestAiStreamState, T = DefaultStreamF
     });
   }, [platform, model, system]);
   const { state, send, abort } = handler;
+  const loading = state?.status === 'streaming';
   const resp = useAsyncFn(async (params?: T) => {
     const finalState = await send(params);
     return finalState as any;
   }, [send]);
-  return [{ ...resp[0], value: state as any }, resp[1], abort];
+  return [{ ...resp[0], loading, value: state as any }, resp[1], abort];
 }

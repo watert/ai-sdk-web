@@ -1,6 +1,6 @@
 import React from 'react';
 import _ from 'lodash';
-import { useAiStream, useAiStream2 } from '@/hooks/useAiStream';
+import { useAiStream, useAiStreamFn } from '@/hooks/useAiStream';
 import { requestAIStream, type RequestAIStreamReturn } from '@/models/requestAIStream';
 import { twMerge } from 'tailwind-merge';
 
@@ -19,11 +19,11 @@ async function onClickAxios() {
 const RequestAiStreamDemoPage: React.FC = () => {
   // 使用自定义 hook 订阅 AI 流
   // useState<any>()
-  const [{ value: state, loading, error }, send, abort] = useAiStream2({ url: aiURL, platform: 'OLLAMA' })
+  const [{ value: state, loading, error }, send, abort] = useAiStream({ url: aiURL, platform: 'OLLAMA' })
   const onClick = () => send({
     prompt: 'Respond with a JSON object: { msg: "Hello, what can I help you?" }',
   });
-  const msg: RequestAIStreamReturn<any> = (state as any)?.parts ? state: _.last((state as any).messages || []);
+  const msg: RequestAIStreamReturn<any> = (state as any)?.parts ? state: _.last((state as any)?.messages || []) as any;
   return (
     <div className="p-6 space-y-6">
       <div>
