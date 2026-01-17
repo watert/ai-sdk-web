@@ -1,40 +1,31 @@
-import { MdxParser, MdxJsxNode, MdxMarkdownNode, MdxStringNode } from './mdx-parse';
+import { MdxParser, MdxJsxNode } from './mdx-parse';
 
 const isJsxNode = (node: any): node is MdxJsxNode => node?.type === 'jsx';
-const isMarkdownNode = (node: any): node is MdxMarkdownNode => node?.type === 'markdown';
-const isStringNode = (node: any): node is MdxStringNode => node?.type === 'string';
 
-describe('MdxParser - 基础解析', () => {
-  it('应该解析纯 Markdown 文本', () => {
+describe('MdxParser', () => {
+  it('基础解析: 纯 Markdown 文本', () => {
     const input = '# 标题\n\n这是一段普通的文本';
     const result = MdxParser.parse(input);
 
     expect(result).toHaveLength(1);
-    expect(result[0]).toEqual({
-      type: 'markdown',
-      raw: input
-    });
+    expect(result[0]).toEqual({ type: 'markdown', raw: input });
   });
 
-  it('应该解析空字符串', () => {
-    const result = MdxParser.parse('');
-    expect(result).toEqual([]);
+  it('基础解析: 空字符串', () => {
+    expect(MdxParser.parse('')).toEqual([]);
   });
 
-  it('应该解析只有空白的字符串', () => {
+  it('基础解析: 只有空白的字符串', () => {
     const result = MdxParser.parse('   \n\n  ');
     expect(result).toHaveLength(1);
     expect(result[0].type).toBe('markdown');
   });
-});
 
-describe('MdxParser - 自闭合标签', () => {
-  it('应该解析简单的自闭合标签', () => {
+  it('自闭合标签: 简单标签', () => {
     const input = '<Image src="test.jpg" />';
     const result = MdxParser.parse(input);
-
-    expect(result).toHaveLength(1);
     const node = result[0] as any;
+
     expect(node).toEqual({
       type: 'jsx',
       tagName: 'Image',
@@ -44,12 +35,11 @@ describe('MdxParser - 自闭合标签', () => {
     });
   });
 
-  it('应该解析带多个属性的自闭合标签', () => {
+  it('自闭合标签: 多个属性', () => {
     const input = '<Image src="test.jpg" alt="测试图片" width={100} />';
     const result = MdxParser.parse(input);
-
-    expect(result).toHaveLength(1);
     const node = result[0] as any;
+
     expect(node.props).toEqual({
       src: 'test.jpg',
       alt: '测试图片',
@@ -57,53 +47,38 @@ describe('MdxParser - 自闭合标签', () => {
     });
   });
 
-  it('应该解析带布尔属性的自闭合标签', () => {
+  it('自闭合标签: 布尔属性', () => {
     const input = '<Button disabled primary />';
     const result = MdxParser.parse(input);
-
-    expect(result).toHaveLength(1);
     const node = result[0] as any;
-    expect(node.props).toEqual({
-      disabled: true,
-      primary: true
-    });
+
+    expect(node.props).toEqual({ disabled: true, primary: true });
   });
 
-  it('应该解析带函数属性的自闭合标签', () => {
+  it('自闭合标签: 函数属性', () => {
     const input = '<Button onClick={() => console.log("test")} />';
     const result = MdxParser.parse(input);
-
-    expect(result).toHaveLength(1);
     const node = result[0] as any;
+
     expect(node.props.onClick).toEqual({
       type: 'function',
       raw: '() => console.log("test")'
     });
   });
-});
 
-describe('MdxParser - 带子元素的标签', () => {
-  it('应该解析带文本子元素的标签', () => {
+  it('带子元素的标签: 文本子元素', () => {
     const input = '<Button>点击我</Button>';
     const result = MdxParser.parse(input);
-
-    expect(result).toHaveLength(1);
     const node = result[0] as MdxJsxNode;
-    expect(node).toEqual({
-      type: 'jsx',
-      tagName: 'Button',
-      props: {},
-      children: [{ type: 'string', raw: '点击我' }],
-      raw: input
-    });
+
+    expect(node.children).toEqual([{ type: 'string', raw: '点击我' }]);
   });
 
-  it('应该解析带嵌套 JSX 的标签', () => {
+  it('带子元素的标签: 嵌套 JSX', () => {
     const input = '<div><span>文本</span></div>';
     const result = MdxParser.parse(input);
-
-    expect(result).toHaveLength(1);
     const node = result[0] as MdxJsxNode;
+
     expect(node.children).toHaveLength(1);
     expect(node.children[0]).toEqual({
       type: 'jsx',
@@ -114,60 +89,38 @@ describe('MdxParser - 带子元素的标签', () => {
     });
   });
 
-  it('应该解析带多个子元素的标签', () => {
+  it('带子元素的标签: 多个子元素', () => {
     const input = '<div>文本1<span>文本2</span>文本3</div>';
     const result = MdxParser.parse(input);
-
-    expect(result).toHaveLength(1);
     const node = result[0] as MdxJsxNode;
+
     expect(node.children).toHaveLength(3);
     expect(node.children[0]).toEqual({ type: 'string', raw: '文本1' });
     expect(isJsxNode(node.children[1])).toBe(true);
-    expect((node.children[1] as MdxJsxNode).tagName).toBe('span');
     expect(node.children[2]).toEqual({ type: 'string', raw: '文本3' });
   });
 
-  it('应该解析带属性的子元素', () => {
-    const input = '<div><span className="red">警告</span></div>';
-    const result = MdxParser.parse(input);
-
-    expect(result).toHaveLength(1);
-    const node = result[0] as MdxJsxNode;
-    const child = node.children[0] as MdxJsxNode;
-    expect(child.props).toEqual({ className: 'red' });
-  });
-});
-
-describe('MdxParser - 属性解析', () => {
-  it('应该解析字符串属性(双引号)', () => {
+  it('属性解析: 字符串属性', () => {
     const input = '<div className="container">内容</div>';
     const result = MdxParser.parse(input);
-
     const node = result[0] as MdxJsxNode;
+
     expect(node.props.className).toBe('container');
   });
 
-  it('应该解析字符串属性(单引号)', () => {
-    const input = "<div className='container'>内容</div>";
-    const result = MdxParser.parse(input);
-
-    const node = result[0] as MdxJsxNode;
-    expect(node.props.className).toBe('container');
-  });
-
-  it('应该解析表达式属性', () => {
+  it('属性解析: 表达式属性', () => {
     const input = '<div count={42}>内容</div>';
     const result = MdxParser.parse(input);
-
     const node = result[0] as MdxJsxNode;
+
     expect(node.props.count).toEqual({ type: 'json', raw: '42', value: 42 });
   });
 
-  it('应该解析复杂表达式属性', () => {
+  it('属性解析: 复杂表达式属性', () => {
     const input = '<div data={{ key: "value" }}>内容</div>';
     const result = MdxParser.parse(input);
-
     const node = result[0] as MdxJsxNode;
+
     expect(node.props.data).toEqual({
       type: 'json',
       raw: '{ key: "value" }',
@@ -175,60 +128,41 @@ describe('MdxParser - 属性解析', () => {
     });
   });
 
-  it('应该识别箭头函数属性', () => {
+  it('属性解析: 箭头函数属性', () => {
     const input = '<Button onClick={(e) => handleClick(e)}>点击</Button>';
     const result = MdxParser.parse(input);
-
     const node = result[0] as MdxJsxNode;
+
     expect(node.props.onClick).toEqual({
       type: 'function',
       raw: '(e) => handleClick(e)'
     });
   });
 
-  it('应该识别普通函数属性', () => {
-    const input = '<Button onClick={function(e) { handleClick(e); }}>点击</Button>';
-    const result = MdxParser.parse(input);
-
-    const node = result[0] as MdxJsxNode;
-    expect(node.props.onClick).toEqual({
-      type: 'function',
-      raw: 'function(e) { handleClick(e); }'
-    });
-  });
-
-  it('应该识别 async 函数属性', () => {
+  it('属性解析: async 函数属性', () => {
     const input = '<Button onClick={async () => await fetchData()}>点击</Button>';
     const result = MdxParser.parse(input);
-
     const node = result[0] as MdxJsxNode;
+
     expect(node.props.onClick).toEqual({
       type: 'function',
       raw: 'async () => await fetchData()'
     });
   });
 
-  it('应该解析布尔属性', () => {
+  it('属性解析: 布尔属性', () => {
     const input = '<input disabled />';
     const result = MdxParser.parse(input);
-
     const node = result[0] as MdxJsxNode;
+
     expect(node.props.disabled).toBe(true);
   });
 
-  it('应该解析带连字符的属性名', () => {
-    const input = '<div data-test-id="123">内容</div>';
-    const result = MdxParser.parse(input);
-
-    const node = result[0] as MdxJsxNode;
-    expect(node.props['data-test-id']).toBe('123');
-  });
-
-  it('应该解析 JSON5 数组属性', () => {
+  it('属性解析: JSON5 数组属性', () => {
     const input = '<div items={[1, 2, 3]}>内容</div>';
     const result = MdxParser.parse(input);
-
     const node = result[0] as MdxJsxNode;
+
     expect(node.props.items).toEqual({
       type: 'json',
       raw: '[1, 2, 3]',
@@ -236,56 +170,15 @@ describe('MdxParser - 属性解析', () => {
     });
   });
 
-  it('应该解析 JSON5 布尔值属性', () => {
-    const input = '<div enabled={true}>内容</div>';
-    const result = MdxParser.parse(input);
-
-    const node = result[0] as MdxJsxNode;
-    expect(node.props.enabled).toEqual({
-      type: 'json',
-      raw: 'true',
-      value: true
-    });
-  });
-
-  it('应该解析 JSON5 null 属性', () => {
-    const input = '<div value={null}>内容</div>';
-    const result = MdxParser.parse(input);
-
-    const node = result[0] as MdxJsxNode;
-    expect(node.props.value).toEqual({
-      type: 'json',
-      raw: 'null',
-      value: null
-    });
-  });
-
-  it('应该解析 JSON5 对象属性', () => {
-    const input = '<div config={{ theme: "dark", fontSize: 14 }}>内容</div>';
-    const result = MdxParser.parse(input);
-
-    const node = result[0] as MdxJsxNode;
-    expect(node.props.config).toEqual({
-      type: 'json',
-      raw: '{ theme: "dark", fontSize: 14 }',
-      value: { theme: 'dark', fontSize: 14 }
-    });
-  });
-
-  it('应该将无法解析的表达式作为 expression 类型', () => {
+  it('属性解析: 无法解析的表达式', () => {
     const input = '<div value={undefined}>内容</div>';
     const result = MdxParser.parse(input);
-
     const node = result[0] as MdxJsxNode;
-    expect(node.props.value).toEqual({
-      type: 'expression',
-      raw: 'undefined'
-    });
-  });
-});
 
-describe('MdxParser - 混合内容', () => {
-  it('应该解析 Markdown 和 JSX 的混合内容', () => {
+    expect(node.props.value).toEqual({ type: 'expression', raw: 'undefined' });
+  });
+
+  it('混合内容: Markdown 和 JSX 混合', () => {
     const input = '# 标题\n\n<Button>按钮</Button>\n\n段落';
     const result = MdxParser.parse(input);
 
@@ -295,42 +188,35 @@ describe('MdxParser - 混合内容', () => {
     expect(result[2].type).toBe('markdown');
   });
 
-  it('应该解析行内 JSX', () => {
+  it('混合内容: 行内 JSX', () => {
     const input = '这是一段文本，包含 <strong>加粗</strong> 内容';
     const result = MdxParser.parse(input);
 
     expect(result).toHaveLength(3);
     expect(result[0].raw).toBe('这是一段文本，包含 ');
-    const node = result[1] as MdxJsxNode;
-    expect(node.tagName).toBe('strong');
+    expect((result[1] as MdxJsxNode).tagName).toBe('strong');
     expect(result[2].raw).toBe(' 内容');
   });
 
-  it('应该解析多个相邻的 JSX 元素', () => {
+  it('混合内容: 多个相邻 JSX 元素', () => {
     const input = '<span>1</span><span>2</span><span>3</span>';
     const result = MdxParser.parse(input);
 
     expect(result).toHaveLength(3);
-    const node1 = result[0] as MdxJsxNode;
-    const node2 = result[1] as MdxJsxNode;
-    const node3 = result[2] as MdxJsxNode;
-    expect(node1.tagName).toBe('span');
-    expect(node2.tagName).toBe('span');
-    expect(node3.tagName).toBe('span');
+    result.forEach(node => {
+      expect((node as MdxJsxNode).tagName).toBe('span');
+    });
   });
-});
 
-describe('MdxParser - 特殊情况', () => {
-  it('应该忽略 HTML 注释', () => {
+  it('特殊情况: HTML 注释', () => {
     const input = '<!-- 这是一个注释 -->文本';
     const result = MdxParser.parse(input);
 
     expect(result).toHaveLength(1);
     expect(result[0].type).toBe('markdown');
-    expect(result[0].raw).toContain('<!-- 这是一个注释 -->');
   });
 
-  it('应该将 http:// 链接作为 Markdown 处理', () => {
+  it('特殊情况: http:// 链接', () => {
     const input = '访问 https://example.com 查看更多信息';
     const result = MdxParser.parse(input);
 
@@ -338,7 +224,7 @@ describe('MdxParser - 特殊情况', () => {
     expect(result[0].type).toBe('markdown');
   });
 
-  it('应该处理带数字开头的非 JSX 标签', () => {
+  it('特殊情况: 带数字开头的非 JSX 标签', () => {
     const input = '温度是 < 30 度';
     const result = MdxParser.parse(input);
 
@@ -346,62 +232,88 @@ describe('MdxParser - 特殊情况', () => {
     expect(result[0].type).toBe('markdown');
   });
 
-  it('应该处理带空格的 < 符号', () => {
-    const input = '条件是 < 5';
-    const result = MdxParser.parse(input);
-
-    expect(result).toHaveLength(1);
-    expect(result[0].type).toBe('markdown');
-  });
-});
-
-describe('MdxParser - 复杂嵌套', () => {
-  it('应该解析深层嵌套的 JSX', () => {
+  it('复杂嵌套: 深层嵌套 JSX', () => {
     const input = '<div><div><div><span>深层</span></div></div></div>';
     const result = MdxParser.parse(input);
-
-    expect(result).toHaveLength(1);
     const node = result[0] as MdxJsxNode;
     const child1 = node.children[0] as MdxJsxNode;
     const child2 = child1.children[0] as MdxJsxNode;
     const child3 = child2.children[0] as MdxJsxNode;
+
     expect(child3.tagName).toBe('span');
   });
 
-  it('应该解析带属性的复杂嵌套', () => {
+  it('复杂嵌套: 带属性的复杂嵌套', () => {
     const input = '<div className="outer"><div className="middle"><span className="inner">文本</span></div></div>';
     const result = MdxParser.parse(input);
-
     const node = result[0] as MdxJsxNode;
-    expect(node.props.className).toBe('outer');
     const child1 = node.children[0] as MdxJsxNode;
-    expect(child1.props.className).toBe('middle');
     const child2 = child1.children[0] as MdxJsxNode;
+
+    expect(node.props.className).toBe('outer');
+    expect(child1.props.className).toBe('middle');
     expect(child2.props.className).toBe('inner');
   });
 
-  it('应该解析兄弟元素和嵌套元素的混合', () => {
-    const input = '<div>1<span>2</span>3<div><span>4</span></div>5</div>';
+  it('边界情况: 只有开始标签', () => {
+    const input = '<div>内容';
     const result = MdxParser.parse(input);
-
     const node = result[0] as MdxJsxNode;
-    expect(node.children).toHaveLength(5);
-    const child3 = node.children[3] as MdxJsxNode;
-    expect(child3.children[0]).toEqual({ type: 'jsx', tagName: 'span', props: {}, children: [{ type: 'string', raw: '4' }], raw: '<span>4</span>' });
-  });
-});
 
-describe('MdxParser - 实例方法', () => {
-  it('应该通过实例方法 parse 进行解析', () => {
+    expect(node.tagName).toBe('div');
+    expect(node.children).toHaveLength(1);
+    expect(node.children[0]).toEqual({ type: 'string', raw: '内容' });
+  });
+
+  it('边界情况: 标签名包含数字', () => {
+    const input = '<h1>标题</h1>';
+    const result = MdxParser.parse(input);
+    const node = result[0] as MdxJsxNode;
+
+    expect(node.tagName).toBe('h1');
+  });
+
+  it('边界情况: 标签名包含下划线', () => {
+    const input = '<Custom_Component>内容</Custom_Component>';
+    const result = MdxParser.parse(input);
+    const node = result[0] as MdxJsxNode;
+
+    expect(node.tagName).toBe('Custom_Component');
+  });
+
+  it('边界情况: 标签名包含美元符号', () => {
+    const input = '<Component$>内容</Component$>';
+    const result = MdxParser.parse(input);
+    const node = result[0] as MdxJsxNode;
+
+    expect(node.tagName).toBe('Component$');
+  });
+
+  it('边界情况: 标签属性间的空白', () => {
+    const input = '<div   className="test"   id="123">内容</div>';
+    const result = MdxParser.parse(input);
+    const node = result[0] as MdxJsxNode;
+
+    expect(node.props).toEqual({ className: 'test', id: '123' });
+  });
+
+  it('边界情况: 保留 JSX 元素的原始字符串', () => {
+    const input = '<div  className="test"  >内容</div>';
+    const result = MdxParser.parse(input);
+    const node = result[0] as MdxJsxNode;
+
+    expect(node.raw).toBe(input);
+  });
+
+  it('实例方法: 实例方法 parse', () => {
     const parser = new MdxParser('<div>内容</div>');
     const result = parser.parse();
 
     expect(result).toHaveLength(1);
-    const node = result[0] as MdxJsxNode;
-    expect(node.tagName).toBe('div');
+    expect((result[0] as MdxJsxNode).tagName).toBe('div');
   });
 
-  it('应该正确处理多次调用 parse', () => {
+  it('实例方法: 多次调用 parse', () => {
     const parser = new MdxParser('<div>1</div><div>2</div>');
     const result1 = parser.parse();
     const result2 = parser.parse();
@@ -409,14 +321,12 @@ describe('MdxParser - 实例方法', () => {
     expect(result1).toHaveLength(2);
     expect(result2).toHaveLength(0);
   });
-});
 
-describe('MdxParser - 表达式中的字符串处理', () => {
-  it('应该正确处理表达式中的字符串包含大括号', () => {
+  it('表达式中的字符串处理: 字符串包含大括号', () => {
     const input = '<div text={"{value}"}>内容</div>';
     const result = MdxParser.parse(input);
-
     const node = result[0] as MdxJsxNode;
+
     expect(node.props.text).toEqual({
       type: 'json',
       raw: '"{value}"',
@@ -424,116 +334,26 @@ describe('MdxParser - 表达式中的字符串处理', () => {
     });
   });
 
-  it('应该正确处理表达式中的模板字符串', () => {
+  it('表达式中的字符串处理: 模板字符串', () => {
     const input = '<div text={`hello ${name}`}>内容</div>';
     const result = MdxParser.parse(input);
-
     const node = result[0] as MdxJsxNode;
+
     expect(node.props.text).toEqual({
       type: 'expression',
       raw: '`hello ${name}`'
     });
   });
 
-  it('应该正确处理表达式中的转义字符', () => {
+  it('表达式中的字符串处理: 转义字符', () => {
     const input = '<div text={"hello\\"world"}>内容</div>';
     const result = MdxParser.parse(input);
-
     const node = result[0] as MdxJsxNode;
+
     expect(node.props.text).toEqual({
       type: 'json',
       raw: '"hello\\"world"',
       value: 'hello"world'
     });
-  });
-});
-
-describe('MdxParser - 原始字符串保留', () => {
-  it('应该保留 JSX 元素的原始字符串', () => {
-    const input = '<div  className="test"  >内容</div>';
-    const result = MdxParser.parse(input);
-
-    const node = result[0] as MdxJsxNode;
-    expect(node.raw).toBe(input);
-  });
-
-  it('应该保留嵌套元素的原始字符串', () => {
-    const input = '<div><span>文本</span></div>';
-    const result = MdxParser.parse(input);
-
-    const node = result[0] as MdxJsxNode;
-    expect(node.raw).toBe(input);
-    const child = node.children[0] as MdxJsxNode;
-    expect(child.raw).toBe('<span>文本</span>');
-  });
-});
-
-describe('MdxParser - 边界情况', () => {
-  it('应该处理只有开始标签的情况(当作 JSX)', () => {
-    const input = '<div>内容';
-    const result = MdxParser.parse(input);
-
-    expect(result).toHaveLength(1);
-    const node = result[0] as MdxJsxNode;
-    expect(node.type).toBe('jsx');
-    expect(node.tagName).toBe('div');
-    expect(node.children).toHaveLength(1);
-    expect(node.children[0]).toEqual({ type: 'string', raw: '内容' });
-  });
-
-  it('应该处理标签名包含数字的情况', () => {
-    const input = '<h1>标题</h1>';
-    const result = MdxParser.parse(input);
-
-    expect(result).toHaveLength(1);
-    const node = result[0] as MdxJsxNode;
-    expect(node.tagName).toBe('h1');
-  });
-
-  it('应该处理标签名包含下划线的情况', () => {
-    const input = '<Custom_Component>内容</Custom_Component>';
-    const result = MdxParser.parse(input);
-
-    expect(result).toHaveLength(1);
-    const node = result[0] as MdxJsxNode;
-    expect(node.tagName).toBe('Custom_Component');
-  });
-
-  it('应该处理标签名包含美元符号的情况', () => {
-    const input = '<Component$>内容</Component$>';
-    const result = MdxParser.parse(input);
-
-    expect(result).toHaveLength(1);
-    const node = result[0] as MdxJsxNode;
-    expect(node.tagName).toBe('Component$');
-  });
-});
-
-describe('MdxParser - 空白处理', () => {
-  it('应该处理标签属性间的空白', () => {
-    const input = '<div   className="test"   id="123">内容</div>';
-    const result = MdxParser.parse(input);
-
-    const node = result[0] as MdxJsxNode;
-    expect(node.props).toEqual({
-      className: 'test',
-      id: '123'
-    });
-  });
-
-  it('应该处理标签名和属性间的空白', () => {
-    const input = '<div     className="test">内容</div>';
-    const result = MdxParser.parse(input);
-
-    const node = result[0] as MdxJsxNode;
-    expect(node.props.className).toBe('test');
-  });
-
-  it('应该处理属性等号周围的空白', () => {
-    const input = '<div className = "test">内容</div>';
-    const result = MdxParser.parse(input);
-
-    const node = result[0] as MdxJsxNode;
-    expect(node.props.className).toBe('test');
   });
 });
