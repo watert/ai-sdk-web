@@ -21,4 +21,13 @@ describe('fixJson', () => {
     expect(fixJson(text)).toBe(text + '"]}');
     expect(JSON.parse(fixJson(text))).toEqual({a: ['foo', 'bar']});
   });
+  it.only('should fix partial arr string in obj v2', () => {
+    const text = '{\n  "mbti": "ENFP",\n  "tags": [\n    "种草达人",\n    "生活美学家",\n    "故事讲述者",\n    "潮流先锋"\n  ],\n  "industryIds": [\n    "food",\n    "travel",\n    "beauty-personal-care",\n    "culture';
+    expect(fixJson(text)).toBe(text + '"]}');
+    expect(JSON.parse(fixJson(text))).toEqual({
+      mbti: 'ENFP',
+      tags: ['种草达人', '生活美学家', '故事讲述者', '潮流先锋'],
+      industryIds: ['food', 'travel', 'beauty-personal-care', 'culture'],
+    });
+  });
 })
