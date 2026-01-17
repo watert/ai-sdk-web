@@ -1,4 +1,4 @@
-import { MdxParser, MdxJsxNode } from './mdx-parse';
+import { MdxParser, MdxJsxNode, isMdxFunction, isMdxExpression } from './mdx-parse';
 
 const isJsxNode = (node: any): node is MdxJsxNode => node?.type === 'jsx';
 
@@ -43,7 +43,7 @@ describe('MdxParser', () => {
     expect(node.props).toEqual({
       src: 'test.jpg',
       alt: '测试图片',
-      width: { type: 'json', raw: '100', value: 100 }
+      width: 100
     });
   });
 
@@ -60,10 +60,8 @@ describe('MdxParser', () => {
     const result = MdxParser.parse(input);
     const node = result[0] as any;
 
-    expect(node.props.onClick).toEqual({
-      type: 'function',
-      raw: '() => console.log("test")'
-    });
+    expect(isMdxFunction(node.props.onClick)).toBe(true);
+    expect(node.props.onClick.raw).toBe('() => console.log("test")');
   });
 
   it('带子元素的标签: 文本子元素', () => {
@@ -113,7 +111,7 @@ describe('MdxParser', () => {
     const result = MdxParser.parse(input);
     const node = result[0] as MdxJsxNode;
 
-    expect(node.props.count).toEqual({ type: 'json', raw: '42', value: 42 });
+    expect(node.props.count).toBe(42);
   });
 
   it('属性解析: 复杂表达式属性', () => {
@@ -121,11 +119,7 @@ describe('MdxParser', () => {
     const result = MdxParser.parse(input);
     const node = result[0] as MdxJsxNode;
 
-    expect(node.props.data).toEqual({
-      type: 'json',
-      raw: '{ key: "value" }',
-      value: { key: 'value' }
-    });
+    expect(node.props.data).toEqual({ key: 'value' });
   });
 
   it('属性解析: 箭头函数属性', () => {
@@ -133,10 +127,10 @@ describe('MdxParser', () => {
     const result = MdxParser.parse(input);
     const node = result[0] as MdxJsxNode;
 
-    expect(node.props.onClick).toEqual({
-      type: 'function',
-      raw: '(e) => handleClick(e)'
-    });
+    expect(isMdxFunction(node.props.onClick)).toBe(true);
+    if (isMdxFunction(node.props.onClick)) {
+      expect(node.props.onClick.raw).toBe('(e) => handleClick(e)');
+    }
   });
 
   it('属性解析: async 函数属性', () => {
@@ -144,10 +138,10 @@ describe('MdxParser', () => {
     const result = MdxParser.parse(input);
     const node = result[0] as MdxJsxNode;
 
-    expect(node.props.onClick).toEqual({
-      type: 'function',
-      raw: 'async () => await fetchData()'
-    });
+    expect(isMdxFunction(node.props.onClick)).toBe(true);
+    if (isMdxFunction(node.props.onClick)) {
+      expect(node.props.onClick.raw).toBe('async () => await fetchData()');
+    }
   });
 
   it('属性解析: 布尔属性', () => {
@@ -163,11 +157,7 @@ describe('MdxParser', () => {
     const result = MdxParser.parse(input);
     const node = result[0] as MdxJsxNode;
 
-    expect(node.props.items).toEqual({
-      type: 'json',
-      raw: '[1, 2, 3]',
-      value: [1, 2, 3]
-    });
+    expect(node.props.items).toEqual([1, 2, 3]);
   });
 
   it('属性解析: 无法解析的表达式', () => {
@@ -175,7 +165,10 @@ describe('MdxParser', () => {
     const result = MdxParser.parse(input);
     const node = result[0] as MdxJsxNode;
 
-    expect(node.props.value).toEqual({ type: 'expression', raw: 'undefined' });
+    expect(isMdxExpression(node.props.value)).toBe(true);
+    if (isMdxExpression(node.props.value)) {
+      expect(node.props.value.raw).toBe('undefined');
+    }
   });
 
   it('混合内容: Markdown 和 JSX 混合', () => {
@@ -327,11 +320,7 @@ describe('MdxParser', () => {
     const result = MdxParser.parse(input);
     const node = result[0] as MdxJsxNode;
 
-    expect(node.props.text).toEqual({
-      type: 'json',
-      raw: '"{value}"',
-      value: '{value}'
-    });
+    expect(node.props.text).toBe('{value}');
   });
 
   it('表达式中的字符串处理: 模板字符串', () => {
@@ -339,10 +328,10 @@ describe('MdxParser', () => {
     const result = MdxParser.parse(input);
     const node = result[0] as MdxJsxNode;
 
-    expect(node.props.text).toEqual({
-      type: 'expression',
-      raw: '`hello ${name}`'
-    });
+    expect(isMdxExpression(node.props.text)).toBe(true);
+    if (isMdxExpression(node.props.text)) {
+      expect(node.props.text.raw).toBe('`hello ${name}`');
+    }
   });
 
   it('表达式中的字符串处理: 转义字符', () => {
@@ -350,10 +339,6 @@ describe('MdxParser', () => {
     const result = MdxParser.parse(input);
     const node = result[0] as MdxJsxNode;
 
-    expect(node.props.text).toEqual({
-      type: 'json',
-      raw: '"hello\\"world"',
-      value: 'hello"world'
-    });
+    expect(node.props.text).toBe('hello"world');
   });
 });

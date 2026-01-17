@@ -2,12 +2,37 @@ import JSON5 from 'json5';
 
 // --- 类型定义 ---
 
+const MDX_FUNCTION_SYMBOL = Symbol('MDX_FUNCTION');
+const MDX_EXPRESSION_SYMBOL = Symbol('MDX_EXPRESSION');
+
+export interface MdxFunctionValue {
+  [MDX_FUNCTION_SYMBOL]: true;
+  raw: string;
+}
+
+export interface MdxExpressionValue {
+  [MDX_EXPRESSION_SYMBOL]: true;
+  raw: string;
+}
+
+export const isMdxFunction = (value: any): value is MdxFunctionValue => {
+  return value && typeof value === 'object' && MDX_FUNCTION_SYMBOL in value;
+};
+
+export const isMdxExpression = (value: any): value is MdxExpressionValue => {
+  return value && typeof value === 'object' && MDX_EXPRESSION_SYMBOL in value;
+};
+
 export type MdxJsxPropValue = 
-  string 
+  | string 
   | boolean 
-  | { type: 'function'; raw: string } 
-  | { type: 'expression'; raw: string }
-  | { type: 'json'; raw: string; value: any };
+  | number 
+  | null 
+  | undefined 
+  | Array<any>
+  | Record<string, any>
+  | MdxFunctionValue 
+  | MdxExpressionValue;
 
 export type MdxJsxProps = Record<string, MdxJsxPropValue>;
 
@@ -16,7 +41,7 @@ export interface MdxJsxNode {
   raw: string; // 完整的标签原始字符串
   tagName: string;
   props: MdxJsxProps;
-  children: Array<MdxParsedNode>;
+  children: Array<MdxJsxNode | MdxStringNode>;
 }
 
 export interface MdxMarkdownNode {
@@ -192,13 +217,13 @@ export class MdxParser {
           const innerCode = rawExpressionWithBraces.slice(1, -1).trim();
           
           if (this.isFunctionRaw(innerCode)) {
-            props[name] = { type: 'function', raw: innerCode };
+            props[name] = { [MDX_FUNCTION_SYMBOL]: true, raw: innerCode };
           } else {
             try {
               const parsedValue = JSON5.parse(innerCode);
-              props[name] = { type: 'json', raw: innerCode, value: parsedValue };
+              props[name] = parsedValue;
             } catch {
-              props[name] = { type: 'expression', raw: innerCode };
+              props[name] = { [MDX_EXPRESSION_SYMBOL]: true, raw: innerCode };
             }
           }
         } else {
@@ -272,7 +297,7 @@ export class MdxParser {
       // 我们需要找到闭合标签 </TagName>
       // 这里的难点是需要递归解析 children 里的 JSX，同时保留 markdown
       
-      const children: MdxParsedNode[] = [];
+      const children: Array<MdxJsxNode | MdxStringNode> = [];
       const contentStart = this.index;
       
       // 进入一个新的循环解析 children，直到遇到匹配的结束标签
@@ -291,7 +316,7 @@ export class MdxParser {
         // 递归调用主解析器的一步
         const node = this.parseNextNode(true); 
         if (node) {
-            children.push(node);
+            children.push(node as any);
         } else {
             // 应该不会到这里，parseNextNode 至少会返回 markdown
             this.index++; 
