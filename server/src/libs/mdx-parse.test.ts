@@ -61,6 +61,7 @@ describe('MdxParser', () => {
     const node = result[0] as any;
 
     expect(isMdxFunction(node.props.onClick)).toBe(true);
+    expect(node.props.onClick.__$type).toBe('function');
     expect(node.props.onClick.raw).toBe('() => console.log("test")');
   });
 
@@ -129,6 +130,7 @@ describe('MdxParser', () => {
 
     expect(isMdxFunction(node.props.onClick)).toBe(true);
     if (isMdxFunction(node.props.onClick)) {
+      expect(node.props.onClick.__$type).toBe('function');
       expect(node.props.onClick.raw).toBe('(e) => handleClick(e)');
     }
   });
@@ -140,6 +142,7 @@ describe('MdxParser', () => {
 
     expect(isMdxFunction(node.props.onClick)).toBe(true);
     if (isMdxFunction(node.props.onClick)) {
+      expect(node.props.onClick.__$type).toBe('function');
       expect(node.props.onClick.raw).toBe('async () => await fetchData()');
     }
   });
@@ -167,6 +170,7 @@ describe('MdxParser', () => {
 
     expect(isMdxExpression(node.props.value)).toBe(true);
     if (isMdxExpression(node.props.value)) {
+      expect(node.props.value.__$type).toBe('expression');
       expect(node.props.value.raw).toBe('undefined');
     }
   });
@@ -330,6 +334,7 @@ describe('MdxParser', () => {
 
     expect(isMdxExpression(node.props.text)).toBe(true);
     if (isMdxExpression(node.props.text)) {
+      expect(node.props.text.__$type).toBe('expression');
       expect(node.props.text.raw).toBe('`hello ${name}`');
     }
   });

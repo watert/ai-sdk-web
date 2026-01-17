@@ -2,58 +2,32 @@ import JSON5 from 'json5';
 
 // --- 类型定义 ---
 
-const MDX_FUNCTION_SYMBOL = Symbol('MDX_FUNCTION');
-const MDX_EXPRESSION_SYMBOL = Symbol('MDX_EXPRESSION');
-
-export interface MdxFunctionValue {
-  [MDX_FUNCTION_SYMBOL]: true;
-  raw: string;
-}
-
-export interface MdxExpressionValue {
-  [MDX_EXPRESSION_SYMBOL]: true;
-  raw: string;
-}
+export interface MdxFunctionValue { raw: string; __$type: 'function'; }
+export interface MdxExpressionValue { raw: string; __$type: 'expression'; }
 
 export const isMdxFunction = (value: any): value is MdxFunctionValue => {
-  return value && typeof value === 'object' && MDX_FUNCTION_SYMBOL in value;
+  return value && value?.__$type === 'function';
 };
 
 export const isMdxExpression = (value: any): value is MdxExpressionValue => {
-  return value && typeof value === 'object' && MDX_EXPRESSION_SYMBOL in value;
+  return value && value?.__$type === 'expression';
 };
 
 export type MdxJsxPropValue = 
-  | string 
-  | boolean 
-  | number 
-  | null 
-  | undefined 
-  | Array<any>
-  | Record<string, any>
-  | MdxFunctionValue 
-  | MdxExpressionValue;
+  | string  | boolean  | number  | null  | undefined 
+  | Array<any> | Record<string, any>
+  | MdxFunctionValue | MdxExpressionValue;
 
 export type MdxJsxProps = Record<string, MdxJsxPropValue>;
 
 export interface MdxJsxNode {
-  type: 'jsx';
-  raw: string; // 完整的标签原始字符串
-  tagName: string;
-  props: MdxJsxProps;
+  type: 'jsx'; raw: string; // 完整的标签原始字符串
+  tagName: string; props: MdxJsxProps;
   children: Array<MdxJsxNode | MdxStringNode>;
 }
 
-export interface MdxMarkdownNode {
-  type: 'markdown';
-  raw: string;
-}
-
-export interface MdxStringNode {
-  type: 'string';
-  raw: string;
-}
-
+export interface MdxMarkdownNode { type: 'markdown'; raw: string; }
+export interface MdxStringNode { type: 'string'; raw: string; }
 export type MdxParsedNode = MdxJsxNode | MdxMarkdownNode | MdxStringNode;
 
 // --- 解析器类 ---
@@ -217,13 +191,13 @@ export class MdxParser {
           const innerCode = rawExpressionWithBraces.slice(1, -1).trim();
           
           if (this.isFunctionRaw(innerCode)) {
-            props[name] = { [MDX_FUNCTION_SYMBOL]: true, raw: innerCode };
+            props[name] = { __$type: 'function', raw: innerCode };
           } else {
             try {
               const parsedValue = JSON5.parse(innerCode);
               props[name] = parsedValue;
             } catch {
-              props[name] = { [MDX_EXPRESSION_SYMBOL]: true, raw: innerCode };
+              props[name] = { __$type: 'expression', raw: innerCode };
             }
           }
         } else {
