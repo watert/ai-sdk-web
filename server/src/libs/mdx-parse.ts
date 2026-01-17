@@ -68,9 +68,7 @@ export class MdxParser {
    */
   private isFunctionRaw(code: string): boolean {
     const cleanCode = code.trim();
-    // 匹配箭头函数: () =>, arg =>, (a,b) =>
-    // 匹配普通函数: function(), async function
-    const arrowFuncRegex = /^\s*(?:\([^)]*\)|[a-zA-Z_$][\w$]*)\s*=>/;
+    const arrowFuncRegex = /^\s*(?:async\s+)?(?:\([^)]*\)|[a-zA-Z_$][\w$]*)\s*=>/;
     const standardFuncRegex = /^\s*(?:async\s+)?function(?:\s*[a-zA-Z_$][\w$]*)?\s*\(/;
     
     return arrowFuncRegex.test(cleanCode) || standardFuncRegex.test(cleanCode);
@@ -315,7 +313,7 @@ export class MdxParser {
    * 获取下一个节点（Markdown 或 JSX）
    * @param insideJsx - 标记是否在 JSX children 内部（影响是否处理纯文本合并）
    */
-  private parseNextNode(insideJsx = false): MdxParsedNode | null {
+  private parseNextNode(_insideJsx = false): MdxParsedNode | null {
     if (this.isEnd()) return null;
 
     const startPos = this.index;
