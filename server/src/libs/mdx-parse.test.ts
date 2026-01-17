@@ -1,7 +1,8 @@
-import { MdxParser, MdxJsxNode, MdxMarkdownNode } from './mdx-parse';
+import { MdxParser, MdxJsxNode, MdxMarkdownNode, MdxStringNode } from './mdx-parse';
 
 const isJsxNode = (node: any): node is MdxJsxNode => node?.type === 'jsx';
 const isMarkdownNode = (node: any): node is MdxMarkdownNode => node?.type === 'markdown';
+const isStringNode = (node: any): node is MdxStringNode => node?.type === 'string';
 
 describe('MdxParser - 基础解析', () => {
   it('应该解析纯 Markdown 文本', () => {
@@ -52,7 +53,7 @@ describe('MdxParser - 自闭合标签', () => {
     expect(node.props).toEqual({
       src: 'test.jpg',
       alt: '测试图片',
-      width: { type: 'expression', raw: '100' }
+      width: { type: 'json', raw: '100', value: 100 }
     });
   });
 
@@ -92,7 +93,7 @@ describe('MdxParser - 带子元素的标签', () => {
       type: 'jsx',
       tagName: 'Button',
       props: {},
-      children: [{ type: 'markdown', raw: '点击我' }],
+      children: [{ type: 'string', raw: '点击我' }],
       raw: input
     });
   });
@@ -108,7 +109,7 @@ describe('MdxParser - 带子元素的标签', () => {
       type: 'jsx',
       tagName: 'span',
       props: {},
-      children: [{ type: 'markdown', raw: '文本' }],
+      children: [{ type: 'string', raw: '文本' }],
       raw: '<span>文本</span>'
     });
   });
@@ -120,10 +121,10 @@ describe('MdxParser - 带子元素的标签', () => {
     expect(result).toHaveLength(1);
     const node = result[0] as MdxJsxNode;
     expect(node.children).toHaveLength(3);
-    expect(node.children[0]).toEqual({ type: 'markdown', raw: '文本1' });
+    expect(node.children[0]).toEqual({ type: 'string', raw: '文本1' });
     expect(isJsxNode(node.children[1])).toBe(true);
     expect((node.children[1] as MdxJsxNode).tagName).toBe('span');
-    expect(node.children[2]).toEqual({ type: 'markdown', raw: '文本3' });
+    expect(node.children[2]).toEqual({ type: 'string', raw: '文本3' });
   });
 
   it('应该解析带属性的子元素', () => {
@@ -159,7 +160,7 @@ describe('MdxParser - 属性解析', () => {
     const result = MdxParser.parse(input);
 
     const node = result[0] as MdxJsxNode;
-    expect(node.props.count).toEqual({ type: 'expression', raw: '42' });
+    expect(node.props.count).toEqual({ type: 'json', raw: '42', value: 42 });
   });
 
   it('应该解析复杂表达式属性', () => {
@@ -168,8 +169,9 @@ describe('MdxParser - 属性解析', () => {
 
     const node = result[0] as MdxJsxNode;
     expect(node.props.data).toEqual({
-      type: 'expression',
-      raw: '{ key: "value" }'
+      type: 'json',
+      raw: '{ key: "value" }',
+      value: { key: 'value' }
     });
   });
 
@@ -220,6 +222,65 @@ describe('MdxParser - 属性解析', () => {
 
     const node = result[0] as MdxJsxNode;
     expect(node.props['data-test-id']).toBe('123');
+  });
+
+  it('应该解析 JSON5 数组属性', () => {
+    const input = '<div items={[1, 2, 3]}>内容</div>';
+    const result = MdxParser.parse(input);
+
+    const node = result[0] as MdxJsxNode;
+    expect(node.props.items).toEqual({
+      type: 'json',
+      raw: '[1, 2, 3]',
+      value: [1, 2, 3]
+    });
+  });
+
+  it('应该解析 JSON5 布尔值属性', () => {
+    const input = '<div enabled={true}>内容</div>';
+    const result = MdxParser.parse(input);
+
+    const node = result[0] as MdxJsxNode;
+    expect(node.props.enabled).toEqual({
+      type: 'json',
+      raw: 'true',
+      value: true
+    });
+  });
+
+  it('应该解析 JSON5 null 属性', () => {
+    const input = '<div value={null}>内容</div>';
+    const result = MdxParser.parse(input);
+
+    const node = result[0] as MdxJsxNode;
+    expect(node.props.value).toEqual({
+      type: 'json',
+      raw: 'null',
+      value: null
+    });
+  });
+
+  it('应该解析 JSON5 对象属性', () => {
+    const input = '<div config={{ theme: "dark", fontSize: 14 }}>内容</div>';
+    const result = MdxParser.parse(input);
+
+    const node = result[0] as MdxJsxNode;
+    expect(node.props.config).toEqual({
+      type: 'json',
+      raw: '{ theme: "dark", fontSize: 14 }',
+      value: { theme: 'dark', fontSize: 14 }
+    });
+  });
+
+  it('应该将无法解析的表达式作为 expression 类型', () => {
+    const input = '<div value={undefined}>内容</div>';
+    const result = MdxParser.parse(input);
+
+    const node = result[0] as MdxJsxNode;
+    expect(node.props.value).toEqual({
+      type: 'expression',
+      raw: 'undefined'
+    });
   });
 });
 
@@ -326,7 +387,7 @@ describe('MdxParser - 复杂嵌套', () => {
     const node = result[0] as MdxJsxNode;
     expect(node.children).toHaveLength(5);
     const child3 = node.children[3] as MdxJsxNode;
-    expect(child3.children[0]).toEqual({ type: 'jsx', tagName: 'span', props: {}, children: [{ type: 'markdown', raw: '4' }], raw: '<span>4</span>' });
+    expect(child3.children[0]).toEqual({ type: 'jsx', tagName: 'span', props: {}, children: [{ type: 'string', raw: '4' }], raw: '<span>4</span>' });
   });
 });
 
@@ -357,8 +418,9 @@ describe('MdxParser - 表达式中的字符串处理', () => {
 
     const node = result[0] as MdxJsxNode;
     expect(node.props.text).toEqual({
-      type: 'expression',
-      raw: '"{value}"'
+      type: 'json',
+      raw: '"{value}"',
+      value: '{value}'
     });
   });
 
@@ -379,8 +441,9 @@ describe('MdxParser - 表达式中的字符串处理', () => {
 
     const node = result[0] as MdxJsxNode;
     expect(node.props.text).toEqual({
-      type: 'expression',
-      raw: '"hello\\"world"'
+      type: 'json',
+      raw: '"hello\\"world"',
+      value: 'hello"world'
     });
   });
 });
@@ -415,7 +478,7 @@ describe('MdxParser - 边界情况', () => {
     expect(node.type).toBe('jsx');
     expect(node.tagName).toBe('div');
     expect(node.children).toHaveLength(1);
-    expect(node.children[0]).toEqual({ type: 'markdown', raw: '内容' });
+    expect(node.children[0]).toEqual({ type: 'string', raw: '内容' });
   });
 
   it('应该处理标签名包含数字的情况', () => {

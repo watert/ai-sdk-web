@@ -1,10 +1,13 @@
+import JSON5 from 'json5';
+
 // --- 类型定义 ---
 
 export type MdxJsxPropValue = 
-  | string 
+  string 
   | boolean 
   | { type: 'function'; raw: string } 
-  | { type: 'expression'; raw: string };
+  | { type: 'expression'; raw: string }
+  | { type: 'json'; raw: string; value: any };
 
 export type MdxJsxProps = Record<string, MdxJsxPropValue>;
 
@@ -21,7 +24,12 @@ export interface MdxMarkdownNode {
   raw: string;
 }
 
-export type MdxParsedNode = MdxJsxNode | MdxMarkdownNode;
+export interface MdxStringNode {
+  type: 'string';
+  raw: string;
+}
+
+export type MdxParsedNode = MdxJsxNode | MdxMarkdownNode | MdxStringNode;
 
 // --- 解析器类 ---
 
@@ -180,16 +188,18 @@ export class MdxParser {
           this.advance(); // skip closing quote
           props[name] = value;
         } else if (char === '{') {
-          // 表达式
           const rawExpressionWithBraces = this.readBalancedBrace();
-          // 去除首尾括号
           const innerCode = rawExpressionWithBraces.slice(1, -1).trim();
           
           if (this.isFunctionRaw(innerCode)) {
             props[name] = { type: 'function', raw: innerCode };
           } else {
-            // 这里你可以选择如果是数字就转数字，这里为了安全保留 raw
-            props[name] = { type: 'expression', raw: innerCode };
+            try {
+              const parsedValue = JSON5.parse(innerCode);
+              props[name] = { type: 'json', raw: innerCode, value: parsedValue };
+            } catch {
+              props[name] = { type: 'expression', raw: innerCode };
+            }
           }
         } else {
           // 可能是无引号属性（不规范但存在），暂且读到空格
@@ -313,7 +323,7 @@ export class MdxParser {
    * 获取下一个节点（Markdown 或 JSX）
    * @param insideJsx - 标记是否在 JSX children 内部（影响是否处理纯文本合并）
    */
-  private parseNextNode(_insideJsx = false): MdxParsedNode | null {
+  private parseNextNode(insideJsx = false): MdxParsedNode | null {
     if (this.isEnd()) return null;
 
     const startPos = this.index;
@@ -344,6 +354,10 @@ export class MdxParser {
     const raw = this.source.slice(startPos, this.index);
     if (raw.length === 0) return null;
 
+    // 如果在 JSX children 内部，返回 string 类型，否则返回 markdown 类型
+    if (insideJsx) {
+      return { type: 'string', raw };
+    }
     return { type: 'markdown', raw };
   }
 
