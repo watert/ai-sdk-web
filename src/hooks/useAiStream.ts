@@ -1,3 +1,16 @@
+/**
+ * AI 流式请求 Hook，提供两种模式：
+ * 1. useAiStream - 高级封装，自动管理流状态，支持 UIMessageStream
+ * 2. useAiStreamFn - 基础封装，直接返回 AIStream 处理结果
+ *
+ * @example 基础用法
+ * const [{ value, loading }, send, abort] = useAiStream({ platform: 'OLLAMA', model: 'llama3' });
+ * await send({ url: '/api/chat', prompt: '你好' });
+ *
+ * @example 流式监听
+ * const [{ value }, send] = useAiStreamFn({ url: '/api/stream' });
+ * send({ prompt: '讲个笑话', body: { temperature: 0.8 } });
+ */
 import { requestUIMessageStream, streamToAiStreamHandler, type RequestAiStreamState } from "@/models/requestUIMessageStream";
 import { useAsyncSubscriberFn } from "./useAsyncSubscriber";
 import { useRef, useState } from "react";
