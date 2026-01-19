@@ -5,10 +5,10 @@
  *
  * @example 基础用法
  * const [{ value, loading }, send, abort] = useAiStream({ platform: 'OLLAMA', model: 'llama3' });
- * await send({ url: '/api/chat', prompt: '你好' });
+ * await send({ url: '/api/chat', prompt: '你好', body: {...} });
  *
  * @example 流式监听
- * const [{ value }, send] = useAiStreamFn({ url: '/api/stream' });
+ * const [{ value }, send, abort] = useAiStreamFn({ url: '/api/stream' });
  * send({ prompt: '讲个笑话', body: { temperature: 0.8 } });
  */
 import { requestUIMessageStream, streamToAiStreamHandler, type RequestAiStreamState } from "@/models/requestUIMessageStream";
