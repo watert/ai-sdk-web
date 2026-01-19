@@ -36,6 +36,96 @@ export interface MdxYamlFrontMatterNode { type: 'yaml-front-matter'; raw: string
 export interface MdxCodeBlockNode { type: 'code-block'; raw: string; language?: string; content: string; }
 export type MdxParsedNode = MdxJsxNode | MdxMarkdownNode | MdxStringNode | MdxYamlFrontMatterNode | MdxCodeBlockNode;
 
+// --- YAML 解析工具函数 ---
+
+export const parseYamlInlineArray = (value: string): Array<any> | null => {
+  const trimmed = value.trim();
+  if (!trimmed.startsWith('[') || !trimmed.endsWith(']')) {
+    return null;
+  }
+
+  const innerContent = trimmed.slice(1, -1).trim();
+  if (!innerContent) {
+    return [];
+  }
+
+  const items: Array<any> = [];
+  let currentItem = '';
+  let inString: null | '"' | "'" = null;
+  let isEscaped = false;
+
+  for (let i = 0; i < innerContent.length; i++) {
+    const char = innerContent[i];
+
+    if (isEscaped) {
+      currentItem += char;
+      isEscaped = false;
+      continue;
+    }
+
+    if (char === '\\') {
+      isEscaped = true;
+      continue;
+    }
+
+    if (inString) {
+      if (char === inString) {
+        inString = null;
+      }
+      currentItem += char;
+    } else {
+      if (char === '"' || char === "'") {
+        inString = char;
+        currentItem += char;
+      } else if (char === ',') {
+        const parsedItem = parseYamlArrayItem(currentItem);
+        if (parsedItem !== undefined) {
+          items.push(parsedItem);
+        }
+        currentItem = '';
+      } else {
+        currentItem += char;
+      }
+    }
+  }
+
+  if (currentItem.trim()) {
+    const parsedItem = parseYamlArrayItem(currentItem);
+    if (parsedItem !== undefined) {
+      items.push(parsedItem);
+    }
+  }
+
+  return items;
+};
+
+export const parseYamlArrayItem = (item: string): any => {
+  const trimmed = item.trim();
+
+  if (!trimmed) {
+    return undefined;
+  }
+
+  if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
+    return trimmed.slice(1, -1).replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+  }
+
+  if (trimmed.startsWith("'") && trimmed.endsWith("'")) {
+    return trimmed.slice(1, -1).replace(/''/g, "'");
+  }
+
+  if (trimmed === 'true') return true;
+  if (trimmed === 'false') return false;
+  if (trimmed === 'null') return null;
+
+  const num = Number(trimmed);
+  if (!isNaN(num) && /^-?\d+(\.\d+)?$/.test(trimmed)) {
+    return num;
+  }
+
+  return trimmed;
+};
+
 // --- 解析器类 ---
 
 export class MdxParser {
@@ -325,7 +415,7 @@ export class MdxParser {
   }
 
   /**
-   * 尝试解析 YAML front matter
+   * 解析 YAML front matter
    * 格式: ---\nkey: value\n---\n
    */
   private parseYamlFrontMatter(): MdxYamlFrontMatterNode | null {
@@ -374,12 +464,21 @@ export class MdxParser {
       
       const key = trimmed.slice(0, colonIndex).trim();
       let value = trimmed.slice(colonIndex + 1).trim();
-      
-      if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
-        value = value.slice(1, -1);
+
+      const arrayValue = parseYamlInlineArray(value);
+      if (arrayValue !== null) {
+        data[key] = arrayValue;
+      } else if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+        data[key] = value.slice(1, -1);
+      } else if (value === 'true') {
+        data[key] = true;
+      } else if (value === 'false') {
+        data[key] = false;
+      } else if (value === 'null') {
+        data[key] = null;
+      } else {
+        data[key] = value;
       }
-      
-      data[key] = value;
     }
     
     return {

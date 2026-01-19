@@ -406,6 +406,105 @@ layout: post
     expect(result[2].type).toBe('jsx');
   });
 
+  it('YAML Front Matter: Inline Array 基本解析', () => {
+    const input = `---
+tags: [javascript, typescript, react]
+categories: [前端, 后端]
+---
+
+正文`;
+
+    const result = MdxParser.parse(input);
+
+    expect(result).toHaveLength(2);
+    const yamlNode = result[0] as any;
+    expect(yamlNode.type).toBe('yaml-front-matter');
+    expect(yamlNode.data.tags).toEqual(['javascript', 'typescript', 'react']);
+    expect(yamlNode.data.categories).toEqual(['前端', '后端']);
+  });
+
+  it('YAML Front Matter: Inline Array 包含数字', () => {
+    const input = `---
+numbers: [1, 2, 3, 100]
+scores: [95.5, 88.0, 72.5]
+---
+
+正文`;
+
+    const result = MdxParser.parse(input);
+
+    const yamlNode = result[0] as any;
+    expect(yamlNode.data.numbers).toEqual([1, 2, 3, 100]);
+    expect(yamlNode.data.scores).toEqual([95.5, 88.0, 72.5]);
+  });
+
+  it('YAML Front Matter: Inline Array 包含布尔值和 null', () => {
+    const input = `---
+flags: [true, false, true]
+nullable: [null, null]
+mixed: [true, 123, "text", false]
+---
+
+正文`;
+
+    const result = MdxParser.parse(input);
+
+    const yamlNode = result[0] as any;
+    expect(yamlNode.data.flags).toEqual([true, false, true]);
+    expect(yamlNode.data.nullable).toEqual([null, null]);
+    expect(yamlNode.data.mixed).toEqual([true, 123, 'text', false]);
+  });
+
+  it('YAML Front Matter: Inline Array 包含带引号的字符串', () => {
+    const input = `---
+quoted: ["带空格的值", '单引号值', normal]
+with-comma: ["含有,逗号的值"]
+---
+
+正文`;
+
+    const result = MdxParser.parse(input);
+
+    const yamlNode = result[0] as any;
+    expect(yamlNode.data.quoted).toEqual(['带空格的值', '单引号值', 'normal']);
+    expect(yamlNode.data['with-comma']).toEqual(['含有,逗号的值']);
+  });
+
+  it('YAML Front Matter: Inline Array 空数组', () => {
+    const input = `---
+empty: []
+tags:
+---
+
+正文`;
+
+    const result = MdxParser.parse(input);
+
+    const yamlNode = result[0] as any;
+    expect(yamlNode.data.empty).toEqual([]);
+  });
+
+  it('YAML Front Matter: Inline Array 混合普通值和数组', () => {
+    const input = `---
+title: 文章标题
+tags: [react, vue, angular]
+author: 张三
+categories: [前端开发, JavaScript]
+published: true
+---
+
+正文`;
+
+    const result = MdxParser.parse(input);
+
+    const yamlNode = result[0] as any;
+    expect(yamlNode.data.title).toBe('文章标题');
+    expect(yamlNode.data.tags).toEqual(['react', 'vue', 'angular']);
+    expect(yamlNode.data.author).toBe('张三');
+    expect(yamlNode.data.categories).toEqual(['前端开发', 'JavaScript']);
+    expect(yamlNode.data.published).toBe(true);
+  });
+
   it('Code Block: 使用 ``` 的代码块', () => {
     const input = `这是一段文本
 
