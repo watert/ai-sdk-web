@@ -1,5 +1,9 @@
-/** usage example:
+/** 
+ * 调用 AI 模型, 返回流式响应
+ * await requestAIStream(aiURL, params) // { text, json?, reasoning, status }
+ * await requestAIStream(aiURL, params, { onChange, signal, throttle: 40, isJson: false })
  * 
+ * usage example:
  * 
  * const exampleParams = {
  *   platform: 'OLLAMA',
