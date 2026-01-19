@@ -346,4 +346,128 @@ describe('MdxParser', () => {
 
     expect(node.props.text).toBe('hello"world');
   });
+
+  describe('YAML Front Matter 解析', () => {
+    it('YAML Front Matter: 基本键值对解析', () => {
+      const input = `---
+title: 文章标题
+author: 张三
+date: 2024-01-01
+---
+
+# 正文内容`;
+
+      const result = MdxParser.parse(input);
+
+      expect(result).toHaveLength(2);
+      const yamlNode = result[0];
+      expect(yamlNode.type).toBe('yaml-front-matter');
+      expect((yamlNode as any).data).toEqual({
+        title: '文章标题',
+        author: '张三',
+        date: '2024-01-01'
+      });
+      expect((yamlNode as any).raw).toContain('---');
+    });
+
+    it('YAML Front Matter: 带引号的字符串值', () => {
+      const input = `---
+title: "带引号的标题"
+description: '这是描述'
+tags: "tag1, tag2"
+---
+
+正文`;
+
+      const result = MdxParser.parse(input);
+
+      expect(result).toHaveLength(2);
+      const yamlNode = result[0] as any;
+      expect(yamlNode.type).toBe('yaml-front-matter');
+      expect(yamlNode.data.title).toBe('带引号的标题');
+      expect(yamlNode.data.description).toBe('这是描述');
+      expect(yamlNode.data.tags).toBe('tag1, tag2');
+    });
+
+    it('YAML Front Matter: 后跟 Markdown 和 JSX 内容', () => {
+      const input = `---
+layout: post
+---
+
+# 标题
+
+<Button>按钮</Button>`;
+
+      const result = MdxParser.parse(input);
+
+      expect(result).toHaveLength(3);
+      expect(result[0].type).toBe('yaml-front-matter');
+      expect((result[0] as any).data).toEqual({ layout: 'post' });
+      expect(result[1].type).toBe('markdown');
+      expect(result[2].type).toBe('jsx');
+    });
+  });
+
+  describe('Code Block 解析', () => {
+    it('Code Block: 使用 ``` 的代码块', () => {
+      const input = `这是一段文本
+
+\`\`\`javascript
+const x = 1;
+console.log(x);
+\`\`\`
+
+后续文本`;
+
+      const result = MdxParser.parse(input);
+
+      expect(result).toHaveLength(3);
+      const codeNode = result[1];
+      expect(codeNode.type).toBe('code-block');
+      expect((codeNode as any).language).toBe('javascript');
+      expect((codeNode as any).content).toContain('const x = 1;');
+      expect((codeNode as any).raw).toContain('```');
+    });
+
+    it('Code Block: 使用 ~~~ 的代码块', () => {
+      const input = `文本内容
+
+~~~python
+python code here
+def hello():
+    print("world")
+~~~
+
+结束`;
+
+      const result = MdxParser.parse(input);
+
+      expect(result).toHaveLength(3);
+      const codeNode = result[1];
+      expect(codeNode.type).toBe('code-block');
+      expect((codeNode as any).language).toBe('python');
+      expect((codeNode as any).content).toContain('def hello():');
+      expect((codeNode as any).raw).toContain('~~~');
+    });
+
+    it('Code Block: 无语言标识符的代码块', () => {
+      const input = `文本
+
+\`\`\`
+plain text
+without language
+\`\`\`
+
+结束`;
+
+      const result = MdxParser.parse(input);
+
+      expect(result).toHaveLength(3);
+      const codeNode = result[1];
+      expect(codeNode.type).toBe('code-block');
+      expect((codeNode as any).language).toBeUndefined();
+      expect((codeNode as any).content).toContain('plain text');
+      expect((codeNode as any).content).toContain('without language');
+    });
+  });
 });

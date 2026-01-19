@@ -1,4 +1,8 @@
-import JSON5 from 'json5';
+/**
+ * 
+ */
+
+import * as JSON5 from 'json5';
 
 // --- 类型定义 ---
 
@@ -28,7 +32,9 @@ export interface MdxJsxNode {
 
 export interface MdxMarkdownNode { type: 'markdown'; raw: string; }
 export interface MdxStringNode { type: 'string'; raw: string; }
-export type MdxParsedNode = MdxJsxNode | MdxMarkdownNode | MdxStringNode;
+export interface MdxYamlFrontMatterNode { type: 'yaml-front-matter'; raw: string; data: Record<string, any>; }
+export interface MdxCodeBlockNode { type: 'code-block'; raw: string; language?: string; content: string; }
+export type MdxParsedNode = MdxJsxNode | MdxMarkdownNode | MdxStringNode | MdxYamlFrontMatterNode | MdxCodeBlockNode;
 
 // --- 解析器类 ---
 
@@ -319,6 +325,124 @@ export class MdxParser {
   }
 
   /**
+   * 尝试解析 YAML front matter
+   * 格式: ---\nkey: value\n---\n
+   */
+  private parseYamlFrontMatter(): MdxYamlFrontMatterNode | null {
+    const startPos = this.index;
+    
+    if (!this.match('---')) return null;
+    
+    this.advance(3);
+    
+    this.skipWhitespace();
+    
+    const contentStart = this.index;
+    
+    let foundEnd = false;
+    while (this.index < this.len) {
+      if (this.source.startsWith('---', this.index)) {
+        const beforeStart = this.source.slice(contentStart, this.index);
+        const lastNewlineIndex = beforeStart.lastIndexOf('\n');
+        const beforeFence = lastNewlineIndex >= 0 ? beforeStart.slice(0, lastNewlineIndex) : beforeStart;
+        
+        if (beforeFence.trimEnd() === beforeFence && lastNewlineIndex >= 0) {
+          foundEnd = true;
+          break;
+        }
+      }
+      this.index++;
+    }
+    
+    if (!foundEnd) {
+      this.index = startPos;
+      return null;
+    }
+    
+    const content = this.source.slice(contentStart, this.index).trim();
+    this.advance(3);
+    
+    const data: Record<string, any> = {};
+    const lines = content.split('\n');
+    
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) continue;
+      
+      const colonIndex = trimmed.indexOf(':');
+      if (colonIndex === -1) continue;
+      
+      const key = trimmed.slice(0, colonIndex).trim();
+      let value = trimmed.slice(colonIndex + 1).trim();
+      
+      if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+        value = value.slice(1, -1);
+      }
+      
+      data[key] = value;
+    }
+    
+    return {
+      type: 'yaml-front-matter',
+      raw: this.source.slice(startPos, this.index),
+      data
+    };
+  }
+
+  /**
+   * 尝试解析 code block
+   * 支持 ``` 和 ~~~ 两种 fence
+   */
+  private parseCodeBlock(): MdxCodeBlockNode | null {
+    const startPos = this.index;
+    
+    const fence = this.match('```') ? '```' : (this.match('~~~') ? '~~~' : null);
+    if (!fence) return null;
+    
+    this.advance(fence.length);
+    
+    let language = '';
+    while (this.index < this.len && !/\s/.test(this.source[this.index])) {
+      language += this.source[this.index];
+      this.index++;
+    }
+    
+    this.skipWhitespace();
+    
+    const contentStart = this.index;
+    
+    let foundEnd = false;
+    while (this.index < this.len) {
+      if (this.source.startsWith(fence, this.index)) {
+        const beforeStart = this.source.slice(contentStart, this.index);
+        const lastNewlineIndex = beforeStart.lastIndexOf('\n');
+        const beforeFence = lastNewlineIndex >= 0 ? beforeStart.slice(0, lastNewlineIndex) : beforeStart;
+        
+        if (beforeFence.trimEnd() === beforeFence && lastNewlineIndex >= 0) {
+          foundEnd = true;
+          break;
+        }
+      }
+      this.index++;
+    }
+    
+    if (!foundEnd) {
+      this.index = startPos;
+      return null;
+    }
+    
+    const content = this.source.slice(contentStart, this.index);
+    this.advance(fence.length);
+    
+    return {
+      type: 'code-block',
+      raw: this.source.slice(startPos, this.index),
+      language: language || undefined,
+      content
+    };
+  }
+
+  /**
    * 获取下一个节点（Markdown 或 JSX）
    * @param insideJsx - 标记是否在 JSX children 内部（影响是否处理纯文本合并）
    */
@@ -326,6 +450,22 @@ export class MdxParser {
     if (this.isEnd()) return null;
 
     const startPos = this.index;
+    
+    // 尝试解析 YAML front matter（仅在文档开头）
+    if (this.index === 0 && this.match('---')) {
+      const yamlNode = this.parseYamlFrontMatter();
+      if (yamlNode) {
+        return yamlNode;
+      }
+    }
+    
+    // 尝试解析 code block（支持 ``` 和 ~~~）
+    if (this.match('```') || this.match('~~~')) {
+      const codeNode = this.parseCodeBlock();
+      if (codeNode) {
+        return codeNode;
+      }
+    }
     
     // 尝试解析 JSX
     if (this.peek() === '<') {
@@ -337,15 +477,15 @@ export class MdxParser {
     }
 
     // 如果不是 JSX，则是 Markdown 文本
-    // 向前读取直到遇到下一个可能的 JSX 开始 ('<') 或者结束
     while (this.index < this.len) {
       if (this.peek() === '<') {
-        // 检查这个 '<' 是否能构成合法的 JSX，如果是，则 Markdown 文本结束
-        // 这是一个前瞻检查，不移动 index
         const tempIndex = this.index;
         if (/^<[a-zA-Z_$]/.test(this.source.slice(tempIndex, tempIndex + 2)) || this.source.startsWith('</', tempIndex) || this.source.startsWith('<>', tempIndex)) {
           break;
         }
+      }
+      if (this.match('```') || this.match('~~~')) {
+        break;
       }
       this.index++;
     }
