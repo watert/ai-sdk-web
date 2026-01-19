@@ -1,4 +1,4 @@
-import { MdxParser, MdxJsxNode, isMdxFunction, isMdxExpression } from './mdx-parse';
+import { MdxParser, MdxJsxNode, isMdxFunction, isMdxExpression, parseYaml } from './mdx-parse';
 
 const isJsxNode = (node: any): node is MdxJsxNode => node?.type === 'jsx';
 
@@ -564,5 +564,190 @@ without language
     expect((codeNode as any).language).toBeUndefined();
     expect((codeNode as any).content).toContain('plain text');
     expect((codeNode as any).content).toContain('without language');
+  });
+
+  it('Code Block: 没有闭合的代码块', () => {
+    const input = `文本内容
+
+\`\`\`javascript
+const x = 1;
+console.log(x);
+
+后续文本`;
+
+    const result = MdxParser.parse(input);
+
+    expect(result).toHaveLength(2);
+    const codeNode = result[1];
+    expect(codeNode.type).toBe('code-block');
+    expect((codeNode as any).language).toBe('javascript');
+    expect((codeNode as any).content).toContain('const x = 1;');
+    expect((codeNode as any).content).toContain('console.log(x);');
+    expect((codeNode as any).raw).toContain('```javascript');
+  });
+
+  it('Code Block: 没有闭合且没有语言的代码块', () => {
+    const input = `开始
+
+\`\`\`
+未闭合的代码
+这里是剩余内容`;
+
+    const result = MdxParser.parse(input);
+
+    expect(result).toHaveLength(2);
+    const codeNode = result[1];
+    expect(codeNode.type).toBe('code-block');
+    expect((codeNode as any).language).toBeUndefined();
+    expect((codeNode as any).content).toContain('未闭合的代码');
+    expect((codeNode as any).raw).toBe('```\n未闭合的代码\n这里是剩余内容');
+  });
+});
+
+describe('parseYaml', () => {
+  it('基本键值对解析', () => {
+    const input = `title: 文章标题
+author: 张三
+date: 2024-01-01`;
+
+    const result = parseYaml(input);
+
+    expect(result).toEqual({
+      title: '文章标题',
+      author: '张三',
+      date: '2024-01-01'
+    });
+  });
+
+  it('带引号的字符串值', () => {
+    const input = `title: "带引号的标题"
+description: '这是描述'
+tags: "tag1, tag2"`;
+
+    const result = parseYaml(input);
+
+    expect(result.title).toBe('带引号的标题');
+    expect(result.description).toBe('这是描述');
+    expect(result.tags).toBe('tag1, tag2');
+  });
+
+  it('布尔值和 null', () => {
+    const input = `published: true
+draft: false
+empty: null`;
+
+    const result = parseYaml(input);
+
+    expect(result.published).toBe(true);
+    expect(result.draft).toBe(false);
+    expect(result.empty).toBe(null);
+  });
+
+  it('数字类型', () => {
+    const input = `count: 42
+price: 99.5
+negative: -10`;
+
+    const result = parseYaml(input);
+
+    expect(result.count).toBe(42);
+    expect(result.price).toBe(99.5);
+    expect(result.negative).toBe(-10);
+  });
+
+  it('Inline Array 基本解析', () => {
+    const input = `tags: [javascript, typescript, react]
+numbers: [1, 2, 3]`;
+
+    const result = parseYaml(input);
+
+    expect(result.tags).toEqual(['javascript', 'typescript', 'react']);
+    expect(result.numbers).toEqual([1, 2, 3]);
+  });
+
+  it('Inline Array 包含混合类型', () => {
+    const input = `mixed: [true, 123, "text", false, null]`;
+
+    const result = parseYaml(input);
+
+    expect(result.mixed).toEqual([true, 123, 'text', false, null]);
+  });
+
+  it('Inline Array 包含带引号的字符串', () => {
+    const input = `quoted: ["带空格的值", '单引号值', normal]`;
+
+    const result = parseYaml(input);
+
+    expect(result.quoted).toEqual(['带空格的值', '单引号值', 'normal']);
+  });
+
+  it('空数组', () => {
+    const input = `empty: []
+items:`;
+
+    const result = parseYaml(input);
+
+    expect(result.empty).toEqual([]);
+    expect(result.items).toBeUndefined();
+  });
+
+  it('忽略注释行', () => {
+    const input = `title: 标题
+# 这是一个注释
+author: 作者
+# 另一个注释
+tags: [a, b, c]`;
+
+    const result = parseYaml(input);
+
+    expect(result).toEqual({
+      title: '标题',
+      author: '作者',
+      tags: ['a', 'b', 'c']
+    });
+  });
+
+  it('忽略空行', () => {
+    const input = `title: 标题
+
+author: 作者
+
+tags: [a, b, c]`;
+
+    const result = parseYaml(input);
+
+    expect(result).toEqual({
+      title: '标题',
+      author: '作者',
+      tags: ['a', 'b', 'c']
+    });
+  });
+
+  it('混合所有类型', () => {
+    const input = `title: 文章标题
+tags: [react, vue, angular]
+author: 张三
+published: true
+count: 100
+empty: []
+description: "这是一个描述"`;
+
+    const result = parseYaml(input);
+
+    expect(result).toEqual({
+      title: '文章标题',
+      tags: ['react', 'vue', 'angular'],
+      author: '张三',
+      published: true,
+      count: 100,
+      empty: [],
+      description: '这是一个描述'
+    });
+  });
+
+  it('空字符串返回空对象', () => {
+    expect(parseYaml('')).toEqual({});
+    expect(parseYaml('   ')).toEqual({});
+    expect(parseYaml('\n\n')).toEqual({});
   });
 });

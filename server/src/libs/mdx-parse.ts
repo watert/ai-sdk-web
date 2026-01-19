@@ -126,6 +126,33 @@ export const parseYamlArrayItem = (item: string): any => {
   return trimmed;
 };
 
+export const parseYaml = (content: string): Record<string, any> => {
+  const data: Record<string, any> = {};
+  const lines = content.split('\n');
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+
+    const colonIndex = trimmed.indexOf(':');
+    if (colonIndex === -1) continue;
+
+    const key = trimmed.slice(0, colonIndex).trim();
+    const value = trimmed.slice(colonIndex + 1).trim();
+
+    const arrayValue = parseYamlInlineArray(value);
+    if (arrayValue !== null) {
+      data[key] = arrayValue;
+    } else if (value === '') {
+      data[key] = undefined;
+    } else {
+      data[key] = parseYamlArrayItem(value);
+    }
+  }
+
+  return data;
+};
+
 // --- 解析器类 ---
 
 export class MdxParser {
@@ -451,36 +478,9 @@ export class MdxParser {
     
     const content = this.source.slice(contentStart, this.index).trim();
     this.advance(3);
-    
-    const data: Record<string, any> = {};
-    const lines = content.split('\n');
-    
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith('#')) continue;
-      
-      const colonIndex = trimmed.indexOf(':');
-      if (colonIndex === -1) continue;
-      
-      const key = trimmed.slice(0, colonIndex).trim();
-      let value = trimmed.slice(colonIndex + 1).trim();
 
-      const arrayValue = parseYamlInlineArray(value);
-      if (arrayValue !== null) {
-        data[key] = arrayValue;
-      } else if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
-        data[key] = value.slice(1, -1);
-      } else if (value === 'true') {
-        data[key] = true;
-      } else if (value === 'false') {
-        data[key] = false;
-      } else if (value === 'null') {
-        data[key] = null;
-      } else {
-        data[key] = value;
-      }
-    }
-    
+    const data = parseYaml(content);
+
     return {
       type: 'yaml-front-matter',
       raw: this.source.slice(startPos, this.index),
@@ -509,14 +509,14 @@ export class MdxParser {
     this.skipWhitespace();
     
     const contentStart = this.index;
-    
     let foundEnd = false;
+
     while (this.index < this.len) {
       if (this.source.startsWith(fence, this.index)) {
         const beforeStart = this.source.slice(contentStart, this.index);
         const lastNewlineIndex = beforeStart.lastIndexOf('\n');
         const beforeFence = lastNewlineIndex >= 0 ? beforeStart.slice(0, lastNewlineIndex) : beforeStart;
-        
+
         if (beforeFence.trimEnd() === beforeFence && lastNewlineIndex >= 0) {
           foundEnd = true;
           break;
@@ -524,18 +524,16 @@ export class MdxParser {
       }
       this.index++;
     }
-    
-    if (!foundEnd) {
-      this.index = startPos;
-      return null;
-    }
-    
+
     const content = this.source.slice(contentStart, this.index);
-    this.advance(fence.length);
-    
+
+    if (foundEnd) {
+      this.advance(fence.length);
+    }
+
     return {
       type: 'code-block',
-      raw: this.source.slice(startPos, this.index),
+      raw: this.source.slice(startPos, this.index + (foundEnd ? fence.length : 0)),
       language: language || undefined,
       content
     };
