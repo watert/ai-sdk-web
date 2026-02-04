@@ -43,7 +43,7 @@ function extractTitleInfo(line: string): { title: string; level: number } | null
   return { level: match[1].length, title: match[2].trim() };
 }
 
-function extractKeywords(text: string, topN: number = 50): string[] {
+function extractKeywords(text: string, topN: number = 100): string[] {
   try {
     return tfIdf.extractKeywords(jieba, text, topN).map((keyword) => keyword.keyword).filter(r => r);
   } catch {
@@ -117,22 +117,27 @@ async function main() {
   }
 
   const content = fs.readFileSync(absolutePath, 'utf-8');
-  const chunks = splitMarkdownByTitles(content, args['max-lines'], args['offset-lines']);
+  const maxLines = Math.min(args['max-lines'], content.split('\n').length - args['offset-lines']);
+  const offsetLines = Math.max(0, args['offset-lines']);
+  const nameCountLimit = Math.max(100, Math.min(maxLines / 200, 30));
+
+
+  const chunks = splitMarkdownByTitles(content, maxLines, offsetLines);
 
   console.log(`\n解析完成，共 ${chunks.length} 个 chunk:\n`);
 
-  chunks.forEach((chunk, index) => {
-    console.log(`[${index + 1}] ${'#'.repeat(chunk.titleLevel)} ${chunk.title || '(无标题)'}`);
-    console.log(`    层级: ${chunk.titleLevel}`);
-    console.log(`    行数: ${chunk.lines}`);
-    console.log(`    字符数: ${chunk.length}`);
-    if (chunk.keywords.length > 0) {
-      console.log(`    关键词: ${chunk.keywords.join(', ')}`);
-    } else {
-      console.log(`    关键词: (无)`);
-    }
-    console.log('');
-  });
+  // chunks.forEach((chunk, index) => {
+  //   console.log(`[${index + 1}] ${'#'.repeat(chunk.titleLevel)} ${chunk.title || '(无标题)'}`);
+  //   console.log(`    层级: ${chunk.titleLevel}`);
+  //   console.log(`    行数: ${chunk.lines}`);
+  //   console.log(`    字符数: ${chunk.length}`);
+  //   // if (chunk.keywords.length > 0) {
+  //   //   console.log(`    关键词: ${chunk.keywords.join(', ')}`);
+  //   // } else {
+  //   //   console.log(`    关键词: (无)`);
+  //   // }
+  //   console.log('');
+  // });
 
   console.log('--- 统计 ---');
   console.log(`总 chunk 数: ${chunks.length}`);
@@ -141,21 +146,25 @@ async function main() {
   
   const allKeywords = chunks.flatMap(c => c.keywords);
   const findChunkByKeyword = (keyword: string) => chunks.find(c => c.keywords.includes(keyword));
-  const topKeywords = _(allKeywords)
+  const findLastChunkByKeyword = (keyword: string) => _.findLast(chunks, c => c.keywords.includes(keyword));
+
+  const topNameKeywords = _(allKeywords)
     .countBy()
     .map((count, keyword) => ({ keyword, count }))
     .sortBy(r => -r.count)
     .flatMap(item => jieba.tag(item.keyword).map(r => {
       const firstChunk = findChunkByKeyword(item.keyword);
+      const lastChunk = findLastChunkByKeyword(item.keyword);
       return {
         ...r, count: item.count,
-        minChunkIdx: firstChunk?.keywords.indexOf(item.keyword) || -1,
+        minIdx: !firstChunk ? -1: chunks.indexOf(firstChunk),
+        maxIdx: !lastChunk ? -1: chunks.indexOf(lastChunk),
       };
     })).filter(r => r.tag === 'nr')
-    .slice(0, 30)
+    .slice(0, nameCountLimit)
     .value();
-  console.log(`高频关键词`, topKeywords);
-  console.log('tag', jieba.tag('高媛媛'))
+  console.log(`高频 nr tagged words`, topNameKeywords, { nameCountLimit });
+  // console.log('tag', jieba.tag('高媛媛'))
 }
 
 main().catch(console.error);
